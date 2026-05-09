@@ -23,42 +23,42 @@
       <ul class="nav nav-pills flex-column gap-1">
 
         <li class="nav-item">
-          <router-link to="/dashboard" class="nav-link" exact-active-class="active">
+          <router-link to="/dashboard" class="nav-link" exact-active-class="active" @click="emit('close')">
             <i class="bi bi-grid-fill me-3"></i>
             ផ្ទាំងគ្រប់គ្រង
           </router-link>
         </li>
 
         <li class="nav-item">
-          <router-link to="/manager-alumni" class="nav-link" exact-active-class="active">
+          <router-link to="/manager-alumni" class="nav-link" exact-active-class="active" @click="emit('close')">
             <i class="bi bi-people-fill me-3"></i>
             គ្រប់គ្រងអតីតនិស្សិត
           </router-link>
         </li>
 
         <li class="nav-item">
-          <router-link to="/generations" class="nav-link" exact-active-class="active">
+          <router-link to="/generations" class="nav-link" exact-active-class="active" @click="emit('close')">
             <i class="bi bi-mortarboard-fill me-3"></i>
             ជំនាន់និស្សិត
           </router-link>
         </li>
 
         <li class="nav-item">
-          <router-link to="/department" class="nav-link" exact-active-class="active">
+          <router-link to="/department" class="nav-link" exact-active-class="active" @click="emit('close')">
             <i class="bi bi-diagram-3-fill me-3"></i>
             ដេប៉ាតឺម៉ង់
           </router-link>
         </li>
 
         <li class="nav-item">
-          <router-link to="/category" class="nav-link" exact-active-class="active">
+          <router-link to="/category" class="nav-link" exact-active-class="active" @click="emit('close')">
             <i class="bi bi-journal-text me-3"></i>
             ប្រភេទ
           </router-link>
         </li>
 
         <li class="nav-item">
-          <router-link to="/event" class="nav-link" exact-active-class="active">
+          <router-link to="/event" class="nav-link" active-class="active" @click="emit('close')">
             <i class="bi bi-calendar-event-fill me-3"></i>
             ព្រឹត្តិការណ៍
           </router-link>
@@ -107,6 +107,8 @@ defineProps({
     default: true,
   },
 });
+
+const emit = defineEmits(["close"]);
 
 const authStore = useAuthStore();
 

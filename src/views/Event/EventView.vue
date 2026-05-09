@@ -216,13 +216,6 @@ const formatDateTime = (value) => {
                 </template>
             </BaseTable>
 
-            <!-- ករណីគ្មានទិន្នន័យ -->
-            <div v-if="store.events.length === 0" class="app-state">
-                <div>
-                    <div class="app-state__icon"><i class="bi bi-calendar-event"></i></div>
-                    <p class="mb-0">រកមិនឃើញព្រឹត្តិការណ៍ឡើយ។</p>
-                </div>
-            </div>
         </div>
 
         <!-- ផ្ទាំង Modal សម្រាប់បង្កើត/កែប្រែ -->

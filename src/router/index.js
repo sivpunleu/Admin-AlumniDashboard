@@ -73,6 +73,7 @@ const routes = [
         name: "event-participants",
         component: ParticipantView,
         props: true, // ដើម្បីឱ្យយើងអាចទាញយក ID តាមរយៈ props បានងាយស្រួល
+        meta: { title: "EVENT PARTICIPANTS" },
       },
     ],
   },

@@ -6,7 +6,7 @@
     <Navbar :sidebar-open="sidebarOpen" @toggleSidebar="toggleSidebar" />
 
     <!-- Sidebar -->
-    <Sidebar :is-open="sidebarOpen" @close="closeSidebar" />
+    <Sidebar :is-open="sidebarOpen" @close="closeSidebarOnMobile" />
 
     <!-- Overlay Mobile -->
     <transition name="fade">
@@ -31,12 +31,13 @@ const sidebarOpen = ref(true);
 const isMobile = ref(false);
 
 const checkScreen = () => {
-  isMobile.value = window.innerWidth < 992;
+  const wasMobile = isMobile.value;
+  const nextIsMobile = window.innerWidth < 992;
+  isMobile.value = nextIsMobile;
 
-  // Auto close sidebar on mobile
-  if (isMobile.value) {
+  if (nextIsMobile && !wasMobile) {
     sidebarOpen.value = false;
-  } else {
+  } else if (!nextIsMobile && wasMobile) {
     sidebarOpen.value = true;
   }
 };
@@ -47,6 +48,12 @@ const toggleSidebar = () => {
 
 const closeSidebar = () => {
   sidebarOpen.value = false;
+};
+
+const closeSidebarOnMobile = () => {
+  if (isMobile.value) {
+    closeSidebar();
+  }
 };
 
 onMounted(() => {
