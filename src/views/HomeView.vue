@@ -19,6 +19,42 @@ const PRIMARY_COLOR = '#216477';
 
 const normalizeStatus = (value) => String(value || 'PENDING').toUpperCase();
 
+const getUserEmail = (user) => {
+  const email = user?.email;
+  return typeof email === 'string' && email.trim() ? email.trim() : '-';
+};
+
+const getUserDisplayName = (user) => {
+  const profileName = user?.profile?.fullname || user?.profile?.fullName;
+  const name = profileName || user?.fullname || user?.fullName || user?.name || user?.username;
+  if (typeof name === 'string' && name.trim()) return name.trim();
+
+  const email = getUserEmail(user);
+  return email !== '-' ? email.split('@')[0] : 'Unknown';
+};
+
+const getUserInitial = (user) => getUserDisplayName(user).charAt(0).toUpperCase();
+
+const formatRegistrationDate = (user) => {
+  const value = user?.createdAt || user?.created_at || user?.profile?.createdAt || user?.updatedAt;
+  if (!value) return '-';
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('km-KH');
+};
+
+const getStatusClass = (status) => {
+  if (status === 'APPROVE') return 'approved';
+  if (status === 'DEACTIVATED') return 'deactivated';
+  return 'pending';
+};
+
+const getStatusLabel = (status) => {
+  if (status === 'APPROVE') return 'បានអនុម័ត';
+  if (status === 'DEACTIVATED') return 'បានផ្អាក';
+  return 'រង់ចាំ';
+};
+
 // ២. Function ទាញយកទិន្នន័យពី API
 const getUserStatus = (user) => {
   if (!user) return 'PENDING';
@@ -170,20 +206,20 @@ onMounted(() => {
                     <div class="d-flex align-items-center">
                       <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
                         :style="{ backgroundColor: PRIMARY_COLOR }">
-                        {{ user.email.charAt(0).toUpperCase() }}
+                        {{ getUserInitial(user) }}
                       </div>
                       <div>
-                        <div class="fw-bold text-dark small">{{ user.email.split('@')[0] }}</div>
-                        <div class="text-muted extra-small">{{ user.email }}</div>
+                        <div class="fw-bold text-dark small">{{ getUserDisplayName(user) }}</div>
+                        <div class="text-muted extra-small">{{ getUserEmail(user) }}</div>
                       </div>
                     </div>
                   </td>
                   <td class="small text-center text-muted">
-                    {{ new Date().toLocaleDateString('km-KH') }}
+                    {{ formatRegistrationDate(user) }}
                   </td>
                   <td class="text-center">
-                    <span :class="['badge-status', getUserStatus(user) === 'APPROVE' ? 'approved' : 'pending']">
-                      • {{ getUserStatus(user) === 'APPROVE' ? 'បានអនុម័ត' : 'រង់ចាំ' }}
+                    <span :class="['badge-status', getStatusClass(getUserStatus(user))]">
+                      • {{ getStatusLabel(getUserStatus(user)) }}
                     </span>
                   </td>
                   <td class="text-end text-muted">
@@ -241,6 +277,11 @@ onMounted(() => {
 .badge-status.pending {
   background: #fff4e5;
   color: #b45309;
+}
+
+.badge-status.deactivated {
+  background: #fdf2f2;
+  color: #b42318;
 }
 
 .card {

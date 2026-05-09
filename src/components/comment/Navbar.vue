@@ -21,14 +21,6 @@
             <!-- Right -->
             <div class="d-flex align-items-center gap-3">
 
-                <!-- Search -->
-                <div class="search-wrapper d-none d-lg-block position-relative">
-
-                    <i class="bi bi-search search-icon"></i>
-
-                    <input type="text" class="form-control search-input" placeholder="ស្វែងរក..." />
-                </div>
-
                 <!-- Profile -->
                 <div class="dropdown">
 
@@ -198,36 +190,6 @@ const handleLogout = () => {
     letter-spacing: 0.5px;
 }
 
-/* Search */
-.search-wrapper {
-    width: 240px;
-}
-
-.search-input {
-    padding-left: 42px;
-
-    border: none;
-    border-radius: 999px;
-
-    background: #f1f5f9;
-}
-
-.search-input:focus {
-    background: white;
-    box-shadow: none;
-}
-
-.search-icon {
-    position: absolute;
-
-    left: 14px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    color: #94a3b8;
-}
-
 /* Profile */
 .profile-trigger {
     padding: 4px 10px;
@@ -274,9 +236,6 @@ const handleLogout = () => {
         padding-right: 1rem !important;
     }
 
-    .search-wrapper {
-        display: none !important;
-    }
 }
 
 /* Mobile */

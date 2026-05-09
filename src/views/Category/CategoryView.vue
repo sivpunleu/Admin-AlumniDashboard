@@ -127,12 +127,6 @@ const handleSubmit = async () => {
                 </template>
             </BaseTable>
 
-            <div v-if="store.categories.length === 0" class="app-state">
-                <div>
-                    <div class="app-state__icon"><i class="bi bi-folder2-open"></i></div>
-                    <p class="mb-0">មិនមានទិន្នន័យទេ</p>
-                </div>
-            </div>
         </div>
 
         <!-- Pagination -->
