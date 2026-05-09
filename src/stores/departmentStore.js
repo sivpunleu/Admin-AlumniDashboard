@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import { confirmDelete } from "@/utils/confirmDialog";
 
 export const useDepartmentStore = defineStore("department", () => {
   const departments = ref([]);
@@ -86,14 +87,8 @@ export const useDepartmentStore = defineStore("department", () => {
 
   // ៤. លុប (DELETE /departments/{id}) - យោងតាមរូបភាព image_108add.png
   async function deleteDepartment(id) {
-    const result = await Swal.fire({
-      title: "តើអ្នកប្រាកដទេ?",
-      text: "ទិន្នន័យនេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "បាទ លុបវា!",
-      cancelButtonText: "បោះបង់",
+    const result = await confirmDelete({
+      text: "ដេប៉ាតឺម៉ង់នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
     });
 
     if (result.isConfirmed) {

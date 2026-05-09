@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import { confirmDelete } from "@/utils/confirmDialog";
 
 export const useEventStore = defineStore("event", () => {
   const events = ref([]);
@@ -70,13 +71,8 @@ export const useEventStore = defineStore("event", () => {
   }
 
   async function deleteEvent(id) {
-    const result = await Swal.fire({
-      title: "តើអ្នកប្រាកដទេ?",
-      text: "ទិន្នន័យនឹងត្រូវលុបចេញ!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "លុប",
+    const result = await confirmDelete({
+      text: "ព្រឹត្តិការណ៍នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
     });
     if (result.isConfirmed) {
       try {

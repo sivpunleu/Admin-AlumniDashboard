@@ -68,12 +68,12 @@ const tableColumns = [
 <template>
   <div class="p-4 bg-dashboard min-vh-100 font-khmer">
     <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-toolbar align-items-start mb-4">
       <div>
         <h2 class="fw-bold text-dark mb-1">គ្រប់គ្រងអតីតនិស្សិត</h2>
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="page-toolbar__actions">
         <button class="btn btn-white border shadow-sm btn-sm px-3"><i class="bi bi-filter-right"></i>
           តម្រងកម្រិតខ្ពស់</button>
         <button @click="store.requireAdmin(store.openRegisterModal)"
@@ -85,7 +85,7 @@ const tableColumns = [
 
     <!-- Search & Filter Bar (យោងតាម image_a84f9e.png) -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
-      <div class="card-body p-2 d-flex gap-2">
+      <div class="card-body p-2 page-toolbar">
         <div class="search-input-wrapper flex-grow-1">
           <i class="bi bi-search text-muted"></i>
           <input v-model="searchModel" type="text" class="form-control-custom"
@@ -113,12 +113,18 @@ const tableColumns = [
           បង្ហាញ {{ pageSummary }} នៃ {{ store.totalItems.value }}
         </div>
       </div>
-      <div v-if="store.isLoading.value" class="text-center py-5">
-        កំពុងផ្ទុក...
+      <div v-if="store.isLoading.value" class="app-state">
+        <div>
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-3 mb-0">កំពុងផ្ទុក...</p>
+        </div>
       </div>
 
-      <div v-else-if="store.users.value.length === 0" class="text-center py-5 text-muted">
-        មិនមានទិន្នន័យទេ
+      <div v-else-if="store.users.value.length === 0" class="app-state">
+        <div>
+          <div class="app-state__icon"><i class="bi bi-people"></i></div>
+          <p class="mb-0">មិនមានទិន្នន័យទេ</p>
+        </div>
       </div>
 
       <BaseTable v-else :columns="tableColumns" :data="store.users.value">
@@ -170,45 +176,72 @@ const tableColumns = [
 
   <!-- Register Modal using BaseModal -->
   <BaseModal v-model="store.showRegisterModal.value" title="ចុះឈ្មោះអតីតនិស្សិត" hideDefaultFooter>
-    <form @submit.prevent="store.handleRegisterAlumni">
-      <div class="mb-3">
+    <form class="app-form" novalidate @submit.prevent="store.handleRegisterAlumni">
+      <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
-        <input v-model="store.registerForm.value.fullname" type="text" class="form-control" required />
+        <input v-model="store.registerForm.value.fullname" type="text" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.fullname }" required
+          @input="delete store.registerErrors.value.fullname" />
+        <div v-if="store.registerErrors.value.fullname" class="invalid-feedback">
+          {{ store.registerErrors.value.fullname }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">អ៊ីមែល *</label>
-        <input v-model="store.registerForm.value.email" type="email" class="form-control" required />
+        <input v-model="store.registerForm.value.email" type="email" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.email }" required
+          @input="delete store.registerErrors.value.email" />
+        <div v-if="store.registerErrors.value.email" class="invalid-feedback">
+          {{ store.registerErrors.value.email }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
         <input v-model="store.registerForm.value.phone" type="tel" class="form-control" />
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">ពាក្យសម្ងាត់ *</label>
-        <input v-model="store.registerForm.value.password" type="password" class="form-control" required />
+        <input v-model="store.registerForm.value.password" type="password" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.password }" required
+          @input="delete store.registerErrors.value.password" />
+        <div v-if="store.registerErrors.value.password" class="invalid-feedback">
+          {{ store.registerErrors.value.password }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">អះអាងពាក្យសម្ងាត់ *</label>
-        <input v-model="store.registerForm.value.confirmPassword" type="password" class="form-control" required />
+        <input v-model="store.registerForm.value.confirmPassword" type="password" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }" required
+          @input="delete store.registerErrors.value.confirmPassword" />
+        <div v-if="store.registerErrors.value.confirmPassword" class="invalid-feedback">
+          {{ store.registerErrors.value.confirmPassword }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">ដេបាតមេន *</label>
-        <select v-model="store.registerForm.value.departmentId" class="form-control" required>
+        <select v-model="store.registerForm.value.departmentId" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
+          @change="delete store.registerErrors.value.departmentId">
           <option value="">-- ជ្រើសរើស --</option>
           <option value="1">Computer Science</option>
           <option value="2">Business</option>
           <option value="3">Engineering</option>
         </select>
+        <div v-if="store.registerErrors.value.departmentId" class="invalid-feedback">
+          {{ store.registerErrors.value.departmentId }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">ជំនាន់ *</label>
-        <select v-model="store.registerForm.value.generationId" class="form-control" required>
+        <select v-model="store.registerForm.value.generationId" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
+          @change="delete store.registerErrors.value.generationId">
           <option value="">-- ជ្រើសរើស --</option>
           <option value="1">2020</option>
           <option value="2">2021</option>
@@ -216,9 +249,12 @@ const tableColumns = [
           <option value="4">2023</option>
           <option value="5">2024</option>
         </select>
+        <div v-if="store.registerErrors.value.generationId" class="invalid-feedback">
+          {{ store.registerErrors.value.generationId }}
+        </div>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">ស្ថានភាព *</label>
         <select v-model="store.registerForm.value.status" class="form-control" required>
           <option value="PENDING">កំពុងរង់ចាំ</option>
@@ -227,23 +263,23 @@ const tableColumns = [
         </select>
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
         <input v-model="store.registerForm.value.currentJob" type="text" class="form-control" />
       </div>
 
-      <div class="mb-3">
+      <div>
         <label class="form-label fw-bold small">ជីវប្របត្តិ</label>
         <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"></textarea>
       </div>
 
-      <div class="d-flex gap-2">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary flex-grow-1" @click="store.showRegisterModal.value = false">
+          បិទ
+        </button>
         <button type="submit" class="btn btn-primary-custom flex-grow-1" :disabled="store.isLoading.value">
           <span v-if="store.isLoading.value">កំពុងដំណើរការ...</span>
           <span v-else>ចុះឈ្មោះ</span>
-        </button>
-        <button type="button" class="btn btn-secondary flex-grow-1" @click="store.showRegisterModal.value = false">
-          បិទ
         </button>
       </div>
     </form>
@@ -257,13 +293,6 @@ const tableColumns = [
 
 .bg-dashboard {
   background-color: #f9fafb;
-}
-
-.btn-primary-custom {
-  background-color: #216477;
-  color: white;
-  border: none;
-  border-radius: 10px;
 }
 
 .btn-white {

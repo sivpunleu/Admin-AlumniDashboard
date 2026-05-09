@@ -16,6 +16,20 @@
                         </slot>
                     </td>
                 </tr>
+                <tr v-if="!data?.length">
+                    <td :colspan="columns.length" class="p-0">
+                        <slot name="empty">
+                            <div class="app-state">
+                                <div>
+                                    <div class="app-state__icon">
+                                        <i class="bi bi-inbox"></i>
+                                    </div>
+                                    <p class="mb-0">មិនមានទិន្នន័យទេ</p>
+                                </div>
+                            </div>
+                        </slot>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>

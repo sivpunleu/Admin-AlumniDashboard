@@ -1,7 +1,33 @@
 @import url("https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap");
 
+:root {
+  --app-primary: #216477;
+  --app-primary-hover: #1a4f5d;
+  --app-surface: #ffffff;
+  --app-page-bg: #f8fafc;
+  --app-border: #e2e8f0;
+  --app-muted: #64748b;
+  --app-radius: 12px;
+}
+
+html,
+body,
+button,
+input,
+textarea,
+select,
+.btn,
+.form-control,
+.form-select,
+.dropdown-menu,
+.modal,
+.table,
+.swal2-popup {
+  font-family: "Kantumruy Pro", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
 body {
-  font-family: "Kantumruy Pro", sans-serif !important;
+  background-color: var(--app-page-bg);
 }
 
 .line-clamp-2 {
@@ -21,13 +47,150 @@ body {
 }
 
 
-.btn-primary{
-  background-color: #212529!important;
-  color: #ffffff!important;
-  border: none!important;
+.btn-primary {
+  background-color: var(--app-primary) !important;
+  color: #ffffff !important;
+  border: none !important;
 }
 
-.btn-primary:hover{
-  background-color: #3e4348!important;
-  transition: all 0.3s ease!important;
+.btn-primary:hover {
+  background-color: var(--app-primary-hover) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-primary-custom,
+.bg-primary-custom {
+  background-color: var(--app-primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-primary-custom:hover,
+.btn-primary-custom:focus {
+  background-color: var(--app-primary-hover) !important;
+  color: #ffffff !important;
+}
+
+.btn-primary-custom:disabled {
+  opacity: 0.75;
+}
+
+.invalid-feedback {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.is-invalid {
+  border-color: #dc3545 !important;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.page-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-search-box {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-search-box:focus-within {
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
+}
+
+.app-state {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--app-muted);
+}
+
+.app-state__icon {
+  width: 3rem;
+  height: 3rem;
+  display: inline-grid;
+  place-items: center;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: #eef6f8;
+  color: var(--app-primary);
+  font-size: 1.35rem;
+}
+
+.app-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.app-form .form-label {
+  margin-bottom: 0.4rem;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .page-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-toolbar__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-toolbar__actions .btn,
+  .page-toolbar__actions .form-control,
+  .page-toolbar__actions .form-control-custom {
+    width: 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
 }

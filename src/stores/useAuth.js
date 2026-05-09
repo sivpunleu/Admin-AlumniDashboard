@@ -34,6 +34,18 @@ export const useAuthStore = defineStore("auth", () => {
     return ["admin", "administrator"].includes(String(roleName).toLowerCase());
   };
 
+  const isAdmin = computed(() => checkIsAdmin(user.value));
+
+  const clearAuth = () => {
+    const profileStore = useProfileStore();
+    token.value = null;
+    user.value = null;
+    if (profileStore) profileStore.profile = null;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    delete api.defaults.headers.common["Authorization"];
+  };
+
   const login = async (credentials) => {
     loading.value = true;
     errors.value = {};
@@ -90,7 +102,6 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const logout = () => {
-    const profileStore = useProfileStore();
     swal
       .fire({
         title: "ចាកចេញ?",
@@ -103,12 +114,7 @@ export const useAuthStore = defineStore("auth", () => {
       })
       .then((result) => {
         if (result.isConfirmed) {
-          token.value = null;
-          user.value = null;
-          if (profileStore) profileStore.profile = null;
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          delete api.defaults.headers.common["Authorization"];
+          clearAuth();
           router.push({ name: "login" });
         }
       });
@@ -136,6 +142,9 @@ export const useAuthStore = defineStore("auth", () => {
     loading,
     errors,
     isLogined,
+    isAdmin,
+    checkIsAdmin,
+    clearAuth,
     login,
     logout,
     checkAuth,

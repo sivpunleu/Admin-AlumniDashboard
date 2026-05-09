@@ -19,8 +19,6 @@ const filteredGens = computed(() => {
     );
 });
 
-const PRIMARY_COLOR = "#216477";
-
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
@@ -52,6 +50,12 @@ const form = reactive({
     departmentId: null,
     description: "",
 });
+const errors = reactive({
+    name: "",
+    startYear: "",
+    endYear: "",
+    departmentId: "",
+});
 
 const modalTitle = computed(() => (modalMode.value === "create" ? "Create New Generation" : "Update Generation"));
 const modalConfirmText = computed(() => (modalMode.value === "create" ? "Create" : "Update"));
@@ -71,6 +75,7 @@ const openCreateModal = () => {
     form.endYear = new Date().getFullYear();
     form.departmentId = null;
     form.description = "";
+    clearErrors();
     showModal.value = true;
 };
 
@@ -82,15 +87,50 @@ const openEditModal = (gen) => {
     form.endYear = gen.endYear || new Date().getFullYear();
     form.departmentId = gen.departmentId || null;
     form.description = gen.description || "";
+    clearErrors();
     showModal.value = true;
+};
+
+const clearErrors = () => {
+    Object.keys(errors).forEach((key) => {
+        errors[key] = "";
+    });
+};
+
+const validateForm = () => {
+    clearErrors();
+    form.name = form.name.trim();
+
+    const startYear = Number(form.startYear);
+    const endYear = Number(form.endYear);
+    const currentYear = new Date().getFullYear();
+
+    if (!form.name) {
+        errors.name = "សូមបញ្ចូលឈ្មោះជំនាន់";
+    }
+
+    if (!startYear) {
+        errors.startYear = "សូមបញ្ចូលឆ្នាំចាប់ផ្តើម";
+    } else if (startYear < 1900 || startYear > currentYear + 10) {
+        errors.startYear = "ឆ្នាំចាប់ផ្តើមមិនត្រឹមត្រូវ";
+    }
+
+    if (!endYear) {
+        errors.endYear = "សូមបញ្ចូលឆ្នាំបញ្ចប់";
+    } else if (endYear < startYear) {
+        errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាង ឬស្មើឆ្នាំចាប់ផ្តើម";
+    }
+
+    if (form.departmentId && Number(form.departmentId) <= 0) {
+        errors.departmentId = "Department ID មិនត្រឹមត្រូវ";
+    }
+
+    return !Object.values(errors).some(Boolean);
 };
 
 const submitForm = async () => {
     genStore.requireAdmin(async () => {
-        if (!form.name || !form.startYear || !form.endYear) {
-            Swal.fire("Validation", "សូមបំពេញ Name និង Years", "warning");
-            return;
-        }
+        if (!validateForm()) return;
 
         try {
             genStore.isLoading.value = true;
@@ -145,15 +185,14 @@ const handlePageChange = (page) => {
 <template>
     <div class="p-4 bg-light min-vh-100">
         <!-- ផ្នែកក្បាល (Header Section) -->
-        <div class="d-flex justify-content-between align-items-start mb-4">
+        <div class="page-toolbar align-items-start mb-4">
             <div>
                 <h2 class="fw-bold text-dark">ជំនាន់និស្សិត</h2>
                 <p class="text-muted small">ស្វែងរក និងគ្រប់គ្រងក្រុមនិស្សិតដែលបានបញ្ចប់ការសិក្សា និងក្រុមអតីតនិស្សិត។
                 </p>
             </div>
             <!-- ប៊ូតុងបង្កើតថ្មី (Create new generation) -->
-            <button @click="createGeneration" class="btn text-white px-4 py-2 rounded-3 shadow-sm border-0 btn-new"
-                :style="{ backgroundColor: PRIMARY_COLOR }">
+            <button @click="createGeneration" class="btn btn-primary-custom px-4 py-2 rounded-3 shadow-sm btn-new">
                 <i class="bi bi-plus-lg me-2"></i> បង្កើតជំនាន់ថ្មី
             </button>
         </div>
@@ -161,7 +200,7 @@ const handlePageChange = (page) => {
         <!-- ផ្នែកប្រអប់ស្វែងរក (Search Box Section) -->
         <div class="row mb-4">
             <div class="col-md-4">
-                <div class="search-box bg-white p-2 rounded-3 shadow-sm d-flex align-items-center border">
+                <div class="search-box app-search-box p-2 rounded-3 shadow-sm d-flex align-items-center">
                     <i class="bi bi-search ms-2 text-muted"></i>
                     <input v-model="genStore.searchQuery.value" type="text"
                         class="form-control border-0 shadow-none small" placeholder="ស្វែងរកតាមឈ្មោះ ឬលេខសម្គាល់...">
@@ -170,9 +209,11 @@ const handlePageChange = (page) => {
         </div>
 
         <!-- ស្ថានភាពកំពុងផ្ទុក (Loading State) -->
-        <div v-if="genStore.isLoading.value" class="text-center py-5">
-            <div class="spinner-border" :style="{ color: PRIMARY_COLOR }" role="status"></div>
-            <p class="mt-2 text-muted">កំពុងទាញទិន្នន័យ...</p>
+        <div v-if="genStore.isLoading.value" class="app-state">
+            <div>
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 mb-0">កំពុងទាញទិន្នន័យ...</p>
+            </div>
         </div>
 
         <!-- បញ្ជីជំនាន់ក្នុងតារាង (Generation Table) -->
@@ -192,26 +233,26 @@ const handlePageChange = (page) => {
 
                 <template #cell-actions="{ item }">
                     <div class="d-flex align-items-center gap-2">
-                        <!-- edit -->
-                        <button @click="openEditModal(item)" class="btn btn-sm btn-outline-primary" title="កែប្រែ">
-                            <i class="bi bi-pencil"></i>
+                        <button @click="openEditModal(item)" class="btn btn-icon" title="កែប្រែ"
+                            aria-label="កែប្រែជំនាន់">
+                            <i class="bi bi-pencil-square text-info"></i>
                         </button>
-                        <!-- delete -->
-                        <button @click="genStore.handleDelete(item.id)" class="btn btn-sm btn-outline-danger"
-                            title="លុប">
-                            <i class="bi bi-trash"></i>
+                        <button @click="genStore.handleDelete(item.id)" class="btn btn-icon" title="លុប"
+                            aria-label="លុបជំនាន់">
+                            <i class="bi bi-trash text-danger"></i>
                         </button>
-
                     </div>
                 </template>
             </BaseTable>
 
-            <div v-if="filteredGens.length === 0" class="text-center py-5">
-                <i class="bi bi-folder2-open display-1 text-muted opacity-25"></i>
-                <p class="mt-3 text-muted">រកមិនឃើញទិន្នន័យជំនាន់ដែលអ្នកស្វែងរកទេ។</p>
+            <div v-if="filteredGens.length === 0" class="app-state">
+                <div>
+                    <div class="app-state__icon"><i class="bi bi-mortarboard"></i></div>
+                    <p class="mb-0">រកមិនឃើញទិន្នន័យជំនាន់ដែលអ្នកស្វែងរកទេ។</p>
+                </div>
             </div>
 
-            <div v-else class="d-flex justify-content-between align-items-center p-3 border-top bg-white">
+            <div v-else class="page-toolbar p-3 border-top bg-white">
                 <p class="small text-muted mb-0">Total: {{ filteredGens.length }} generations</p>
                 <BasePage :currentPage="currentPage" :totalPages="totalPages" @change-page="handlePageChange" />
             </div>
@@ -223,37 +264,54 @@ const handlePageChange = (page) => {
                 <h5 class="mb-0">{{ modalTitle }}</h5>
             </template>
 
-            <div class="p-2">
-                <div class="mb-3">
+            <div class="app-form">
+                <div>
                     <label class="small fw-bold">Generation Name</label>
-                    <input v-model="form.name" class="form-control" placeholder="e.g. ANT">
+                    <input v-model="form.name" class="form-control" :class="{ 'is-invalid': errors.name }"
+                        placeholder="e.g. ANT" @input="errors.name = ''" @blur="validateForm">
+                    <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
 
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="small fw-bold">Start Year</label>
-                        <input v-model="form.startYear" type="number" class="form-control">
+                        <input v-model="form.startYear" type="number" class="form-control"
+                            :class="{ 'is-invalid': errors.startYear }" @input="errors.startYear = ''"
+                            @blur="validateForm">
+                        <div v-if="errors.startYear" class="invalid-feedback">{{ errors.startYear }}</div>
                     </div>
                     <div class="col-6">
                         <label class="small fw-bold">End Year</label>
-                        <input v-model="form.endYear" type="number" class="form-control">
+                        <input v-model="form.endYear" type="number" class="form-control"
+                            :class="{ 'is-invalid': errors.endYear }" @input="errors.endYear = ''"
+                            @blur="validateForm">
+                        <div v-if="errors.endYear" class="invalid-feedback">{{ errors.endYear }}</div>
                     </div>
                 </div>
 
-                <div class="mb-3 mt-3">
+                <div>
                     <label class="small fw-bold">Department ID</label>
-                    <input v-model="form.departmentId" type="number" class="form-control" placeholder="e.g. 2">
+                    <input v-model="form.departmentId" type="number" class="form-control"
+                        :class="{ 'is-invalid': errors.departmentId }" placeholder="e.g. 2"
+                        @input="errors.departmentId = ''" @blur="validateForm">
+                    <div v-if="errors.departmentId" class="invalid-feedback">{{ errors.departmentId }}</div>
                 </div>
 
-                <div class="mb-2">
+                <div>
                     <label class="small fw-bold">Description</label>
                     <textarea v-model="form.description" class="form-control" rows="3"></textarea>
                 </div>
             </div>
 
             <template #footer>
-                <button type="button" class="btn btn-light me-2" @click="showModal = false">Cancel</button>
-                <button type="button" class="btn btn-primary" @click="submitForm">{{ modalConfirmText }}</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-light" @click="showModal = false">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom" @click="submitForm"
+                        :disabled="genStore.isLoading.value">
+                        <span v-if="genStore.isLoading.value" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ modalConfirmText }}
+                    </button>
+                </div>
             </template>
         </BaseModal>
     </div>

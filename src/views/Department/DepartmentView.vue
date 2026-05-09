@@ -16,6 +16,7 @@ const form = reactive({
     name: '',
     description: ''
 });
+const errors = reactive({ name: '' });
 
 const tableColumns = [
     { key: 'id', label: 'ID' },
@@ -43,6 +44,7 @@ const openAddModal = () => {
     currentId.value = null;
     form.name = '';
     form.description = '';
+    errors.name = '';
     isModalOpen.value = true;
 };
 
@@ -51,10 +53,24 @@ const openEditModal = (dept) => {
     currentId.value = dept.id;
     form.name = dept.name;
     form.description = dept.description;
+    errors.name = '';
     isModalOpen.value = true;
 };
 
+const validateForm = () => {
+    errors.name = '';
+    form.name = form.name.trim();
+
+    if (!form.name) {
+        errors.name = 'សូមបញ្ចូលឈ្មោះដេប៉ាតឺម៉ង់';
+    }
+
+    return !errors.name;
+};
+
 const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     if (isEditing.value) {
         await store.updateDepartment(currentId.value, { ...form });
     } else {
@@ -67,7 +83,7 @@ const handleSubmit = async () => {
 <template>
     <div class="main-content p-4">
         <!-- --- Breadcrumb / Page Header --- -->
-        <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div class="page-toolbar mb-4">
             <div>
                 <h3 class="fw-bold text-dark mb-1">Academic Departments</h3>
                 <nav aria-label="breadcrumb">
@@ -103,15 +119,18 @@ const handleSubmit = async () => {
             </div>
 
             <div class="card-body p-0">
-                <div v-if="store.isLoading" class="text-center py-5">
-                    <div class="spinner-grow spinner-grow-sm text-primary me-2"></div>
-                    <span class="text-muted fw-medium">Loading data...</span>
+                <div v-if="store.isLoading" class="app-state">
+                    <div>
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3 mb-0 fw-medium">Loading data...</p>
+                    </div>
                 </div>
 
-                <div v-else-if="store.departments.length === 0" class="text-center py-5">
-                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="60"
-                        class="mb-3 opacity-50">
-                    <p class="text-muted">No departments found.</p>
+                <div v-else-if="store.departments.length === 0" class="app-state">
+                    <div>
+                        <div class="app-state__icon"><i class="bi bi-building"></i></div>
+                        <p class="mb-0">No departments found.</p>
+                    </div>
                 </div>
 
                 <BaseTable v-else :columns="tableColumns" :data="store.departments">
@@ -131,11 +150,12 @@ const handleSubmit = async () => {
 
                     <template #cell-actions="{ item }">
                         <div class="action-btns text-end pe-4">
-                            <button class="btn btn-icon text-info me-1" @click="openEditModal(item)" title="Edit">
+                            <button class="btn btn-icon text-info me-1" @click="openEditModal(item)" title="Edit"
+                                aria-label="Edit department">
                                 <i class="bi bi-pencil-square fs-5"></i>
                             </button>
                             <button class="btn btn-icon text-danger" @click="store.deleteDepartment(item.id)"
-                                title="Delete">
+                                title="Delete" aria-label="Delete department">
                                 <i class="bi bi-trash3 fs-5"></i>
                             </button>
                         </div>
@@ -145,7 +165,7 @@ const handleSubmit = async () => {
 
             <!-- Footer / Pagination -->
             <div class="card-footer bg-white border-top py-3 px-4">
-                <div class="text-muted small fw-medium text-center">
+                <div class="text-muted small fw-medium text-center mb-2">
                     Showing total <span class="text-dark fw-bold">{{ store.totalItems }}</span> departments
                 </div>
                 <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
@@ -156,14 +176,16 @@ const handleSubmit = async () => {
         <!-- Use BaseModal component for forms -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'Edit Department' : 'Create New Department'" size="md">
             <template #default>
-                <form @submit.prevent="handleSubmit">
-                    <div class="p-0">
-                        <div class="mb-4 p-4">
+                <form class="app-form" novalidate @submit.prevent="handleSubmit">
+                    <div class="app-form">
+                        <div>
                             <label class="form-label small fw-bold text-muted">DEPARTMENT NAME</label>
                             <input v-model="form.name" type="text" class="form-control custom-input py-2"
-                                placeholder="Enter department name..." required>
+                                :class="{ 'is-invalid': errors.name }" placeholder="Enter department name..." required
+                                @input="errors.name = ''" @blur="validateForm">
+                            <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                         </div>
-                        <div class="mb-2 p-4 pt-0">
+                        <div>
                             <label class="form-label small fw-bold text-muted">DESCRIPTION (OPTIONAL)</label>
                             <textarea v-model="form.description" class="form-control custom-input" rows="4"
                                 placeholder="Add more details about this department..."></textarea>
@@ -173,25 +195,21 @@ const handleSubmit = async () => {
             </template>
 
             <template #footer>
-                <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
-                    @click="isModalOpen = false">Cancel</button>
-                <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium" @click="handleSubmit"
-                    :disabled="store.isLoading">
-                    <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span>
-                    {{ isEditing ? 'Save Changes' : 'Create Department' }}
-                </button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
+                        @click="isModalOpen = false">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium"
+                        @click="handleSubmit" :disabled="store.isLoading">
+                        <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ isEditing ? 'Save Changes' : 'Create Department' }}
+                    </button>
+                </div>
             </template>
         </BaseModal>
     </div>
 </template>
 
 <style scoped>
-/* Color Palette & Global */
-:root {
-    --primary-color: #216477;
-    --primary-hover: #1a4f5d;
-}
-
 .main-content {
     background-color: #f8fafc;
     min-height: 100vh;
@@ -220,37 +238,6 @@ const handleSubmit = async () => {
 
 .bg-faint-primary {
     background-color: #f1f5f9;
-}
-
-.btn-icon {
-    width: 38px;
-    height: 38px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    transition: all 0.2s;
-    background: transparent;
-    border: none;
-}
-
-.btn-icon:hover {
-    background: #f1f5f9;
-    transform: scale(1.1);
-}
-
-/* Buttons */
-.btn-primary-custom {
-    background-color: #216477;
-    border: none;
-    color: white;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-}
-
-.btn-primary-custom:hover {
-    background-color: #1a4f5d;
-    transform: translateY(-1px);
 }
 
 /* Search Box */

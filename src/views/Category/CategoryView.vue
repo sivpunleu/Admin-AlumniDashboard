@@ -12,6 +12,7 @@ const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentId = ref(null);
 const form = reactive({ name: '', description: '' });
+const errors = reactive({ name: '' });
 
 onMounted(() => store.fetchCategories());
 
@@ -37,6 +38,7 @@ const openAddModal = () => {
     isEditing.value = false;
     currentId.value = null;
     form.name = ''; form.description = '';
+    errors.name = '';
     isModalOpen.value = true;
 };
 
@@ -45,10 +47,24 @@ const openEditModal = (cat) => {
     currentId.value = cat.id;
     form.name = cat.name;
     form.description = cat.description;
+    errors.name = '';
     isModalOpen.value = true;
 };
 
+const validateForm = () => {
+    errors.name = '';
+    form.name = form.name.trim();
+
+    if (!form.name) {
+        errors.name = 'សូមបញ្ចូលឈ្មោះប្រភេទ';
+    }
+
+    return !errors.name;
+};
+
 const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     const success = isEditing.value
         ? await store.updateCategory(currentId.value, { ...form })
         : await store.createCategory({ ...form });
@@ -59,8 +75,7 @@ const handleSubmit = async () => {
 <template>
     <div class="category-page p-4 min-vh-100">
         <!-- Header Section -->
-        <div
-            class="header-card mb-4 p-4 rounded-4 shadow-sm border-0 d-flex justify-content-between align-items-center bg-white">
+        <div class="header-card page-toolbar mb-4 p-4 rounded-4 shadow-sm border-0 bg-white">
             <div>
                 <h2 class="fw-bold text-dark mb-1">Categories</h2>
                 <nav aria-label="breadcrumb">
@@ -79,7 +94,7 @@ const handleSubmit = async () => {
         <!-- Search Bar -->
         <div class="row mb-4">
             <div class="col-md-5 col-lg-4">
-                <div class="search-box-custom rounded-pill border bg-white px-3 d-flex align-items-center shadow-sm">
+                <div class="search-box-custom app-search-box rounded-pill px-3 d-flex align-items-center shadow-sm">
                     <i class="bi bi-search text-muted"></i>
                     <input v-model="store.queryParams.search" type="text" class="form-control border-0 shadow-none py-2"
                         placeholder="ស្វែងរក...">
@@ -88,9 +103,11 @@ const handleSubmit = async () => {
         </div>
 
         <!-- Grid Section -->
-        <div v-if="store.isLoading" class="text-center py-5">
-            <div class="spinner-grow text-primary" role="status"></div>
-            <p class="mt-3 text-muted fw-medium">កំពុងទាញយកទិន្នន័យ...</p>
+        <div v-if="store.isLoading" class="app-state">
+            <div>
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-3 mb-0 fw-medium">កំពុងទាញយកទិន្នន័យ...</p>
+            </div>
         </div>
 
         <div v-else>
@@ -100,19 +117,26 @@ const handleSubmit = async () => {
                 </template>
                 <template #cell-actions="{ item }">
                     <div class="btn-group">
-                        <button @click="openEditModal(item)" class="btn btn-icon me-1"><i
+                        <button @click="openEditModal(item)" class="btn btn-icon me-1" title="Edit"
+                            aria-label="Edit category"><i
                                 class="bi bi-pencil-square text-info"></i></button>
-                        <button @click="store.deleteCategory(item.id)" class="btn btn-icon"><i
+                        <button @click="store.deleteCategory(item.id)" class="btn btn-icon" title="Delete"
+                            aria-label="Delete category"><i
                                 class="bi bi-trash text-danger"></i></button>
                     </div>
                 </template>
             </BaseTable>
 
-            <div v-if="store.categories.length === 0" class="col-12 text-center py-5 text-muted">មិនមានទិន្នន័យទេ</div>
+            <div v-if="store.categories.length === 0" class="app-state">
+                <div>
+                    <div class="app-state__icon"><i class="bi bi-folder2-open"></i></div>
+                    <p class="mb-0">មិនមានទិន្នន័យទេ</p>
+                </div>
+            </div>
         </div>
 
         <!-- Pagination -->
-        <div class="d-flex justify-content-between align-items-center mt-5">
+        <div class="page-toolbar mt-5">
             <p class="small text-muted mb-0">Total: {{ store.totalItems }} categories</p>
             <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
                 @change-page="handlePageChange" />
@@ -120,13 +144,15 @@ const handleSubmit = async () => {
 
         <!-- BaseModal usage -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'Edit Category' : 'New Category'" hide-default-footer>
-            <form @submit.prevent="handleSubmit">
-                <div class="mb-4">
+            <form class="app-form" novalidate @submit.prevent="handleSubmit">
+                <div>
                     <label class="form-label small fw-bold text-muted text-uppercase">Name *</label>
                     <input v-model="form.name" type="text" class="form-control py-2 rounded-3 border-2"
-                        placeholder="Enter category name..." required>
+                        :class="{ 'is-invalid': errors.name }" placeholder="Enter category name..." required
+                        @input="errors.name = ''" @blur="validateForm">
+                    <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
-                <div class="mb-2">
+                <div>
                     <label class="form-label small fw-bold text-muted text-uppercase">Description</label>
                     <textarea v-model="form.description" class="form-control rounded-3 border-2" rows="4"
                         placeholder="Enter details..."></textarea>
@@ -134,12 +160,15 @@ const handleSubmit = async () => {
             </form>
 
             <template #footer>
-                <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
-                    @click="isModalOpen = false">Cancel</button>
-                <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium" @click="handleSubmit"
-                    :disabled="store.isLoading">
-                    <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span> Save Changes
-                </button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
+                        @click="isModalOpen = false">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium"
+                        @click="handleSubmit" :disabled="store.isLoading">
+                        <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ isEditing ? 'Save Changes' : 'Create Category' }}
+                    </button>
+                </div>
             </template>
         </BaseModal>
     </div>
@@ -148,17 +177,6 @@ const handleSubmit = async () => {
 <style scoped>
 .category-page {
     background-color: #f8fafc;
-}
-
-.btn-primary-custom,
-.bg-primary-custom {
-    background-color: #216477;
-    border: none;
-    color: white;
-}
-
-.btn-primary-custom:hover {
-    background-color: #1a4f5d;
 }
 
 .search-box-custom:focus-within {
@@ -176,13 +194,6 @@ const handleSubmit = async () => {
     height: 50px;
     background: linear-gradient(135deg, #216477, #2f8aa0);
     box-shadow: 0 5px 10px rgba(33, 100, 119, 0.2);
-}
-
-.btn-icon {
-    background: #f1f5f9;
-    border: none;
-    padding: 8px;
-    border-radius: 10px;
 }
 
 .pagination-custom .page-link {
