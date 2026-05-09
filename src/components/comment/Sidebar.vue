@@ -1,90 +1,104 @@
+<!-- Sidebar.vue -->
 <template>
-  <aside class="sidebar bg-white border-right" :class="{ closed: !isOpen }">
+  <aside class="sidebar" :class="{ closed: !isOpen }">
 
-    <!-- ផ្នែកខាងលើនៃ Sidebar (Logo) -->
-    <div class="sidebar-header d-flex align-items-center p-4 border-bottom ">
-      <div class="logo-box me-2 d-flex align-items-center justify-content-center"
-        style="width: 35px; height: 35px; background: #216477; border-radius: 8px;">
+    <!-- Header -->
+    <div class="sidebar-header d-flex align-items-center p-3 border-bottom">
+      <div class="logo-box me-2">
         <i class="bi bi-mortarboard-fill text-white fs-5"></i>
       </div>
-      <h5 class="mb-0 fw-bold" style="color: #216477;">អ្នកគ្រប់គ្រង</h5>
+
+      <h5 class="mb-0 fw-bold text-main">
+        អ្នកគ្រប់គ្រង
+      </h5>
     </div>
 
-    <div class="p-3">
-      <h6 class="text-uppercase text-muted extra-small fw-bold mb-3 tracking-wider ps-2">មឺនុយមេ</h6>
+    <!-- Menu -->
+    <div class="p-3 flex-grow-1 overflow-auto">
+
+      <h6 class="text-uppercase text-muted extra-small fw-bold mb-3 tracking-wider ps-2">
+        មឺនុយមេ
+      </h6>
+
       <ul class="nav nav-pills flex-column gap-1">
 
-        <!-- ផ្ទាំងគ្រប់គ្រង -->
         <li class="nav-item">
-          <router-link to="/dashboard" class="nav-link d-flex align-items-center py-2 px-3" exact-active-class="active">
-            <i class="bi bi-grid-fill me-3"></i>ផ្ទាំងគ្រប់គ្រង
+          <router-link to="/dashboard" class="nav-link" exact-active-class="active">
+            <i class="bi bi-grid-fill me-3"></i>
+            ផ្ទាំងគ្រប់គ្រង
           </router-link>
         </li>
 
-        <!-- គ្រប់គ្រងអតីតនិស្សិត -->
         <li class="nav-item">
-          <router-link to="/manager-alumni" class="nav-link d-flex align-items-center py-2 px-3"
-            exact-active-class="active">
-            <i class="bi bi-people-fill me-3"></i>គ្រប់គ្រងអតីតនិស្សិត
+          <router-link to="/manager-alumni" class="nav-link" exact-active-class="active">
+            <i class="bi bi-people-fill me-3"></i>
+            គ្រប់គ្រងអតីតនិស្សិត
           </router-link>
         </li>
 
-        <!-- ជំនាន់និស្សិត -->
         <li class="nav-item">
-          <router-link to="/generations" class="nav-link d-flex align-items-center py-2 px-3"
-            exact-active-class="active">
-            <i class="bi bi-mortarboard-fill me-3"></i>ជំនាន់និស្សិត
+          <router-link to="/generations" class="nav-link" exact-active-class="active">
+            <i class="bi bi-mortarboard-fill me-3"></i>
+            ជំនាន់និស្សិត
           </router-link>
         </li>
 
-        <!-- ដេប៉ាតឺម៉ង់ -->
         <li class="nav-item">
-          <router-link to="/department" class="nav-link d-flex align-items-center py-2 px-3"
-            exact-active-class="active">
-            <i class="bi bi-diagram-3-fill me-3"></i>ដេប៉ាតឺម៉ង់
+          <router-link to="/department" class="nav-link" exact-active-class="active">
+            <i class="bi bi-diagram-3-fill me-3"></i>
+            ដេប៉ាតឺម៉ង់
           </router-link>
         </li>
 
-        <!-- ប្រភេទ -->
         <li class="nav-item">
-          <router-link to="/category" class="nav-link d-flex align-items-center py-2 px-3" exact-active-class="active">
-            <i class="bi bi-journal-text me-3"></i>ប្រភេទ
-          </router-link>
-        </li>
-        <!-- ព្រឹត្តិការណ៏ -->
-        <li class="nav-item">
-          <router-link to="/event" class="nav-link d-flex align-items-center py-2 px-3" exact-active-class="active">
-            <i class="bi bi-calendar-event-fill me-3"></i>ព្រឹត្តិការណ៏
+          <router-link to="/category" class="nav-link" exact-active-class="active">
+            <i class="bi bi-journal-text me-3"></i>
+            ប្រភេទ
           </router-link>
         </li>
 
-        <!-- ប៊ូតុងចាកចេញ -->
+        <li class="nav-item">
+          <router-link to="/event" class="nav-link" exact-active-class="active">
+            <i class="bi bi-calendar-event-fill me-3"></i>
+            ព្រឹត្តិការណ៍
+          </router-link>
+        </li>
+
+        <!-- Logout -->
         <li class="nav-item mt-4 pt-3 border-top">
-          <button type="button" class="nav-link text-danger w-100 d-flex align-items-center py-2 px-3 btn-logout"
-            @click="handleLogout">
-            <i class="bi bi-box-arrow-right me-3"></i>ចាកចេញពីប្រព័ន្ធ
+          <button type="button" class="nav-link text-danger w-100 btn-logout" @click="handleLogout">
+            <i class="bi bi-box-arrow-right me-3"></i>
+            ចាកចេញពីប្រព័ន្ធ
           </button>
         </li>
+
       </ul>
     </div>
 
-    <!-- ព័ត៌មានអ្នកប្រើប្រាស់នៅខាងក្រោម Sidebar -->
-    <div class="sidebar-footer mt-auto p-3 border-top d-flex align-items-center">
-      <div class="avatar me-2"
-        style="width: 35px; height: 35px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-        <i class="bi bi-person-fill text-muted fs-5"></i>
+    <!-- Footer -->
+    <div class="sidebar-footer border-top p-3 d-flex align-items-center">
+
+      <div class="avatar me-2">
+        <i class="bi bi-person-fill text-muted"></i>
       </div>
+
       <div class="overflow-hidden">
-        <p class="mb-0 fw-bold small text-dark text-truncate">
-          {{ authStore.user.role.name === 'admin' ? 'អ្នកគ្រប់គ្រង' : authStore.user.role.name }}
+        <p class="mb-0 fw-bold small text-truncate">
+          {{ displayRole }}
         </p>
-        <p class="mb-0 extra-small text-muted text-truncate">{{ authStore.user.email }}</p>
+
+        <p class="mb-0 extra-small text-muted text-truncate">
+          {{ currentUser.email || '' }}
+        </p>
       </div>
+
     </div>
+
   </aside>
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { useAuthStore } from "@/stores/useAuth";
 
 defineProps({
@@ -96,33 +110,151 @@ defineProps({
 
 const authStore = useAuthStore();
 
+const currentUser = computed(() => authStore.user || {});
+
+const currentRoleName = computed(() => {
+  const role =
+    currentUser.value?.role ??
+    currentUser.value?.userRole ??
+    null;
+
+  if (typeof role === "string") return role;
+
+  return role?.name ?? "";
+});
+
+const displayRole = computed(() => {
+  const normalizedRole = String(
+    currentRoleName.value || ""
+  ).toLowerCase();
+
+  return normalizedRole === "admin"
+    ? "អ្នកគ្រប់គ្រង"
+    : currentRoleName.value || "User";
+});
+
 const handleLogout = () => {
   authStore.logout();
 };
 </script>
 
 <style scoped>
-/* កំណត់ Font ខ្មែរសម្រាប់ Sidebar ទាំងមូល */
 .sidebar {
-  font-family: 'Kantumruy Pro';
+  font-family: "Kantumruy Pro";
+
   position: fixed;
   top: 0;
   left: 0;
+
   width: 260px;
   height: 100vh;
-  background-color: #ffffff;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  background: #ffffff;
+
   display: flex;
   flex-direction: column;
-  z-index: 1030;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+
+  z-index: 1050;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
+/* Close */
 .sidebar.closed {
-  left: -260px;
-  transform: translateX(-260px);
+  transform: translateX(-100%);
 }
 
+/* Header */
+.logo-box {
+  width: 35px;
+  height: 35px;
+
+  border-radius: 8px;
+
+  background: #216477;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-main {
+  color: #216477;
+}
+
+/* Menu */
+.nav-link {
+  display: flex;
+  align-items: center;
+
+  padding: 12px 16px;
+
+  border-radius: 12px;
+
+  color: #64748b;
+
+  font-size: 16px;
+  font-weight: 500;
+
+  transition: all 0.2s ease;
+}
+
+.nav-link i {
+  font-size: 20px;
+}
+
+.nav-link:hover {
+  background: #f1f5f9;
+  color: #216477;
+}
+
+.nav-link.active {
+  background: #f0f7f9 !important;
+  color: #216477 !important;
+
+  font-weight: 600;
+}
+
+.btn-logout {
+  border: none;
+  background: transparent;
+
+  text-align: left;
+}
+
+.btn-logout:hover {
+  background: #fff1f2 !important;
+}
+
+/* Footer */
+.avatar {
+  width: 35px;
+  height: 35px;
+
+  border-radius: 50%;
+
+  background: #f1f5f9;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scroll */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+/* Utilities */
 .extra-small {
   font-size: 10px;
 }
@@ -131,58 +263,28 @@ const handleLogout = () => {
   letter-spacing: 0.05em;
 }
 
-.nav-link {
-  color: #64748b;
-  font-weight: 500;
-  font-size: 18px;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  cursor: pointer;
+/* Tablet */
+@media (max-width: 991.98px) {
+  .sidebar {
+    width: 280px;
+    max-width: 85%;
+  }
 }
 
-.nav-link i {
-  font-size: 20px;
-  opacity: 0.8;
-}
+/* Mobile */
+@media (max-width: 575.98px) {
+  .sidebar {
+    width: 260px;
+    max-width: 90%;
+  }
 
-/* ពេលដាក់ Mouse លើ */
-.nav-link:hover {
-  background-color: #f1f5f9;
-  color: #216477;
-}
+  .nav-link {
+    font-size: 15px;
+    padding: 11px 14px;
+  }
 
-/* ពេល Menu កំពុងសកម្ម (Active) */
-.nav-link.active {
-  background-color: #f0f7f9 !important;
-  color: #216477 !important;
-  font-weight: 600;
-}
-
-.nav-link.active i {
-  color: #216477;
-  opacity: 1;
-}
-
-/* ស្ទីលពិសេសសម្រាប់ប៊ូតុងចាកចេញ */
-.btn-logout {
-  background: none;
-  border: none;
-  text-align: left;
-}
-
-.btn-logout:hover {
-  background-color: #fff1f2 !important;
-  color: #dc3545 !important;
-}
-
-/* កែសម្រួល Scrollbar ឱ្យតូចស្អាត */
-.sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+  .nav-link i {
+    font-size: 18px;
+  }
 }
 </style>

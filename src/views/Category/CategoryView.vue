@@ -49,12 +49,9 @@ const openEditModal = (cat) => {
 };
 
 const handleSubmit = async () => {
-    let success = false;
-    if (isEditing.value) {
-        success = await store.updateCategory(currentId.value, { ...form });
-    } else {
-        success = await store.createCategory({ ...form });
-    }
+    const success = isEditing.value
+        ? await store.updateCategory(currentId.value, { ...form })
+        : await store.createCategory({ ...form });
     if (success) isModalOpen.value = false;
 };
 </script>

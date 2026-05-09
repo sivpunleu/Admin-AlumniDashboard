@@ -34,14 +34,11 @@ api.interceptors.request.use(
       }
     }
 
-    // Try to get token from Pinia auth store first. If Pinia isn't
-    // available yet (circular import during startup) fall back to
-    // reading token from localStorage which is set on login.
     let token;
     try {
       const authStore = useAuthStore();
-      token = authStore?.token?.value;
-    } catch (e) {
+      token = authStore?.token;
+    } catch {
       token = null;
     }
 

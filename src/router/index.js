@@ -71,7 +71,7 @@ const routes = [
       {
         path: "/events/:id/participants",
         name: "event-participants",
-        component: () => import("@/views/Event/EventParticipantView.vue"),
+        component: ParticipantView,
         props: true, // ដើម្បីឱ្យយើងអាចទាញយក ID តាមរយៈ props បានងាយស្រួល
       },
     ],

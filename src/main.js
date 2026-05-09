@@ -6,6 +6,7 @@ import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 import { useAuthStore } from "@/stores/useAuth";
+import { useProfileStore } from "@/stores/useProfile";
 
 const app = createApp(App);
 
@@ -15,6 +16,10 @@ app.use(router);
 // Restore auth state (set Authorization header) if token exists on startup
 const auth = useAuthStore();
 auth.checkAuth();
+const profileStore = useProfileStore();
+if (auth.isLogined) {
+  profileStore.fetchProfile().catch(() => {});
+}
 
 app.mount("#app");
 //bootstrap

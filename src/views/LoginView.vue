@@ -1,11 +1,7 @@
 <template>
   <div class="login-wrapper">
     <div class="stars"></div>
-    <div class="shooting-star"></div>
-    <div class="shooting-star"></div>
-    <div class="shooting-star"></div>
-    <div class="shooting-star"></div>
-    <div class="shooting-star"></div>
+    <div class="shooting-star" v-for="n in 5" :key="n"></div>
 
     <div class="container d-flex justify-content-center align-items-center vh-100">
       <div class="card glass-card shadow-lg border-0 rounded-4 p-4" style="width: 400px">
@@ -13,7 +9,7 @@
           <div class="brand-icon mb-2">
             <i class="bi bi-person-circle text-info" style="font-size: 3rem"></i>
           </div>
-          <h3 class="fw-bold text-white">ចូលគណនី</h3>
+          <h3 class="fw-bold text-white">ចូលគណនី Admin</h3>
           <p class="text-light-50 small">សូមបញ្ចូលព័ត៌មានដើម្បីបន្ត</p>
         </div>
 
@@ -74,65 +70,55 @@ import swal from "sweetalert2";
 const router = useRouter();
 const authStore = useAuthStore();
 
-const form = ref({
-  email: "",
-  password: "",
-});
-
+const form = ref({ email: "", password: "" });
 const loading = ref(false);
 const showPassword = ref(false);
 
-// Email Validation
 function validateemail() {
   if (!form.value.email) {
     authStore.errors.email = ["សូមបញ្ចូលអ៊ីមែល!"];
   } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
     authStore.errors.email = ["ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ!"];
   } else {
-    if (authStore.errors.email) delete authStore.errors.email;
+    delete authStore.errors.email;
   }
 }
 
-// Password Validation
 function validatepassword() {
   const pass = form.value.password;
   if (!pass) {
     authStore.errors.password = ["សូមបញ្ចូលពាក្យសម្ងាត់!"];
   } else if (pass.length < 6) {
-    authStore.errors.password = ["ពាក្យសម្ងាត់ត្រូវមានយ៉ាងហោចណាស់ 6 តួ!"];
-  } else if (!/[A-Z]/.test(pass) || !/[a-z]/.test(pass) || !/\d/.test(pass)) {
-    authStore.errors.password = ["ត្រូវមានអក្សរធំ តូច និងលេខបញ្ចូលគ្នា!"];
+    authStore.errors.password = ["ពាក្យសម្ងាត់យ៉ាងតិច 6 តួ!"];
   } else {
-    if (authStore.errors.password) delete authStore.errors.password;
+    delete authStore.errors.password;
   }
 }
 
-// Handle Login
 const handlelogin = async () => {
-  // Re-validate before submit
   validateemail();
   validatepassword();
 
-  if (authStore.errors.email || authStore.errors.password) {
-    return;
-  }
+  if (authStore.errors.email || authStore.errors.password) return;
 
   loading.value = true;
   try {
+    // កន្លែងនេះនឹងបោះ Error បើមិនមែន Admin (ដែលយើងបាន Set ក្នុង Store)
     await authStore.login(form.value);
 
-    if (authStore.token) {
-      swal.fire({
-        icon: "success",
-        title: "ជោគជ័យ",
-        text: "អ្នកបានចូលប្រើប្រាស់ដោយជោគជ័យ",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      router.push("/dashboard");
-    }
+    // បើមកដល់កូដត្រង់នេះ មានន័យថាជា Admin ហើយ
+    swal.fire({
+      icon: "success",
+      title: "ជោគជ័យ",
+      text: "ស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រង",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+    router.push("/dashboard");
+
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("Login stop:", error.message);
+    // មិនបាច់ធ្វើអ្វីទេ ព្រោះក្នុង Store យើងបានបង្ហាញ swal រួចហើយ
   } finally {
     loading.value = false;
   }
@@ -140,7 +126,7 @@ const handlelogin = async () => {
 </script>
 
 <style scoped>
-/* Space Background */
+/* រក្សាស្ទីលចាស់របស់អ្នកដដែល */
 .login-wrapper {
   position: relative;
   min-height: 100vh;
@@ -148,12 +134,9 @@ const handlelogin = async () => {
   overflow: hidden;
 }
 
-/* Glass Effect for Card */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
-  /* ធ្វើឱ្យថ្លា */
   backdrop-filter: blur(10px);
-  /* ធ្វើឱ្យព្រាល */
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -161,7 +144,6 @@ const handlelogin = async () => {
   color: rgba(255, 255, 255, 0.6);
 }
 
-/* Input Styles */
 .form-control,
 .input-group-text {
   border-color: rgba(255, 255, 255, 0.2);
@@ -178,13 +160,12 @@ const handlelogin = async () => {
   border-color: #0dcaf0;
 }
 
-/* Star Animations (កូដដែលអ្នកផ្ដល់ឱ្យ) */
 .stars {
   width: 1px;
   height: 1px;
   position: absolute;
   background: white;
-  box-shadow: 2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white, 22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px white, 38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px white, 53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white, 68vw 28vh 2px white, 73vw 45vh 1px white, 78vw 32vh 2px white, 83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white, 98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px white, 18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white, 35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white, 50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white, 65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white, 80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white, 95vw 75vh 2px white;
+  box-shadow: 2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white, 22vw 22vh 1px white, 88vw 20vh 2px white, 95vw 75vh 2px white;
   animation: twinkle 8s infinite linear;
 }
 
@@ -196,7 +177,6 @@ const handlelogin = async () => {
   animation: shoot 3s infinite ease-in;
 }
 
-/* Animations Logic */
 @keyframes twinkle {
 
   0%,

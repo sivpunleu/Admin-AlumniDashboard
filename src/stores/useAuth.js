@@ -5,88 +5,72 @@ import swal from "sweetalert2";
 import router from "@/router";
 import { useProfileStore } from "@/stores/useProfile";
 
+const getStoredUser = () => {
+  const storedUser = localStorage.getItem("user");
+  if (!storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
 export const useAuthStore = defineStore("auth", () => {
-  // --- State ---
   const token = ref(localStorage.getItem("token") || null);
-  const user = ref(JSON.parse(localStorage.getItem("user")) || null);
+  const user = ref(getStoredUser());
   const loading = ref(false);
-  const errors = ref({})
-  // --- Getters ---
+  const errors = ref({});
+
   const isLogined = computed(() => !!token.value);
   const getUser = computed(() => user.value);
 
-  /**
-   * ឆែកថាតើអ្នកប្រើប្រាស់ជា Admin ឬទេ (សម្រាប់ប្រើក្នុង requireAdmin)
-   */
-  const isAdmin = computed(() => {
-    if (!user.value) return false;
+  // Function ជំនួយសម្រាប់ឆែកថាជា Admin ឬទេ
+  const checkIsAdmin = (userData) => {
+    if (!userData) return false;
     const roleName =
-      user.value.role?.name || user.value.role || user.value.userRole || "";
+      userData.role?.name || userData.role || userData.userRole || "";
     return ["admin", "administrator"].includes(String(roleName).toLowerCase());
-  });
-
-  // Backend login route confirmed from live API probes.
-  const loginEndpoint = "auth/login";
-
-  // --- Actions ---
-
-  /**
-   * Sync user payload from other stores (e.g. profile store)
-   */
-  const setUser = (userData) => {
-    user.value = userData || null;
-    localStorage.setItem("user", JSON.stringify(user.value));
   };
 
-  /**
-   * មុខងារ Login
-   */
   const login = async (credentials) => {
     loading.value = true;
     errors.value = {};
     try {
-      const response = await api.post(loginEndpoint, credentials);
-
-      // Debug: log raw response for troubleshooting login payload shapes
-      // Remove or disable in production.
-      // eslint-disable-next-line no-console
-      console.debug("[auth.login] raw response:", response);
-
-      // យកទិន្នន័យ — ស្រាវជ្រាវច្រើននូវរចនាសម្ព័ន្ធ (token / access_token / data)
+      const response = await api.post("auth/login", credentials);
       const responseData = response?.data || {};
       const payload = responseData.data || responseData || {};
 
-      // Support common token field names: token, access_token
+      // ទាញយក Token និង User Data
       const userToken =
-        payload.token ||
-        payload.access_token ||
-        responseData.token ||
-        responseData.access_token ||
-        (payload?.data && (payload.data.token || payload.data.access_token)) ||
-        null;
-
-      // Support common user locations
+        payload.token || payload.access_token || responseData.token || null;
       const userData =
-        payload.user ||
-        responseData.user ||
-        (payload?.data && payload.data.user) ||
-        payload ||
-        null;
+        payload.user || responseData.user || (payload.email ? payload : null);
 
-      if (!userToken) {
-        // eslint-disable-next-line no-console
-        console.error("[auth.login] token not found in response", responseData);
-        throw new Error("Token not found");
+      if (!userToken) throw new Error("មិនអាចរកឃើញ Token ពីម៉ាស៊ីនមេឡើយ");
+
+      // --- លក្ខខណ្ឌសំខាន់: បើមិនមែន Admin មិនឱ្យចូល ---
+      if (!checkIsAdmin(userData)) {
+        swal.fire({
+          icon: "error",
+          title: "សិទ្ធិមិនគ្រប់គ្រាន់",
+          text: "គណនីនេះសម្រាប់តែ Admin ទេ។ អ្នកមិនអាចចូលប្រើប្រាស់បានឡើយ!",
+        });
+        throw new Error("Unauthorized: Not an admin");
       }
 
-      // រក្សាទុកក្នុង State និង LocalStorage
+      // បើផ្ទៀងផ្ទាត់ជោគជ័យ ទើបឱ្យ Save ទិន្នន័យ
       token.value = userToken;
       user.value = userData;
       localStorage.setItem("token", userToken);
       localStorage.setItem("user", JSON.stringify(userData));
-
-      // កំណត់ Header សម្រាប់ Request បន្ទាប់ៗ
       api.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
+
+      const profileStore = useProfileStore();
+      if (profileStore) {
+        await profileStore.fetchProfile();
+      }
 
       return response.data;
     } catch (error) {
@@ -98,22 +82,13 @@ export const useAuthStore = defineStore("auth", () => {
           title: "បរាជ័យ",
           text: "អ៊ីមែល ឬលេខសម្ងាត់មិនត្រឹមត្រូវ!",
         });
-      } else {
-        swal.fire({
-          icon: "error",
-          title: "កំហុស",
-          text: "មិនអាចទាក់ទងម៉ាស៊ីនមេបានទេ",
-        });
       }
-      throw error;
+      throw error; // បោះ Error ទៅឱ្យ Component ចាប់បន្ត
     } finally {
       loading.value = false;
     }
   };
 
-  /**
-   * មុខងារ Logout
-   */
   const logout = () => {
     const profileStore = useProfileStore();
     swal
@@ -128,49 +103,42 @@ export const useAuthStore = defineStore("auth", () => {
       })
       .then((result) => {
         if (result.isConfirmed) {
-          // សម្អាតទិន្នន័យ
           token.value = null;
           user.value = null;
           if (profileStore) profileStore.profile = null;
-
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           delete api.defaults.headers.common["Authorization"];
-
-          swal
-            .fire({
-              icon: "success",
-              title: "ជោគជ័យ",
-              timer: 1000,
-              showConfirmButton: false,
-            })
-            .then(() => {
-              router.push({ name: "login" });
-            });
+          router.push({ name: "login" });
         }
       });
   };
 
-  /**
-   * ប្រើសម្រាប់ហៅក្នុង main.js ដើម្បីរក្សាសិទ្ធិពេល Refresh page
-   */
   const checkAuth = () => {
     if (token.value) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token.value}`;
     }
   };
 
+  const setUser = (userData) => {
+    user.value = userData || null;
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData));
+    } else {
+      localStorage.removeItem("user");
+    }
+  };
+
   return {
     token,
     user,
+    getUser,
     loading,
     errors,
     isLogined,
-    isAdmin,
-    getUser,
-    setUser,
     login,
     logout,
     checkAuth,
+    setUser,
   };
 });

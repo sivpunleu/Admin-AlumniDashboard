@@ -14,6 +14,20 @@ export const useProfileStore = defineStore("profile", () => {
   const normalizePayload = (response) =>
     response?.data?.data || response?.data || null;
 
+  const requestFirstSuccess = async (requesters) => {
+    let lastError = null;
+
+    for (const request of requesters) {
+      try {
+        return await request();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error("No profile API endpoint succeeded");
+  };
+
   const syncAuthUser = (profileData) => {
     const authStore = useAuthStore();
     if (profileData) authStore.setUser(profileData);
@@ -21,31 +35,30 @@ export const useProfileStore = defineStore("profile", () => {
 
   const fetchProfile = async () => {
     loading.value = true;
+    errors.value = {};
+
     try {
-      let profileData = null;
-      for (const endpoint of profileEndpoints) {
-        try {
-          const res = await api.get(endpoint);
-          profileData = normalizePayload(res);
-          break;
-        } catch (e) {
-          continue;
-        }
-      }
+      const response = await requestFirstSuccess(
+        profileEndpoints.map((endpoint) => () => api.get(endpoint)),
+      );
+      const profileData = normalizePayload(response);
+
       profile.value = profileData;
       syncAuthUser(profileData);
       return profileData;
+    } catch (error) {
+      errors.value = error.response?.data?.errors || {};
+      throw error;
     } finally {
       loading.value = false;
     }
   };
 
-  // កែសម្រួលឱ្យទទួលយកទាំង File និង Blob (សម្រាប់ Cropper)
   const uploadAvatar = async (fileOrBlob) => {
     loading.value = true;
-    const formData = new FormData();
+    errors.value = {};
 
-    // ប្រសិនបើជា Blob (ពី Cropper) យើងត្រូវកំណត់ឈ្មោះឱ្យវា
+    const formData = new FormData();
     const file =
       fileOrBlob instanceof Blob && !(fileOrBlob instanceof File)
         ? new File([fileOrBlob], `avatar_${Date.now()}.jpg`, {
@@ -56,28 +69,23 @@ export const useProfileStore = defineStore("profile", () => {
     formData.append("avatar", file);
 
     try {
-      let response = null;
-      // សាកល្បងជាមួយ POST រួចសាកជាមួយ PUT (តាមស្ដង់ដារ API ខុសៗគ្នា)
-      for (const method of ["post", "put"]) {
-        for (const endpoint of avatarEndpoints) {
-          try {
-            response = await api[method](endpoint, formData, {
+      const response = await requestFirstSuccess(
+        ["post", "put"].flatMap((method) =>
+          avatarEndpoints.map((endpoint) => () =>
+            api[method](endpoint, formData, {
               headers: { "Content-Type": "multipart/form-data" },
-            });
-            if (response) break;
-          } catch (e) {
-            continue;
-          }
-        }
-        if (response) break;
-      }
+            }),
+          ),
+        ),
+      );
 
       const uploadedData = normalizePayload(response);
       profile.value = uploadedData;
       syncAuthUser(uploadedData);
       return uploadedData;
     } catch (error) {
-      Swal.fire("កំហុស", "មិនអាចបង្ហោះរូបភាពបានទេ", "error");
+      errors.value = error.response?.data?.errors || {};
+      Swal.fire("Error", "Unable to upload avatar.", "error");
       throw error;
     } finally {
       loading.value = false;
@@ -87,7 +95,7 @@ export const useProfileStore = defineStore("profile", () => {
   const deleteAvatar = async () => {
     const result = await Swal.fire({
       title: "Delete avatar?",
-      text: "រូបភាពកម្រងរូបនឹងត្រូវលុបចេញពីប្រព័ន្ធ។",
+      text: "This avatar will be removed from the system.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Delete",
@@ -98,25 +106,21 @@ export const useProfileStore = defineStore("profile", () => {
     if (!result.isConfirmed) return false;
 
     loading.value = true;
+    errors.value = {};
+
     try {
-      let response = null;
-      for (const method of ["delete", "post", "put"]) {
-        for (const endpoint of avatarEndpoints) {
-          try {
-            response = await api[method](endpoint);
-            if (response) break;
-          } catch (e) {
-            continue;
-          }
-        }
-        if (response) break;
-      }
+      await requestFirstSuccess(
+        ["delete", "post", "put"].flatMap((method) =>
+          avatarEndpoints.map((endpoint) => () => api[method](endpoint)),
+        ),
+      );
 
       await fetchProfile();
-      Swal.fire("ជោគជ័យ", "រូបភាពត្រូវបានលុប", "success");
+      Swal.fire("Success", "Avatar deleted.", "success");
       return true;
     } catch (error) {
-      Swal.fire("កំហុស", "មិនអាចលុបរូបភាពបានទេ", "error");
+      errors.value = error.response?.data?.errors || {};
+      Swal.fire("Error", "Unable to delete avatar.", "error");
       throw error;
     } finally {
       loading.value = false;
@@ -125,27 +129,25 @@ export const useProfileStore = defineStore("profile", () => {
 
   const updateProfile = async (payload) => {
     loading.value = true;
+    errors.value = {};
+
     try {
-      let response = null;
-      for (const endpoint of profileEndpoints) {
-        try {
-          response = await api.put(endpoint, payload);
-          break;
-        } catch (e) {
-          continue;
-        }
-      }
+      const response = await requestFirstSuccess(
+        profileEndpoints.map((endpoint) => () => api.put(endpoint, payload)),
+      );
       const profileData = normalizePayload(response);
+
       if (profileData) {
         profile.value = profileData;
         syncAuthUser(profileData);
       }
 
       const refreshedProfile = await fetchProfile();
-      Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានរក្សាទុក", "success");
+      Swal.fire("Success", "Profile saved.", "success");
       return refreshedProfile || profileData;
     } catch (error) {
-      Swal.fire("កំហុស", "ការរក្សាទុកបរាជ័យ", "error");
+      errors.value = error.response?.data?.errors || {};
+      Swal.fire("Error", "Unable to save profile.", "error");
       throw error;
     } finally {
       loading.value = false;

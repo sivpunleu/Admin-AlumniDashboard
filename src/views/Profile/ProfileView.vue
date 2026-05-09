@@ -180,20 +180,21 @@ const displayName = computed(() => currentUser.value?.profile?.fullname || 'User
 const avatarUrl = computed(() => currentUser.value?.profile?.avatar || 'https://ui-avatars.com/api/?name=' + displayName.value);
 
 onMounted(async () => {
-    const [data] = await Promise.all([
-        profileStore.fetchProfile(),
+    const profileData = await profileStore.fetchProfile();
+    await Promise.all([
         departmentStore.fetchDepartments(),
         generationStore.fetchGenerations(),
     ]);
 
+    const sourceProfile = profileData?.profile || profileData || {};
     Object.assign(form, {
-        fullname: data.profile?.fullname,
-        phone: data.profile?.phone,
-        currentJob: data.profile?.currentJob,
-        bio: data.profile?.bio,
-        email: data.email,
-        departmentId: data.profile?.department?.id || data.profile?.departmentId || '',
-        generationId: data.profile?.generation?.id || data.profile?.generationId || '',
+        fullname: sourceProfile.fullname,
+        phone: sourceProfile.phone,
+        currentJob: sourceProfile.currentJob,
+        bio: sourceProfile.bio,
+        email: profileData?.email || sourceProfile.email || "",
+        departmentId: sourceProfile.department?.id || sourceProfile.departmentId || "",
+        generationId: sourceProfile.generation?.id || sourceProfile.generationId || "",
     });
 });
 
