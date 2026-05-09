@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import { confirmDelete } from "@/utils/confirmDialog";
 
 export const useCategoryStore = defineStore("category", () => {
   const categories = ref([]);
@@ -74,14 +75,8 @@ export const useCategoryStore = defineStore("category", () => {
 
   // --- ៤. លុប (DELETE /categories/{id}) --- (តាមរូបភាពទី ៤)
   async function deleteCategory(id) {
-    const result = await Swal.fire({
-      title: "តើអ្នកប្រាកដទេ?",
-      text: "អ្នកនឹងមិនអាចត្រឡប់វាវិញបានទេ!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "បាទ លុបវា!",
-      cancelButtonText: "បោះបង់",
+    const result = await confirmDelete({
+      text: "ប្រភេទនេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
     });
 
     if (result.isConfirmed) {

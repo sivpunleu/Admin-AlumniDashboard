@@ -24,7 +24,7 @@ const routes = [
     path: "/",
     component: DashboardLayout,
     redirect: "/dashboard", // Redirect root to dashboard
-    meta: { requiresAuth: true }, // Apply auth requirement to all children
+    meta: { requiresAuth: true, requiresAdmin: true }, // Apply auth/admin requirement to all children
     children: [
       {
         path: "dashboard",
@@ -96,17 +96,27 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore();
   const isAuthenticated = authStore.isLogined;
+  const isAdmin = authStore.isAdmin;
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth);
+  const requiresAdmin = to.matched.some((route) => route.meta.requiresAdmin);
 
   // 1. If route requires auth and user is NOT logged in -> Go to Login
-  if (to.meta.requiresAuth && !isAuthenticated) {
+  if (requiresAuth && !isAuthenticated) {
     return { name: "login" };
   }
-  // 2. If user IS logged in and tries to access Login page -> Go to Dashboard
-  if (to.name === "login" && isAuthenticated) {
+
+  // 2. If route requires admin and logged-in user is NOT admin -> Clear session and Go to Login
+  if (requiresAdmin && !isAdmin) {
+    authStore.clearAuth();
+    return { name: "login" };
+  }
+
+  // 3. If admin user tries to access Login page -> Go to Dashboard
+  if (to.name === "login" && isAuthenticated && isAdmin) {
     return { name: "home" };
   }
 
-  // 3. Otherwise, proceed as normal
+  // 4. Otherwise, proceed as normal
   return true;
 });
 

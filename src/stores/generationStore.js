@@ -2,6 +2,7 @@ import { ref } from "vue";
 import api from "@/API/api";
 import Swal from "sweetalert2";
 import { useAuthStore } from "@/stores/useAuth";
+import { confirmDelete } from "@/utils/confirmDialog";
 
 /* ================= ស្ថានភាពទូទៅ (STATE) ================= */
 export const generations = ref([]);
@@ -227,14 +228,8 @@ export const handleUpdate = async (gen) => {
  */
 export const handleDelete = async (id) => {
   requireAdmin(async () => {
-    const result = await Swal.fire({
-      title: "តើអ្នកប្រាកដទេ?",
-      text: "ទិន្នន័យជំនាន់នេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      confirmButtonText: "បាទ លុបវា!",
-      cancelButtonText: "បោះបង់",
+    const result = await confirmDelete({
+      text: "ជំនាន់នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
     });
 
     if (result.isConfirmed) {

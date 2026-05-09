@@ -1,5 +1,3 @@
-import "./assets/main.css";
-
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 
@@ -29,3 +27,5 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-icons/font/bootstrap-icons.css";
 // sweet alert
 import "sweetalert2/dist/sweetalert2.min.css";
+// app styles
+import "./assets/main.css";

@@ -27,6 +27,11 @@ export const registerForm = ref({
   generationId: "",
   status: "PENDING",
 });
+export const registerErrors = ref({});
+
+export const clearRegisterErrors = () => {
+  registerErrors.value = {};
+};
 
 // មុខងារ Fetch Users ដែល Support Search, Filter និង Pagination
 export const fetchUsers = async () => {
@@ -123,6 +128,7 @@ export const fetchUsers = async () => {
 };
 
 export const openRegisterModal = () => {
+  clearRegisterErrors();
   showRegisterModal.value = true;
 };
 
@@ -136,8 +142,49 @@ export const requireAdmin = (callback) => {
   }
 };
 
+const validateRegisterForm = () => {
+  clearRegisterErrors();
+
+  const form = registerForm.value;
+  const email = form.email?.trim() || "";
+
+  if (!form.fullname?.trim()) {
+    registerErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
+  }
+
+  if (!email) {
+    registerErrors.value.email = "សូមបញ្ចូលអ៊ីម៉ែល";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    registerErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
+  }
+
+  if (!form.password || form.password.length < 6) {
+    registerErrors.value.password = "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ";
+  }
+
+  if (!form.confirmPassword) {
+    registerErrors.value.confirmPassword = "សូមបញ្ជាក់ពាក្យសម្ងាត់";
+  } else if (form.password !== form.confirmPassword) {
+    registerErrors.value.confirmPassword = "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
+  }
+
+  if (!form.departmentId) {
+    registerErrors.value.departmentId = "សូមជ្រើសរើសដេប៉ាតមេន";
+  }
+
+  if (!form.generationId) {
+    registerErrors.value.generationId = "សូមជ្រើសរើសជំនាន់";
+  }
+
+  return Object.keys(registerErrors.value).length === 0;
+};
+
 export const handleRegisterAlumni = async () => {
   try {
+    if (!validateRegisterForm()) {
+      return;
+    }
+
     // Validation
     if (!registerForm.value.fullname?.trim()) {
       Swal.fire("ការរឹងមាំ", "សូមបញ្ចូលឈ្មោះពេញលេញ", "warning");
@@ -204,6 +251,7 @@ export const handleRegisterAlumni = async () => {
     };
 
     showRegisterModal.value = false;
+    clearRegisterErrors();
     await fetchUsers();
     Swal.fire("ជោគជ័យ", "គណនីត្រូវបានបង្កើតបានសម្រេច", "success");
   } catch (err) {
