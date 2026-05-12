@@ -8,10 +8,10 @@
                         <slot name="header">
                             <h5 :id="titleId" class="base-modal__title">{{ title }}</h5>
                         </slot>
-                        <button v-if="showClose" type="button" class="base-modal__close" aria-label="Close"
-                            @click="closeModal">
+                        <BaseButton v-if="showClose" type="button" variant="light" shape="sharp"
+                            class="base-modal__close" aria-label="Close" @click="closeModal">
                             <span aria-hidden="true">&times;</span>
-                        </button>
+                        </BaseButton>
                     </div>
 
                     <div class="base-modal__body">
@@ -20,9 +20,9 @@
 
                     <div class="base-modal__footer" v-if="$slots.footer || !hideDefaultFooter">
                         <slot name="footer">
-                            <button type="button" class="btn btn-light" @click="closeModal">{{ cancelText }}</button>
-                            <button type="button" class="btn btn-primary" @click="confirmModal">{{ confirmText
-                                }}</button>
+                            <BaseButton type="button" variant="light" @click="closeModal">{{ cancelText }}</BaseButton>
+                            <BaseButton type="button" variant="primary" @click="confirmModal">{{ confirmText }}
+                            </BaseButton>
                         </slot>
                     </div>
                 </div>
@@ -33,6 +33,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, watch } from "vue";
+import BaseButton from "./BaseButton.vue";
 
 const props = defineProps({
     modelValue: {

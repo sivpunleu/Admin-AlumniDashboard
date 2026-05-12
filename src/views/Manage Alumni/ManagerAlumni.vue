@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, watch } from "vue";
 import BasePage from "../../components/UI/Base/BasePage.vue";
+import BaseButton from "../../components/UI/Base/BaseButton.vue";
 import BaseModal from "../../components/UI/Base/BaseModal.vue";
 import BaseTable from "../../components/UI/Base/BaseTable.vue";
 import * as store from "../../stores/managerAlumni";
@@ -153,15 +154,15 @@ const tableColumns = [
         </template>
 
         <template #cell-actions="{ item }">
-          <div class="d-flex justify-content-end gap-1">
-            <button v-if="normalizeStatus(item) === 'PENDING'" @click="store.handleChangeStatus(item.id)"
-              class="btn btn-white border btn-sm rounded-3 shadow-sm px-3 fw-bold btn-quick-approve">
+          <div class="d-flex justify-content-end gap-2">
+            <BaseButton v-if="normalizeStatus(item) === 'PENDING'" @click="store.handleChangeStatus(item.id)"
+              variant="light" size="sm">
               <i class="bi bi-check-lg text-success me-1"></i> យល់ព្រម
-            </button>
-            <button type="button" class="btn btn-action" @click="store.handleChangeStatus(item.id)"
+            </BaseButton>
+            <BaseButton @click="store.handleChangeStatus(item.id)" variant="light" size="sm" shape="sharp"
               title="Change User Status" aria-label="Change User Status">
               <i class="bi bi-pencil-square text-primary"></i>
-            </button>
+            </BaseButton>
           </div>
         </template>
       </BaseTable>
@@ -274,13 +275,13 @@ const tableColumns = [
       </div>
 
       <div class="modal-actions">
-        <button type="button" class="btn btn-secondary flex-grow-1" @click="store.showRegisterModal.value = false">
+        <BaseButton variant="secondary" @click="store.showRegisterModal.value = false" class="flex-grow-1">
           បិទ
-        </button>
-        <button type="submit" class="btn btn-primary-custom flex-grow-1" :disabled="store.isLoading.value">
-          <span v-if="store.isLoading.value">កំពុងដំណើរការ...</span>
-          <span v-else>ចុះឈ្មោះ</span>
-        </button>
+        </BaseButton>
+        <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
+          class="flex-grow-1">
+          ឆ។ចៈណ្រនា
+        </BaseButton>
       </div>
     </form>
   </BaseModal>

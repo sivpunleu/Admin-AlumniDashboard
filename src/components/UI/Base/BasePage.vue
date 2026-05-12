@@ -2,21 +2,23 @@
     <nav aria-label="Article pagination" class="pagination-wrap d-flex justify-content-center mt-2">
         <ul class="pagination mb-0">
             <li class="page-item" :class="{ disabled: currentPage <= 1 }">
-                <button class="page-link" type="button" @click="goToPrevious" :disabled="currentPage <= 1">
+                <BaseButton type="button" variant="light" shape="sharp" class="page-link" @click="goToPrevious"
+                    :disabled="currentPage <= 1">
                     Previous
-                </button>
+                </BaseButton>
             </li>
 
             <li v-for="page in visiblePages" :key="page" class="page-item" :class="{ active: page === currentPage }">
-                <button class="page-link" type="button" @click="goToPage(page)">
+                <BaseButton type="button" variant="light" shape="sharp" class="page-link" @click="goToPage(page)">
                     {{ page }}
-                </button>
+                </BaseButton>
             </li>
 
             <li class="page-item" :class="{ disabled: currentPage >= totalPages }">
-                <button class="page-link" type="button" @click="goToNext" :disabled="currentPage >= totalPages">
+                <BaseButton type="button" variant="light" shape="sharp" class="page-link" @click="goToNext"
+                    :disabled="currentPage >= totalPages">
                     Next
-                </button>
+                </BaseButton>
             </li>
         </ul>
     </nav>
@@ -24,6 +26,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import BaseButton from './BaseButton.vue'
 
 const props = defineProps({
     currentPage: {

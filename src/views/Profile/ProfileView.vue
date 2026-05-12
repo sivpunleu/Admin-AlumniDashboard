@@ -14,14 +14,16 @@
                                             @error="handleAvatarError" @load="handleAvatarLoad" />
                                     </div>
                                     <div class="avatar-actions">
-                                        <button type="button" class="btn-action upload shadow"
-                                            @click="triggerAvatarPicker">
+                                        <BaseButton variant="primary" shape="sharp" size="sm"
+                                            class="btn-action-avatar upload" @click="triggerAvatarPicker"
+                                            title="Upload avatar">
                                             <i class="bi bi-camera-fill"></i>
-                                        </button>
-                                        <button v-if="currentUser?.profile?.avatar" type="button"
-                                            class="btn-action delete shadow" @click="handleDeleteAvatar">
+                                        </BaseButton>
+                                        <BaseButton v-if="currentUser?.profile?.avatar" variant="danger" shape="sharp"
+                                            size="sm" class="btn-action-avatar delete" @click="handleDeleteAvatar"
+                                            title="Delete avatar">
                                             <i class="bi bi-trash-fill"></i>
-                                        </button>
+                                        </BaseButton>
                                     </div>
                                 </div>
                             </div>
@@ -55,10 +57,9 @@
                                 <div class="icon-box-primary me-3"><i class="bi bi-person-badge"></i></div>
                                 <h5 class="fw-bold mb-0">ព័ត៌មានផ្ទាល់ខ្លួន</h5>
                             </div>
-                            <button v-if="!isEditing" @click="toggleEdit(true)"
-                                class="btn btn-edit rounded-pill px-4 btn-sm fw-bold shadow-sm">
+                            <BaseButton v-if="!isEditing" @click="toggleEdit(true)" variant="light" size="sm">
                                 <i class="bi bi-pencil-square me-2"></i>កែសម្រួល
-                            </button>
+                            </BaseButton>
                         </div>
 
                         <div class="card-body p-4 p-md-5">
@@ -110,13 +111,10 @@
                                 </div>
 
                                 <div v-if="isEditing" class="d-flex justify-content-end gap-2 mt-5 pt-3 border-top">
-                                    <button type="button" class="btn btn-light rounded-pill px-4"
-                                        @click="toggleEdit(false)">បោះបង់</button>
-                                    <button type="submit" class="btn btn-save rounded-pill px-5 shadow-sm"
-                                        :disabled="profileStore.loading">
-                                        <span v-if="profileStore.loading"
-                                            class="spinner-border spinner-border-sm me-2"></span> រក្សាទុក
-                                    </button>
+                                    <BaseButton type="button" variant="light" @click="toggleEdit(false)">បោះបង់
+                                    </BaseButton>
+                                    <BaseButton type="submit" variant="primary" :loading="profileStore.loading">រក្សាទុក
+                                    </BaseButton>
                                 </div>
                             </form>
                         </div>
@@ -128,14 +126,13 @@
         <div v-if="showCropperModal" class="cropper-overlay" @click.self="closeCropperModal">
             <div class="cropper-card bg-white rounded-4 shadow-lg p-4">
                 <h5 class="fw-bold mb-3">កាត់តម្រូវរូបភាព</h5>
-                <div class="cropper-wrapper mb-3">
-                    <img ref="cropperImgRef" :src="rawImageSrc" class="mw-100" />
+                <div class="cropper-wrapper mb-xl-3 mb-4">
+                    <img ref="cropperImgRef" :src="rawImageSrc" class="mw-100 d-block" />
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-light rounded-pill px-4" @click="closeCropperModal">បោះបង់</button>
-                    <button class="btn btn-primary rounded-pill px-4" @click="confirmCrop" :disabled="cropUploading">
-                        <span v-if="cropUploading" class="spinner-border spinner-border-sm me-1"></span> រក្សាទុករូបភាព
-                    </button>
+                    <BaseButton variant="light" @click="closeCropperModal">បោះបង់</BaseButton>
+                    <BaseButton variant="primary" @click="confirmCrop" :loading="cropUploading">រក្សាទុករូបភាព
+                    </BaseButton>
                 </div>
             </div>
         </div>
@@ -147,6 +144,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { useDepartmentStore } from '@/stores/departmentStore';
 import * as generationStore from '@/stores/generationStore';
 import { useProfileStore } from '@/stores/useProfile';
+import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import Cropper from 'cropperjs';
 import Swal from 'sweetalert2';
 
@@ -174,6 +172,25 @@ const rawImageSrc = ref("");
 const cropperImgRef = ref(null);
 const cropperInstance = ref(null);
 const cropUploading = ref(false);
+const avatarCropperTemplate = `
+<cropper-canvas background>
+    <cropper-image rotatable scalable skewable translatable></cropper-image>
+    <cropper-shade hidden></cropper-shade>
+    <cropper-handle action="select" plain></cropper-handle>
+    <cropper-selection initial-coverage="0.7" initial-aspect-ratio="1" aspect-ratio="1" movable resizable>
+        <cropper-grid role="grid" bordered covered></cropper-grid>
+        <cropper-crosshair centered></cropper-crosshair>
+        <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
+        <cropper-handle action="n-resize"></cropper-handle>
+        <cropper-handle action="e-resize"></cropper-handle>
+        <cropper-handle action="s-resize"></cropper-handle>
+        <cropper-handle action="w-resize"></cropper-handle>
+        <cropper-handle action="ne-resize"></cropper-handle>
+        <cropper-handle action="nw-resize"></cropper-handle>
+        <cropper-handle action="se-resize"></cropper-handle>
+        <cropper-handle action="sw-resize"></cropper-handle>
+    </cropper-selection>
+</cropper-canvas>`;
 
 const currentUser = computed(() => profileStore.profile || {});
 const displayName = computed(() => currentUser.value?.profile?.fullname || 'User');
@@ -214,7 +231,9 @@ const onAvatarSelected = (e) => {
                 cropperInstance.value.destroy();
                 cropperInstance.value = null;
             }
-            cropperInstance.value = new Cropper(cropperImgRef.value, { aspectRatio: 1, viewMode: 1 });
+            cropperInstance.value = new Cropper(cropperImgRef.value, {
+                template: avatarCropperTemplate,
+            });
         });
     };
     reader.readAsDataURL(file);
@@ -225,10 +244,10 @@ const confirmCrop = async () => {
 
     cropUploading.value = true;
     try {
-        const cropperCanvasElement = cropperInstance.value.getCropperCanvas();
-        if (!cropperCanvasElement) throw new Error('Cropper canvas not found');
+        const cropperSelection = cropperInstance.value.getCropperSelection();
+        if (!cropperSelection) throw new Error('Cropper selection not found');
 
-        const outputCanvas = await cropperCanvasElement.$toCanvas({
+        const outputCanvas = await cropperSelection.$toCanvas({
             width: 512,
             height: 512,
         });
@@ -289,7 +308,7 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 }
 
 .profile-banner {
-    height: 180px;
+    height: 130px;
     background: linear-gradient(135deg, #216477 0%, #154552 100%);
 }
 
@@ -406,6 +425,121 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 .cropper-card {
     width: 90%;
     max-width: 500px;
+}
+
+.cropper-card img {
+    width: 100%;
+    height: auto;
+}
+
+:deep(.cropper-container) {
+    direction: ltr;
+    font-size: 0;
+    line-height: 0;
+    position: relative;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+:deep(.cropper-wrapper) {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+:deep(.cropper-drag-box) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    outline: 1px dashed rgba(255, 255, 255, 0.6);
+}
+
+:deep(.cropper-view-box) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: 1px solid rgba(255, 255, 255, 0.75);
+    overflow: hidden;
+}
+
+:deep(.cropper-crop-box) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    outline: 1px dashed #39f;
+}
+
+:deep(.cropper-line),
+:deep(.cropper-point) {
+    position: absolute;
+    display: block;
+    opacity: 0.7;
+}
+
+:deep(.cropper-point) {
+    width: 10px;
+    height: 10px;
+    margin-top: -5px;
+    margin-left: -5px;
+    background-color: #39f;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+:deep(.cropper-point.n) {
+    top: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
+
+:deep(.cropper-point.s) {
+    bottom: 0;
+    left: 50%;
+    cursor: ns-resize;
+}
+
+:deep(.cropper-point.e) {
+    right: 0;
+    top: 50%;
+    cursor: ew-resize;
+}
+
+:deep(.cropper-point.w) {
+    left: 0;
+    top: 50%;
+    cursor: ew-resize;
+}
+
+:deep(.cropper-point.ne) {
+    right: 0;
+    top: 0;
+    cursor: nesw-resize;
+}
+
+:deep(.cropper-point.nw) {
+    left: 0;
+    top: 0;
+    cursor: nwse-resize;
+}
+
+:deep(.cropper-point.se) {
+    right: 0;
+    bottom: 0;
+    cursor: nwse-resize;
+}
+
+:deep(.cropper-point.sw) {
+    left: 0;
+    bottom: 0;
+    cursor: nesw-resize;
 }
 
 .extra-small {

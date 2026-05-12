@@ -6,7 +6,7 @@ const HomeView = () => import("@/views/HomeView.vue");
 const ProfileView = () => import("@/views/Profile/ProfileView.vue");
 const NotFoundView = () => import("@/views/NotFoundView.vue");
 const GenerationsView = () => import("@/views/Generations/Generations.vue");
-const GategoryView = () => import("@/views/Category/CategoryView.vue");
+const CategoryView = () => import("@/views/Category/CategoryView.vue");
 const EventView = () => import("@/views/Event/EventView.vue");
 const ParticipantView = () => import("@/views/Event/EventParticipantView.vue");
 const ManagerAlumniView = () =>
@@ -59,7 +59,7 @@ const routes = [
       {
         path: "category",
         name: "category",
-        component: GategoryView,
+        component: CategoryView,
         meta: { title: "CATEGORY" },
       },
       {
@@ -69,11 +69,11 @@ const routes = [
         meta: { title: "EVENT" },
       },
       {
-        path: "/events/:id/participants",
-        name: "event-participants",
+        path: "participant/:id?",
+        name: "participant",
         component: ParticipantView,
-        props: true, // ដើម្បីឱ្យយើងអាចទាញយក ID តាមរយៈ props បានងាយស្រួល
-        meta: { title: "EVENT PARTICIPANTS" },
+        props: true,
+        meta: { title: "PARTICIPANT" },
       },
     ],
   },

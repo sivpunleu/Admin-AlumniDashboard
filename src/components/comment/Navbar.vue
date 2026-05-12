@@ -21,6 +21,52 @@
             <!-- Right -->
             <div class="d-flex align-items-center gap-3">
 
+                <!-- Notifications -->
+                <div class="dropdown">
+                    <button type="button" class="notification-trigger" data-bs-toggle="dropdown"
+                        aria-label="ការជូនដំណឹង">
+                        <i class="bi bi-bell"></i>
+                        <span v-if="notificationCount" class="notification-badge">
+                            {{ notificationCount > 9 ? '9+' : notificationCount }}
+                        </span>
+                    </button>
+
+                    <div class="dropdown-menu dropdown-menu-end notification-menu border-0 shadow rounded-4">
+                        <div class="notification-header">
+                            <div>
+                                <h6 class="fw-bold mb-0">ការជូនដំណឹង</h6>
+                                <p class="text-muted extra-small mb-0">{{ notificationCount }} ថ្មី</p>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light rounded-pill" @click="fetchNotifications">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+
+                        <div v-if="isNotificationLoading" class="notification-empty">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="small text-muted ms-2">កំពុងផ្ទុក...</span>
+                        </div>
+
+                        <template v-else>
+                            <div v-if="!notifications.length" class="notification-empty">
+                                <i class="bi bi-check2-circle"></i>
+                                <p class="small text-muted mb-0">មិនមានការជូនដំណឹងថ្មីទេ</p>
+                            </div>
+
+                            <router-link v-for="notification in notifications" v-else :key="notification.id"
+                                class="notification-item text-decoration-none" :to="notification.to">
+                                <span :class="['notification-icon', `notification-icon--${notification.tone}`]">
+                                    <i :class="['bi', notification.icon]"></i>
+                                </span>
+                                <span class="notification-copy">
+                                    <span class="fw-semibold text-dark">{{ notification.title }}</span>
+                                    <span class="text-muted extra-small">{{ notification.description }}</span>
+                                </span>
+                            </router-link>
+                        </template>
+                    </div>
+                </div>
+
                 <!-- Profile -->
                 <div class="dropdown">
 
@@ -66,10 +112,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/useAuth";
 import { useProfileStore } from "@/stores/useProfile";
+import api from "@/API/api";
 
 defineProps({
     sidebarOpen: {
@@ -85,6 +132,79 @@ const profileStore = useProfileStore();
 const route = useRoute();
 
 const avatarLoadError = ref(false);
+const isNotificationLoading = ref(false);
+const notifications = ref([]);
+
+const notificationCount = computed(() => notifications.value.length);
+
+const normalizeCollection = (response) => {
+    const payload = response.data?.data || response.data || {};
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload)) return payload;
+    return [];
+};
+
+const normalizeStatus = (value) => String(value || "PENDING").toUpperCase();
+
+const getUserStatus = (user) => {
+    const status = normalizeStatus(
+        user?.profile?.status ||
+        user?.status ||
+        (user?.isVerifyEmail ? "APPROVE" : "PENDING")
+    );
+
+    if (status === "REJECT" || status === "DEACTIVATED") return "DEACTIVATED";
+    return status;
+};
+
+const fetchNotifications = async () => {
+    try {
+        isNotificationLoading.value = true;
+        const [usersResponse, eventsResponse] = await Promise.all([
+            api.get("/users", { params: { _page: 1, _per_page: 100 } }),
+            api.get("/events", { params: { _page: 1, _per_page: 100 } }),
+        ]);
+
+        const users = normalizeCollection(usersResponse);
+        const events = normalizeCollection(eventsResponse);
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const pendingUsers = users.filter((user) => getUserStatus(user) === "PENDING");
+        const upcomingEvents = events
+            .filter((event) => {
+                const eventDate = new Date(event.startDate || event.start_date || event.date);
+                return !Number.isNaN(eventDate.getTime()) && eventDate >= now && eventDate <= nextWeek;
+            })
+            .sort((a, b) => new Date(a.startDate || a.start_date || a.date) - new Date(b.startDate || b.start_date || b.date));
+
+        notifications.value = [
+            ...(pendingUsers.length
+                ? [{
+                    id: "pending-users",
+                    title: `${pendingUsers.length} អ្នកប្រើប្រាស់កំពុងរង់ចាំ`,
+                    description: "ចូលទៅពិនិត្យ និងអនុម័តគណនីថ្មី",
+                    icon: "bi-person-check",
+                    tone: "warning",
+                    to: "/manager-alumni",
+                }]
+                : []),
+            ...upcomingEvents.slice(0, 3).map((event) => ({
+                id: `event-${event.id}`,
+                title: event.title || "ព្រឹត្តិការណ៍ជិតមកដល់",
+                description: event.location || "ចុចដើម្បីមើលអ្នកចូលរួម",
+                icon: "bi-calendar-event",
+                tone: "primary",
+                to: { name: "participant", params: { id: event.id } },
+            })),
+        ];
+    } catch (error) {
+        console.error("Error loading notifications:", error);
+        notifications.value = [];
+    } finally {
+        isNotificationLoading.value = false;
+    }
+};
 
 const normalizedProfile = computed(() => {
     const rawProfile = profileStore.profile || {};
@@ -138,6 +258,10 @@ const sectionTitle = computed(() => {
 const handleLogout = () => {
     authStore.logout();
 };
+
+onMounted(() => {
+    fetchNotifications();
+});
 </script>
 
 <style scoped>
@@ -188,6 +312,106 @@ const handleLogout = () => {
 
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Notifications */
+.notification-trigger {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #216477;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.notification-trigger:hover {
+    background: #f0f7f9;
+    border-color: #216477;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #dc3545;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.notification-menu {
+    width: min(360px, calc(100vw - 24px));
+    padding: 8px;
+}
+
+.notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+}
+
+.notification-empty {
+    min-height: 96px;
+    padding: 18px 12px;
+    border-radius: 12px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #216477;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    transition: 0.2s;
+}
+
+.notification-item:hover {
+    background: #f8fafc;
+}
+
+.notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: #f0f7f9;
+    color: #216477;
+}
+
+.notification-icon--warning {
+    background: #fff4e5;
+    color: #b45309;
+}
+
+.notification-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
 }
 
 /* Profile */

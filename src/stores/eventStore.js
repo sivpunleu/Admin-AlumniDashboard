@@ -7,6 +7,7 @@ import { confirmDelete } from "@/utils/confirmDialog";
 export const useEventStore = defineStore("event", () => {
   const events = ref([]);
   const participants = ref([]);
+  const selectedEvent = ref(null);
   const isLoading = ref(false);
 
   const queryParams = ref({
@@ -29,6 +30,21 @@ export const useEventStore = defineStore("event", () => {
       paginationMeta.value = payload.meta || {};
     } catch (err) {
       console.error(err);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function fetchEvent(id) {
+    try {
+      isLoading.value = true;
+      const res = await api.get(`/events/${id}`);
+      selectedEvent.value = res.data.data || res.data;
+      return selectedEvent.value;
+    } catch (err) {
+      selectedEvent.value = null;
+      console.error(err);
+      return null;
     } finally {
       isLoading.value = false;
     }
@@ -116,20 +132,90 @@ export const useEventStore = defineStore("event", () => {
   // --- ៣. គ្រប់គ្រងអ្នកចូលរួម (Participants) ---
   async function fetchParticipants(id, status = "attending") {
     try {
-      const res = await api.get(`/events/${id}/participants`, {
-        params: { _page: 1, _per_page: 10, status },
-      });
-      participants.value = res.data.data.items;
+      isLoading.value = true;
+      const allParticipants = [];
+      let page = 1;
+      let hasNextPage = true;
+
+      while (hasNextPage) {
+        const res = await api.get(`/events/${id}/participants`, {
+          params: { _page: page, _per_page: 100, status },
+        });
+        const payload = res.data.data || res.data;
+        const pageItems = Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload)
+            ? payload
+            : [];
+        const meta = payload?.meta || payload || {};
+        const totalPages = Number(
+          meta.last_page || meta.lastPage || meta.totalPages || meta.total_pages || 1,
+        );
+        const currentPage = Number(
+          meta.current_page || meta.currentPage || meta.page || page,
+        );
+
+        allParticipants.push(...pageItems);
+        hasNextPage = pageItems.length > 0 && currentPage < totalPages;
+        page = currentPage + 1;
+      }
+
+      participants.value = allParticipants;
+      return true;
     } catch (err) {
+      participants.value = [];
       console.error(err);
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
   // បន្ថែមមុខងារនេះទៅក្នុង useEventStore
-  async function respondToEvent(eventId, status) {
+  async function respondToEvent(eventId, status, participant = null) {
     try {
       isLoading.value = true;
-      // ផ្ញើទៅកាន់ POST /events/{id}/participation (តាម Flowchart)
-      await api.post(`/events/${eventId}/participation`, { status });
+      let success = false;
+      const participantId = participant?.id || participant?.participantId || null;
+      const userId = participant?.user?.id || participant?.userId || null;
+      const payload = {
+        status,
+        ...(participantId ? { participantId } : {}),
+        ...(userId ? { userId } : {}),
+      };
+      const endpoints = [
+        ...(participantId
+          ? [
+              `/events/${eventId}/participants/${participantId}`,
+              `/events/${eventId}/participants/${participantId}/response`,
+            ]
+          : []),
+        `/events/${eventId}/participation`,
+        `/events/${eventId}/participate`,
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          await api.put(endpoint, payload);
+          success = true;
+          break;
+        } catch (err) {
+          if (![404, 405].includes(err?.response?.status)) {
+            try {
+              await api.post(endpoint, payload);
+              success = true;
+              break;
+            } catch (postErr) {
+              if (![404, 405].includes(postErr?.response?.status)) {
+                throw postErr;
+              }
+            }
+          }
+        }
+      }
+
+      if (!success) {
+        throw new Error("Participant response endpoint not found");
+      }
 
       Swal.fire({
         title: "ជោគជ័យ!",
@@ -151,10 +237,12 @@ export const useEventStore = defineStore("event", () => {
     respondToEvent,
     events,
     participants,
+    selectedEvent,
     isLoading,
     queryParams,
     paginationMeta,
     fetchEvents,
+    fetchEvent,
     createEvent,
     updateEvent,
     deleteEvent,

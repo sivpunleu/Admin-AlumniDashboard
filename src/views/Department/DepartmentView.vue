@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, watch, ref, reactive } from 'vue';
 import { useDepartmentStore } from '@/stores/departmentStore';
+import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseTable from '@/components/UI/Base/BaseTable.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
 import BasePage from '@/components/UI/Base/BasePage.vue';
@@ -19,10 +20,10 @@ const form = reactive({
 const errors = reactive({ name: '' });
 
 const tableColumns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Department Name' },
-    { key: 'description', label: 'Description' },
-    { key: 'actions', label: 'Actions' }
+    { key: 'id', label: 'ល.រ' },
+    { key: 'name', label: 'ឈ្មោះដេប៉ាតឺម៉ង់' },
+    { key: 'description', label: 'ការពិពណ៌នា' },
+    { key: 'actions', label: 'សកម្មភាព' }
 ];
 
 onMounted(() => {
@@ -82,28 +83,28 @@ const handleSubmit = async () => {
 
 <template>
     <div class="main-content p-4">
-        <!-- --- Breadcrumb / Page Header --- -->
+        <!-- --- របារទីតាំង / ចំណងជើងទំព័រ --- -->
         <div class="page-toolbar mb-4">
             <div>
-                <h3 class="fw-bold text-dark mb-1">Academic Departments</h3>
+                <h3 class="fw-bold text-dark mb-1">ដេប៉ាតឺម៉ង់សិក្សា</h3>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Departments</li>
+                        <li class="breadcrumb-item"><a href="#" class="text-decoration-none">ផ្ទាំងគ្រប់គ្រង</a></li>
+                        <li class="breadcrumb-item active">ដេប៉ាតឺម៉ង់</li>
                     </ol>
                 </nav>
             </div>
-            <button class="btn btn-primary-custom shadow-sm px-4 py-2" @click="openAddModal">
-                <i class="bi bi-plus-circle me-2"></i>New Department
-            </button>
+            <BaseButton @click="openAddModal" variant="primary">
+                <i class="bi bi-plus-circle me-2"></i>បង្កើតថ្មី
+            </BaseButton>
         </div>
 
-        <!-- --- Main Content Card --- -->
+        <!-- --- កាតមាតិកាចម្បង --- -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-bottom py-3 px-4">
                 <div class="row align-items-center">
                     <div class="col-md-4">
-                        <h5 class="mb-0 fw-bold text-secondary">Department List</h5>
+                        <h5 class="mb-0 fw-bold text-secondary">បញ្ជីដេប៉ាតឺម៉ង់</h5>
                     </div>
                     <div class="col-md-8">
                         <div class="search-box float-md-end">
@@ -111,7 +112,7 @@ const handleSubmit = async () => {
                                 <span class="input-group-text bg-white border-0"><i
                                         class="bi bi-search text-muted"></i></span>
                                 <input v-model="store.queryParams.search" type="text"
-                                    class="form-control border-0 shadow-none ps-0" placeholder="Search departments...">
+                                    class="form-control border-0 shadow-none ps-0" placeholder="ស្វែងរកដេប៉ាតឺម៉ង់...">
                             </div>
                         </div>
                     </div>
@@ -122,14 +123,14 @@ const handleSubmit = async () => {
                 <div v-if="store.isLoading" class="app-state">
                     <div>
                         <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-3 mb-0 fw-medium">Loading data...</p>
+                        <p class="mt-3 mb-0 fw-medium">កំពុងផ្ទុកទិន្នន័យ...</p>
                     </div>
                 </div>
 
                 <div v-else-if="store.departments.length === 0" class="app-state">
                     <div>
                         <div class="app-state__icon"><i class="bi bi-building"></i></div>
-                        <p class="mb-0">No departments found.</p>
+                        <p class="mb-0">រកមិនឃើញដេប៉ាតឺម៉ង់ទេ.</p>
                     </div>
                 </div>
 
@@ -144,51 +145,51 @@ const handleSubmit = async () => {
 
                     <template #cell-description="{ item }">
                         <div class="text-truncate text-muted" style="max-width: 300px;">
-                            {{ item.description || '— No description provided —' }}
+                            {{ item.description || '— គ្មានការពិពណ៌នា —' }}
                         </div>
                     </template>
 
                     <template #cell-actions="{ item }">
                         <div class="action-btns text-end pe-4">
-                            <button class="btn btn-icon text-info me-1" @click="openEditModal(item)" title="Edit"
-                                aria-label="Edit department">
-                                <i class="bi bi-pencil-square fs-5"></i>
-                            </button>
-                            <button class="btn btn-icon text-danger" @click="store.deleteDepartment(item.id)"
-                                title="Delete" aria-label="Delete department">
-                                <i class="bi bi-trash3 fs-5"></i>
-                            </button>
+                            <BaseButton @click="openEditModal(item)" variant="light" size="sm" shape="sharp"
+                                title="កែប្រែ" aria-label="Edit department">
+                                <i class="bi bi-pencil-square fs-6 text-info"></i>
+                            </BaseButton>
+                            <BaseButton @click="store.deleteDepartment(item.id)" variant="danger" size="sm"
+                                shape="sharp" title="លុប" aria-label="Delete department">
+                                <i class="bi bi-trash3 fs-6 text-light"></i>
+                            </BaseButton>
                         </div>
                     </template>
                 </BaseTable>
             </div>
 
-            <!-- Footer / Pagination -->
+            <!-- ផ្នែកខាងក្រោម / ការបែងចែកទំព័រ -->
             <div class="card-footer bg-white border-top py-3 px-4">
                 <div class="text-muted small fw-medium text-center mb-2">
-                    Showing total <span class="text-dark fw-bold">{{ store.totalItems }}</span> departments
+                    បង្ហាញដេប៉ាតឺម៉ង់សរុប <span class="text-dark fw-bold">{{ store.totalItems }}</span>
                 </div>
                 <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
                     @change-page="handlePageChange" />
             </div>
         </div>
 
-        <!-- Use BaseModal component for forms -->
-        <BaseModal v-model="isModalOpen" :title="isEditing ? 'Edit Department' : 'Create New Department'" size="md">
+        <!-- ប្រើប្រាស់ BaseModal សម្រាប់ទម្រង់បញ្ចូលទិន្នន័យ -->
+        <BaseModal v-model="isModalOpen" :title="isEditing ? 'កែប្រែដេប៉ាតឺម៉ង់' : 'បង្កើតដេប៉ាតឺម៉ង់ថ្មី'" size="md">
             <template #default>
                 <form class="app-form" novalidate @submit.prevent="handleSubmit">
                     <div class="app-form">
                         <div>
-                            <label class="form-label small fw-bold text-muted">DEPARTMENT NAME</label>
+                            <label class="form-label small fw-bold text-muted">ឈ្មោះដេប៉ាតឺម៉ង់</label>
                             <input v-model="form.name" type="text" class="form-control custom-input py-2"
-                                :class="{ 'is-invalid': errors.name }" placeholder="Enter department name..." required
+                                :class="{ 'is-invalid': errors.name }" placeholder="បញ្ចូលឈ្មោះដេប៉ាតឺម៉ង់..." required
                                 @input="errors.name = ''" @blur="validateForm">
                             <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                         </div>
                         <div>
-                            <label class="form-label small fw-bold text-muted">DESCRIPTION (OPTIONAL)</label>
+                            <label class="form-label small fw-bold text-muted">ការពិពណ៌នា (មិនបង្ខំ)</label>
                             <textarea v-model="form.description" class="form-control custom-input" rows="4"
-                                placeholder="Add more details about this department..."></textarea>
+                                placeholder="បន្ថែមព័ត៌មានលម្អិតអំពីដេប៉ាតឺម៉ង់នេះ..."></textarea>
                         </div>
                     </div>
                 </form>
@@ -196,13 +197,11 @@ const handleSubmit = async () => {
 
             <template #footer>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
-                        @click="isModalOpen = false">Cancel</button>
-                    <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium"
-                        @click="handleSubmit" :disabled="store.isLoading">
-                        <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span>
-                        {{ isEditing ? 'Save Changes' : 'Create Department' }}
-                    </button>
+                    <BaseButton variant="light" @click="isModalOpen = false">បោះបង់</BaseButton>
+                    <BaseButton type="submit" variant="primary" @click="handleSubmit" :disabled="store.isLoading"
+                        :loading="store.isLoading">
+                        {{ isEditing ? 'រក្សាទុកការផ្លាស់ប្តូរ' : 'បង្កើតដេប៉ាតឺម៉ង់' }}
+                    </BaseButton>
                 </div>
             </template>
         </BaseModal>
@@ -215,7 +214,7 @@ const handleSubmit = async () => {
     min-height: 100vh;
 }
 
-/* Custom Table Styles */
+/* រចនាប័ទ្មតារាងផ្ទាល់ខ្លួន */
 .custom-table tr td {
     padding: 1rem 0.75rem;
     vertical-align: middle;
@@ -240,7 +239,7 @@ const handleSubmit = async () => {
     background-color: #f1f5f9;
 }
 
-/* Search Box */
+/* ប្រអប់ស្វែងរក */
 .search-group {
     max-width: 320px;
     transition: all 0.3s ease;
@@ -251,7 +250,7 @@ const handleSubmit = async () => {
     box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
 }
 
-/* Pagination Customization */
+/* ការកំណត់ការបែងចែកទំព័រ */
 .pagination-custom .page-link {
     border: none;
     color: #475569;
@@ -266,7 +265,7 @@ const handleSubmit = async () => {
     color: white;
 }
 
-/* Modal UI */
+/* UI របស់ Modal */
 .custom-modal-overlay {
     position: fixed;
     top: 0;

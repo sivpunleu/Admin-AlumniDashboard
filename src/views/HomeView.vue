@@ -10,12 +10,22 @@ const stats = ref({
   total: 0,
   approved: 0,
   pending: 0,
-  deactivated: 0
+  deactivated: 0,
+  events: 0,
+  upcomingEvents: 0
 });
 const recentRegistrations = ref([]);
+const upcomingEvents = ref([]);
 const isLoading = ref(true);
 
 const PRIMARY_COLOR = '#216477';
+
+const quickActions = [
+  { label: 'គ្រប់គ្រងអតីតនិស្សិត', icon: 'bi-people-fill', path: '/manager-alumni', tone: 'primary' },
+  { label: 'ព្រឹត្តិការណ៍', icon: 'bi-calendar-event-fill', path: '/event', tone: 'info' },
+  { label: 'ការចូលរួម', icon: 'bi-person-check-fill', path: '/participant', tone: 'success' },
+  { label: 'ដេប៉ាតឺម៉ង់', icon: 'bi-diagram-3-fill', path: '/department', tone: 'warning' }
+];
 
 const normalizeStatus = (value) => String(value || 'PENDING').toUpperCase();
 
@@ -36,11 +46,24 @@ const getUserDisplayName = (user) => {
 const getUserInitial = (user) => getUserDisplayName(user).charAt(0).toUpperCase();
 
 const formatRegistrationDate = (user) => {
-  const value = user?.createdAt || user?.created_at || user?.profile?.createdAt || user?.updatedAt;
+  const value = user?.registeredAt || user?.createdAt || user?.created_at || user?.profile?.registeredAt || user?.profile?.createdAt || user?.profile?.created_at || user?.updatedAt;
   if (!value) return '-';
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('km-KH');
+};
+
+const formatEventDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('km-KH');
+};
+
+const normalizeCollection = (response) => {
+  const payload = response.data?.data || response.data || {};
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload)) return payload;
+  return [];
 };
 
 const getStatusClass = (status) => {
@@ -72,10 +95,14 @@ const getUserStatus = (user) => {
 const fetchDashboardData = async () => {
   try {
     isLoading.value = true;
-    const response = await api.get('/users' + '?_page=1&_per_page=100');
+    const [usersResponse, eventsResponse] = await Promise.all([
+      api.get('/users' + '?_page=1&_per_page=100'),
+      api.get('/events' + '?_page=1&_per_page=100')
+    ]);
 
     // ទាញយកទិន្នន័យពី API តាមរូបភាព [image_ccffa6.png]
-    const allUsers = response.data?.data?.items || response.data?.items || [];
+    const allUsers = normalizeCollection(usersResponse);
+    const allEvents = normalizeCollection(eventsResponse);
 
     if (Array.isArray(allUsers)) {
       stats.value.total = allUsers.length;
@@ -90,6 +117,20 @@ const fetchDashboardData = async () => {
       ).length;
 
       recentRegistrations.value = allUsers.slice(0, 5);
+    }
+
+    if (Array.isArray(allEvents)) {
+      const now = new Date();
+      const upcoming = allEvents
+        .filter((event) => {
+          const eventDate = new Date(event.startDate || event.start_date || event.date);
+          return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
+        })
+        .sort((a, b) => new Date(a.startDate || a.start_date || a.date) - new Date(b.startDate || b.start_date || b.date));
+
+      stats.value.events = allEvents.length;
+      stats.value.upcomingEvents = upcoming.length;
+      upcomingEvents.value = upcoming.slice(0, 3);
     }
   } catch (error) {
     console.error('Error loading dashboard data:', error);
@@ -120,6 +161,19 @@ onMounted(() => {
     </div>
 
     <!-- ផ្នែកកាតស្ថិតិ (Stats Cards Section) -->
+    <div class="row g-3 mb-4">
+      <div v-for="action in quickActions" :key="action.path" class="col-12 col-sm-6 col-xl-3">
+        <button type="button" class="quick-action w-100" :class="`quick-action--${action.tone}`"
+          @click="router.push(action.path)">
+          <span class="quick-action__icon">
+            <i :class="['bi', action.icon]"></i>
+          </span>
+          <span class="quick-action__label">{{ action.label }}</span>
+          <i class="bi bi-chevron-right quick-action__arrow"></i>
+        </button>
+      </div>
+    </div>
+
     <div class="row g-3 mb-5">
       <!-- អតីតនិស្សិតសរុប -->
       <div class="col-md-3">
@@ -191,7 +245,15 @@ onMounted(() => {
           </div>
 
           <div v-else class="table-responsive">
-            <table class="table align-middle table-hover">
+            <div v-if="!recentRegistrations.length" class="dashboard-empty">
+              <div class="dashboard-empty__icon">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <h6 class="fw-bold mb-1">មិនទាន់មានការចុះឈ្មោះថ្មីទេ</h6>
+              <p class="text-muted small mb-0">បេក្ខជនថ្មីនឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីមានការចុះឈ្មោះ។</p>
+            </div>
+
+            <table v-else class="table align-middle table-hover">
               <thead class="text-muted small uppercase">
                 <tr>
                   <th class="border-0">បេក្ខជន</th>
@@ -233,7 +295,47 @@ onMounted(() => {
       </div>
 
       <!-- ផ្នែកព័ត៌មានសហគមន៍ -->
+      <div class="col-lg-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h5 class="fw-bold mb-1">សង្ខេបព្រឹត្តិការណ៍</h5>
+              <p class="text-muted small mb-0">ព្រឹត្តិការណ៍សរុប {{ stats.events }} និងជិតមកដល់ {{ stats.upcomingEvents
+              }}</p>
+            </div>
+            <button @click="router.push('/event')" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
+              មើលព្រឹត្តិការណ៍
+            </button>
+          </div>
 
+          <div v-if="isLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">កំពុងផ្ទុកព្រឹត្តិការណ៍...</p>
+          </div>
+
+          <div v-else-if="!upcomingEvents.length" class="dashboard-empty">
+            <div class="dashboard-empty__icon">
+              <i class="bi bi-calendar2-plus"></i>
+            </div>
+            <h6 class="fw-bold mb-1">មិនទាន់មានព្រឹត្តិការណ៍ជិតមកដល់ទេ</h6>
+            <p class="text-muted small mb-0">ព្រឹត្តិការណ៍ដែលមានថ្ងៃចាប់ផ្តើមខាងមុខនឹងបង្ហាញនៅទីនេះ។</p>
+          </div>
+
+          <div v-else class="upcoming-list">
+            <button v-for="event in upcomingEvents" :key="event.id" type="button" class="upcoming-event"
+              @click="router.push({ name: 'participant', params: { id: event.id } })">
+              <div>
+                <div class="fw-bold text-dark">{{ event.title || '-' }}</div>
+                <div class="text-muted small">{{ event.location || '-' }}</div>
+              </div>
+              <div class="text-end">
+                <div class="event-date">{{ formatEventDate(event.startDate || event.start_date || event.date) }}</div>
+                <div class="text-muted extra-small">មើលអ្នកចូលរួម</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -255,6 +357,123 @@ onMounted(() => {
   border-radius: 10px;
   font-weight: bold;
   font-size: 14px;
+}
+
+.quick-action {
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transition: all 0.2s ease;
+}
+
+.quick-action:hover {
+  border-color: #216477;
+  transform: translateY(-2px);
+}
+
+.quick-action__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #f0f7f9;
+  color: #216477;
+  font-size: 18px;
+}
+
+.quick-action__label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.quick-action__arrow {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.quick-action--success .quick-action__icon {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.quick-action--info .quick-action__icon {
+  background: #e8f4ff;
+  color: #0f6da8;
+}
+
+.quick-action--warning .quick-action__icon {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.dashboard-empty {
+  min-height: 180px;
+  padding: 32px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.dashboard-empty__icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #f0f7f9;
+  color: #216477;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.upcoming-list {
+  display: grid;
+  gap: 10px;
+}
+
+.upcoming-event {
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.upcoming-event:hover {
+  border-color: #216477;
+  background: #f8fafc;
+}
+
+.event-date {
+  color: #216477;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .extra-small {
