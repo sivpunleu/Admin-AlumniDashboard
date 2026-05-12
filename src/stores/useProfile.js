@@ -14,14 +14,24 @@ export const useProfileStore = defineStore("profile", () => {
   const normalizePayload = (response) =>
     response?.data?.data || response?.data || null;
 
+  const shouldTryNextEndpoint = (error) => {
+    const status = error?.response?.status;
+    return status === 404 || status === 405;
+  };
+
   const requestFirstSuccess = async (requesters) => {
     let lastError = null;
 
-    for (const request of requesters) {
+    for (const [index, request] of requesters.entries()) {
       try {
         return await request();
       } catch (error) {
         lastError = error;
+        const hasNextRequester = index < requesters.length - 1;
+
+        if (!hasNextRequester || !shouldTryNextEndpoint(error)) {
+          throw error;
+        }
       }
     }
 
@@ -82,6 +92,7 @@ export const useProfileStore = defineStore("profile", () => {
       const uploadedData = normalizePayload(response);
       profile.value = uploadedData;
       syncAuthUser(uploadedData);
+      Swal.fire("Success", "Avatar uploaded.", "success");
       return uploadedData;
     } catch (error) {
       errors.value = error.response?.data?.errors || {};

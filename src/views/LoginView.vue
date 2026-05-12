@@ -41,9 +41,7 @@
             <div class="admin-login-field">
               <div class="admin-login-label-row">
                 <label for="password" class="admin-login-label">ពាក្យសម្ងាត់</label>
-                <button type="button" class="admin-login-link" @click="showPassword = !showPassword">
-                  {{ showPassword ? "លាក់ពាក្យសម្ងាត់" : "បង្ហាញពាក្យសម្ងាត់" }}
-                </button>
+                <label @click="showPassword = !showPassword" class="admin-login-label"> {{ showPassword ? "លាក់ពាក្យសម្ងាត់" : "បង្ហាញពាក្យសម្ងាត់" }}</label>
               </div>
               <div class="admin-login-input">
                 <i class="bi bi-lock"></i>
@@ -64,10 +62,9 @@
               <span>ចងចាំខ្ញុំ</span>
             </label>
 
-            <button type="submit" class="admin-login-submit" :disabled="loading">
-              <span v-if="loading" class="spinner-border spinner-border-sm"></span>
-              <span>{{ loading ? "កំពុងផ្ទៀងផ្ទាត់..." : "ចូលគណនី" }}</span>
-            </button>
+            <BaseButton type="submit" variant="primary" class="w-100" :disabled="loading" :loading="loading">
+              {{ loading ? "កំពុងផ្ទៀងផ្ទាត់..." : "ចូលគណនី" }}
+            </BaseButton>
           </form>
         </div>
       </section>
@@ -77,6 +74,7 @@
 
 <script setup>
 import { ref } from "vue";
+import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
 import { useRouter } from "vue-router";
 import swal from "sweetalert2";

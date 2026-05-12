@@ -2,6 +2,7 @@
 import { onMounted, computed, ref, reactive, watch } from "vue";
 import Swal from "sweetalert2";
 import * as genStore from "../../stores/generationStore";
+import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import BaseModal from "@/components/UI/Base/BaseModal.vue";
 import BasePage from "@/components/UI/Base/BasePage.vue";
 import BaseTable from "@/components/UI/Base/BaseTable.vue";
@@ -57,14 +58,14 @@ const errors = reactive({
     departmentId: "",
 });
 
-const modalTitle = computed(() => (modalMode.value === "create" ? "Create New Generation" : "Update Generation"));
-const modalConfirmText = computed(() => (modalMode.value === "create" ? "Create" : "Update"));
+const modalTitle = computed(() => (modalMode.value === "create" ? "បង្កើតជំនាន់ថ្មី" : "កែប្រែព័ត៌មានជំនាន់"));
+const modalConfirmText = computed(() => (modalMode.value === "create" ? "បង្កើត" : "រក្សាទុក"));
 
 const columns = [
-    { key: "name", label: "Generation Name" },
-    { key: "years", label: "Years" },
-    { key: "description", label: "Description" },
-    { key: "actions", label: "Actions" },
+    { key: "name", label: "ឈ្មោះជំនាន់" },
+    { key: "years", label: "ឆ្នាំ" },
+    { key: "description", label: "ការពិពណ៌នា" },
+    { key: "actions", label: "សកម្មភាព" },
 ];
 
 const openCreateModal = () => {
@@ -192,9 +193,9 @@ const handlePageChange = (page) => {
                 </p>
             </div>
             <!-- ប៊ូតុងបង្កើតថ្មី (Create new generation) -->
-            <button @click="createGeneration" class="btn btn-primary-custom px-4 py-2 rounded-3 shadow-sm btn-new">
+            <BaseButton @click="createGeneration" variant="primary">
                 <i class="bi bi-plus-lg me-2"></i> បង្កើតជំនាន់ថ្មី
-            </button>
+            </BaseButton>
         </div>
 
         <!-- ផ្នែកប្រអប់ស្វែងរក (Search Box Section) -->
@@ -233,14 +234,14 @@ const handlePageChange = (page) => {
 
                 <template #cell-actions="{ item }">
                     <div class="d-flex align-items-center gap-2">
-                        <button @click="openEditModal(item)" class="btn btn-icon" title="កែប្រែ"
+                        <BaseButton @click="openEditModal(item)" variant="light" size="sm" shape="sharp" title="កែប្រែ"
                             aria-label="កែប្រែជំនាន់">
                             <i class="bi bi-pencil-square text-info"></i>
-                        </button>
-                        <button @click="genStore.handleDelete(item.id)" class="btn btn-icon" title="លុប"
-                            aria-label="លុបជំនាន់">
-                            <i class="bi bi-trash text-danger"></i>
-                        </button>
+                        </BaseButton>
+                        <BaseButton @click="genStore.handleDelete(item.id)" variant="danger" size="sm" shape="sharp"
+                            title="លុប" aria-label="លុបជំនាន់">
+                            <i class="bi bi-trash text-light"></i>
+                        </BaseButton>
                     </div>
                 </template>
             </BaseTable>
@@ -253,7 +254,7 @@ const handlePageChange = (page) => {
             </div>
 
             <div v-else class="page-toolbar p-3 border-top bg-white">
-                <p class="small text-muted mb-0">Total: {{ filteredGens.length }} generations</p>
+                <p class="small text-muted mb-0">Total: {{ filteredGens.length }} ជំនាន់</p>
                 <BasePage :currentPage="currentPage" :totalPages="totalPages" @change-page="handlePageChange" />
             </div>
         </div>
@@ -266,7 +267,7 @@ const handlePageChange = (page) => {
 
             <div class="app-form">
                 <div>
-                    <label class="small fw-bold">Generation Name</label>
+                    <label class="small fw-bold">ឈ្មោះជំនាន់</label>
                     <input v-model="form.name" class="form-control" :class="{ 'is-invalid': errors.name }"
                         placeholder="e.g. ANT" @input="errors.name = ''" @blur="validateForm">
                     <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
@@ -274,23 +275,22 @@ const handlePageChange = (page) => {
 
                 <div class="row g-2">
                     <div class="col-6">
-                        <label class="small fw-bold">Start Year</label>
+                        <label class="small fw-bold">ឆ្នាំចាប់ផ្តើម</label>
                         <input v-model="form.startYear" type="number" class="form-control"
                             :class="{ 'is-invalid': errors.startYear }" @input="errors.startYear = ''"
                             @blur="validateForm">
                         <div v-if="errors.startYear" class="invalid-feedback">{{ errors.startYear }}</div>
                     </div>
                     <div class="col-6">
-                        <label class="small fw-bold">End Year</label>
+                        <label class="small fw-bold">ឆ្នាំបញ្ចប់</label>
                         <input v-model="form.endYear" type="number" class="form-control"
-                            :class="{ 'is-invalid': errors.endYear }" @input="errors.endYear = ''"
-                            @blur="validateForm">
+                            :class="{ 'is-invalid': errors.endYear }" @input="errors.endYear = ''" @blur="validateForm">
                         <div v-if="errors.endYear" class="invalid-feedback">{{ errors.endYear }}</div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="small fw-bold">Department ID</label>
+                    <label class="small fw-bold">លេខសម្គាល់ដេប៉ាតឺម៉ង់</label>
                     <input v-model="form.departmentId" type="number" class="form-control"
                         :class="{ 'is-invalid': errors.departmentId }" placeholder="e.g. 2"
                         @input="errors.departmentId = ''" @blur="validateForm">
@@ -298,19 +298,18 @@ const handlePageChange = (page) => {
                 </div>
 
                 <div>
-                    <label class="small fw-bold">Description</label>
+                    <label class="small fw-bold">ការពិពណ៌នា</label>
                     <textarea v-model="form.description" class="form-control" rows="3"></textarea>
                 </div>
             </div>
 
             <template #footer>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-light" @click="showModal = false">Cancel</button>
-                    <button type="button" class="btn btn-primary-custom" @click="submitForm"
-                        :disabled="genStore.isLoading.value">
-                        <span v-if="genStore.isLoading.value" class="spinner-border spinner-border-sm me-2"></span>
+                    <BaseButton variant="light" @click="showModal = false">បោះបង់</BaseButton>
+                    <BaseButton variant="primary" @click="submitForm" :disabled="genStore.isLoading.value"
+                        :loading="genStore.isLoading.value">
                         {{ modalConfirmText }}
-                    </button>
+                    </BaseButton>
                 </div>
             </template>
         </BaseModal>

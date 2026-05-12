@@ -1,10 +1,13 @@
 <script setup>
 import { onMounted, ref, reactive, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useEventStore } from '@/stores/eventStore';
+import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
 import BaseTable from '@/components/UI/Base/BaseTable.vue';
 
 const store = useEventStore();
+const router = useRouter();
 const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentId = ref(null);
@@ -57,19 +60,33 @@ const closeModal = () => {
     clearErrors();
 };
 
+const toDatetimeLocalInput = (value) => {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return offsetDate.toISOString().slice(0, 16);
+};
+
 const openEditModal = (event) => {
     isEditing.value = true;
     currentId.value = event.id;
     Object.assign(form, {
         title: event.title,
         description: event.description,
-        startDate: event.startDate ? event.startDate.substring(0, 16) : '',
-        endDate: event.endDate ? event.endDate.substring(0, 16) : '',
+        startDate: toDatetimeLocalInput(event.startDate),
+        endDate: toDatetimeLocalInput(event.endDate),
         location: event.location,
         categoryId: event.categoryId ?? event.category?.id ?? 1
     });
     clearErrors();
     isModalOpen.value = true;
+};
+
+const openParticipants = (eventId) => {
+    router.push({ name: 'participant', params: { id: eventId } });
 };
 
 const clearErrors = () => {
@@ -139,7 +156,7 @@ const formatDateTime = (value) => {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleString('km-KH'); 
+    return date.toLocaleString('km-KH');
 };
 </script>
 
@@ -151,7 +168,7 @@ const formatDateTime = (value) => {
             <div class="page-toolbar__actions">
                 <input v-model="store.queryParams.search" type="text" class="form-control rounded-pill px-3"
                     placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
-                <button @click="openAddModal" class="btn btn-primary-custom px-4">ព្រឹត្តិការណ៍ថ្មី</button>
+                <BaseButton @click="openAddModal" variant="primary" shape="sharp" size="sm">ព្រឹត្តិការណ៍ថ្មី</BaseButton>
             </div>
         </div>
 
@@ -200,18 +217,18 @@ const formatDateTime = (value) => {
 
                 <template #cell-actions="{ item }">
                     <div class="d-flex gap-2">
-                        <button @click="openEditModal(item)" class="btn btn-icon" title="កែប្រែ"
+                        <BaseButton @click="openParticipants(item.id)" variant="primary" size="sm" shape="sharp"
+                            title="មើលអ្នកចូលរួម" aria-label="មើលអ្នកចូលរួម">
+                            <i class="bi bi-people text-light"></i>
+                        </BaseButton>
+                        <BaseButton @click="openEditModal(item)" variant="light" size="sm" shape="sharp" title="កែប្រែ"
                             aria-label="កែប្រែព្រឹត្តិការណ៍">
                             <i class="bi bi-pencil-square text-info"></i>
-                        </button>
-                        <button @click="store.deleteEvent(item.id)" class="btn btn-icon" title="លុប"
-                            aria-label="លុបព្រឹត្តិការណ៍">
-                            <i class="bi bi-trash text-danger"></i>
-                        </button>
-                        <router-link :to="`/events/${item.id}/participants`" class="btn btn-icon"
-                            title="មើលបញ្ជីអ្នកចូលរួម" aria-label="មើលបញ្ជីអ្នកចូលរួម">
-                            <i class="bi bi-people-fill"></i>
-                        </router-link>
+                        </BaseButton>
+                        <BaseButton @click="store.deleteEvent(item.id)" variant="danger" size="sm" shape="sharp"
+                            title="លុប" aria-label="លុបព្រឹត្តិការណ៍">
+                            <i class="bi bi-trash text-light"></i>
+                        </BaseButton>
                     </div>
                 </template>
             </BaseTable>
@@ -267,12 +284,11 @@ const formatDateTime = (value) => {
 
             <template #footer>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-light px-4" @click="closeModal">បោះបង់</button>
-                    <button type="button" class="btn btn-primary-custom px-4 shadow-sm" @click="handleSubmit"
-                        :disabled="store.isLoading || isSubmitting">
-                        <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                    <BaseButton variant="light" @click="closeModal">បោះបង់</BaseButton>
+                    <BaseButton type="submit" variant="primary" @click="handleSubmit"
+                        :disabled="store.isLoading || isSubmitting" :loading="isSubmitting">
                         {{ isEditing ? 'រក្សាទុក' : 'បង្កើត' }}
-                    </button>
+                    </BaseButton>
                 </div>
             </template>
         </BaseModal>

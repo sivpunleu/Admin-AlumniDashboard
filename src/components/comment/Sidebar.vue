@@ -99,6 +99,7 @@
 
 <script setup>
 import { computed } from "vue";
+// import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
 
 defineProps({
@@ -190,6 +191,7 @@ const handleLogout = () => {
 
 /* Menu */
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
 
@@ -217,8 +219,22 @@ const handleLogout = () => {
 .nav-link.active {
   background: #f0f7f9 !important;
   color: #216477 !important;
-
   font-weight: 600;
+  box-shadow: inset 4px 0 0 #216477;
+}
+
+.nav-link.active i {
+  color: #216477;
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* background: #216477; */
 }
 
 .btn-logout {
