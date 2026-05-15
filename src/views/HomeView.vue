@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/API/api';
+import logger from '@/utils/logger';
 
 const router = useRouter();
 
@@ -133,7 +134,7 @@ const fetchDashboardData = async () => {
       upcomingEvents.value = upcoming.slice(0, 3);
     }
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
+    logger.error('Error loading dashboard data:', error);
   } finally {
     isLoading.value = false;
   }
@@ -145,9 +146,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="dashboard-container p-4">
+  <div class="dashboard-container">
     <!-- ផ្នែកក្បាល (Header Section) -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="dashboard-page-header d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2 class="fw-bold mb-1">ទិដ្ឋភាពទូទៅ</h2>
         <p class="text-muted small">សូមស្វាគមន៍ការត្រឡប់មកវិញ។
@@ -233,7 +234,7 @@ onMounted(() => {
       <!-- តារាងការចុះឈ្មោះថ្មីៗ -->
       <div class="col-lg-12">
         <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-          <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0">ការចុះឈ្មោះថ្មីៗ</h5>
             <button @click="router.push('/manager-alumni')"
               class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">មើលទាំងអស់</button>
@@ -297,11 +298,11 @@ onMounted(() => {
       <!-- ផ្នែកព័ត៌មានសហគមន៍ -->
       <div class="col-lg-12">
         <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-          <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <div>
               <h5 class="fw-bold mb-1">សង្ខេបព្រឹត្តិការណ៍</h5>
               <p class="text-muted small mb-0">ព្រឹត្តិការណ៍សរុប {{ stats.events }} និងជិតមកដល់ {{ stats.upcomingEvents
-              }}</p>
+                }}</p>
             </div>
             <button @click="router.push('/event')" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
               មើលព្រឹត្តិការណ៍
@@ -341,6 +342,21 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.dashboard-container {
+  padding: 1rem;
+}
+
+.dashboard-page-header,
+.dashboard-card-header {
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-page-header>div:first-child,
+.dashboard-card-header>div:first-child {
+  min-width: 0;
+}
+
 .icon-box {
   width: 45px;
   height: 45px;
@@ -396,6 +412,7 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 700;
   flex: 1;
+  min-width: 0;
 }
 
 .quick-action__arrow {
@@ -525,5 +542,31 @@ onMounted(() => {
 .table tbody td {
   padding: 15px 12px;
   border-bottom: 1px solid #f1f1f1;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 0;
+  }
+
+  .dashboard-page-header,
+  .dashboard-card-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .dashboard-page-header .btn,
+  .dashboard-card-header .btn {
+    width: 100%;
+  }
+
+  .upcoming-event {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upcoming-event .text-end {
+    text-align: left !important;
+  }
 }
 </style>

@@ -184,9 +184,9 @@ const handlePageChange = (page) => {
 </script>
 
 <template>
-    <div class="p-4 bg-light min-vh-100">
+    <div class="generations-page">
         <!-- ផ្នែកក្បាល (Header Section) -->
-        <div class="page-toolbar align-items-start mb-4">
+        <div class="generations-header page-toolbar align-items-start mb-4">
             <div>
                 <h2 class="fw-bold text-dark">ជំនាន់និស្សិត</h2>
                 <p class="text-muted small">ស្វែងរក និងគ្រប់គ្រងក្រុមនិស្សិតដែលបានបញ្ចប់ការសិក្សា និងក្រុមអតីតនិស្សិត។
@@ -244,16 +244,17 @@ const handlePageChange = (page) => {
                         </BaseButton>
                     </div>
                 </template>
+                <template #empty>
+                    <div class="app-state">
+                        <div>
+                            <div class="app-state__icon"><i class="bi bi-mortarboard"></i></div>
+                            <p class="mb-0">រកមិនឃើញទិន្នន័យជំនាន់ដែលអ្នកស្វែងរកទេ។</p>
+                        </div>
+                    </div>
+                </template>
             </BaseTable>
 
-            <div v-if="filteredGens.length === 0" class="app-state">
-                <div>
-                    <div class="app-state__icon"><i class="bi bi-mortarboard"></i></div>
-                    <p class="mb-0">រកមិនឃើញទិន្នន័យជំនាន់ដែលអ្នកស្វែងរកទេ។</p>
-                </div>
-            </div>
-
-            <div v-else class="page-toolbar p-3 border-top bg-white">
+            <div v-if="filteredGens.length > 0" class="generations-pagination page-toolbar p-3 border-top bg-white">
                 <p class="small text-muted mb-0">Total: {{ filteredGens.length }} ជំនាន់</p>
                 <BasePage :currentPage="currentPage" :totalPages="totalPages" @change-page="handlePageChange" />
             </div>
@@ -261,8 +262,8 @@ const handlePageChange = (page) => {
 
         <!-- Base Modal for Create / Edit -->
         <BaseModal v-model="showModal" :title="modalTitle" size="md" :closeOnBackdrop="true">
-            <template #header>
-                <h5 class="mb-0">{{ modalTitle }}</h5>
+            <template #header="{ titleId }">
+                <h5 :id="titleId" class="mb-0">{{ modalTitle }}</h5>
             </template>
 
             <div class="app-form">
@@ -317,6 +318,18 @@ const handlePageChange = (page) => {
 </template>
 
 <style scoped>
+.generations-page {
+    min-height: 100vh;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.generations-header,
+.generations-pagination {
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .search-box input::placeholder {
     color: #adb5bd;
 }
@@ -344,5 +357,21 @@ const handlePageChange = (page) => {
 .dropdown-item:active {
     background-color: #f8f9fa;
     color: inherit;
+}
+
+@media (max-width: 768px) {
+    .generations-page {
+        padding: 0;
+    }
+
+    .generations-header,
+    .generations-pagination {
+        align-items: stretch !important;
+    }
+
+    .generations-header .btn,
+    .generations-pagination :deep(.pagination-wrap) {
+        width: 100%;
+    }
 }
 </style>

@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import logger from "@/utils/logger";
 import { confirmDelete } from "@/utils/confirmDialog";
 
 export const useCategoryStore = defineStore("category", () => {
@@ -32,22 +33,21 @@ export const useCategoryStore = defineStore("category", () => {
       totalItems.value = payload.total || categories.value.length;
       totalPages.value = payload.last_page || 1;
     } catch (err) {
-      console.error("Fetch Error:", err);
+      logger.error("Fetch Error:", err);
     } finally {
       isLoading.value = false;
     }
   }
 
-    // --- ២. បង្កើតថ្មី (POST /categories) --- (តាមរូបភាពទី ៣)
-    // check admin role
+  // --- ២. បង្កើតថ្មី (POST /categories) --- (តាមរូបភាពទី ៣)
+  // check admin role
   async function createCategory(payload) {
-      try {
-        
+    try {
       isLoading.value = true;
       await api.post("/categories", payload);
       await Swal.fire("ជោគជ័យ", "ប្រភេទថ្មីត្រូវបានបង្កើត", "success");
-        await fetchCategories();
-        
+      await fetchCategories();
+
       return true;
     } catch (err) {
       Swal.fire("កំហុស", "មិនអាចបង្កើតបានទេ", "error");

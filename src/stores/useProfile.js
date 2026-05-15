@@ -43,6 +43,7 @@ export const useProfileStore = defineStore("profile", () => {
     if (profileData) authStore.setUser(profileData);
   };
 
+  // --- ទាញយកទិន្នន័យកម្រងព័ត៌មាន ---
   const fetchProfile = async () => {
     loading.value = true;
     errors.value = {};
@@ -64,6 +65,7 @@ export const useProfileStore = defineStore("profile", () => {
     }
   };
 
+  // --- បង្ហោះរូបភាពតំណាង (Avatar) ---
   const uploadAvatar = async (fileOrBlob) => {
     loading.value = true;
     errors.value = {};
@@ -81,10 +83,11 @@ export const useProfileStore = defineStore("profile", () => {
     try {
       const response = await requestFirstSuccess(
         ["post", "put"].flatMap((method) =>
-          avatarEndpoints.map((endpoint) => () =>
-            api[method](endpoint, formData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            }),
+          avatarEndpoints.map(
+            (endpoint) => () =>
+              api[method](endpoint, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+              }),
           ),
         ),
       );
@@ -92,25 +95,26 @@ export const useProfileStore = defineStore("profile", () => {
       const uploadedData = normalizePayload(response);
       profile.value = uploadedData;
       syncAuthUser(uploadedData);
-      Swal.fire("Success", "Avatar uploaded.", "success");
+      Swal.fire("ជោគជ័យ", "រូបភាពត្រូវបានបង្ហោះដោយជោគជ័យ។", "success");
       return uploadedData;
     } catch (error) {
       errors.value = error.response?.data?.errors || {};
-      Swal.fire("Error", "Unable to upload avatar.", "error");
+      Swal.fire("កំហុស", "មិនអាចបង្ហោះរូបភាពបានទេ។", "error");
       throw error;
     } finally {
       loading.value = false;
     }
   };
 
+  // --- លុបរូបភាពតំណាង ---
   const deleteAvatar = async () => {
     const result = await Swal.fire({
-      title: "Delete avatar?",
-      text: "This avatar will be removed from the system.",
+      title: "តើអ្នកប្រាកដជាចង់លុបឬ?",
+      text: "រូបភាពកម្រងព័ត៌មាននេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ។",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: "លុបចេញ",
+      cancelButtonText: "បោះបង់",
       confirmButtonColor: "#d33",
     });
 
@@ -127,17 +131,18 @@ export const useProfileStore = defineStore("profile", () => {
       );
 
       await fetchProfile();
-      Swal.fire("Success", "Avatar deleted.", "success");
+      Swal.fire("ជោគជ័យ", "រូបភាពត្រូវបានលុបចេញហើយ។", "success");
       return true;
     } catch (error) {
       errors.value = error.response?.data?.errors || {};
-      Swal.fire("Error", "Unable to delete avatar.", "error");
+      Swal.fire("កំហុស", "មិនអាចលុបរូបភាពបានទេ។", "error");
       throw error;
     } finally {
       loading.value = false;
     }
   };
 
+  // --- កែប្រែព័ត៌មានផ្ទាល់ខ្លួន ---
   const updateProfile = async (payload) => {
     loading.value = true;
     errors.value = {};
@@ -154,11 +159,11 @@ export const useProfileStore = defineStore("profile", () => {
       }
 
       const refreshedProfile = await fetchProfile();
-      Swal.fire("Success", "Profile saved.", "success");
+      Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានរក្សាទុកដោយជោគជ័យ។", "success");
       return refreshedProfile || profileData;
     } catch (error) {
       errors.value = error.response?.data?.errors || {};
-      Swal.fire("Error", "Unable to save profile.", "error");
+      Swal.fire("កំហុស", "មិនអាចរក្សាទុកព័ត៌មានបានទេ។", "error");
       throw error;
     } finally {
       loading.value = false;

@@ -4,13 +4,9 @@
 
     <!-- Header -->
     <div class="sidebar-header d-flex align-items-center p-3 border-bottom">
-      <div class="logo-box me-2">
-        <i class="bi bi-mortarboard-fill text-white fs-5"></i>
-      </div>
-
-      <h5 class="mb-0 fw-bold text-main">
-        អ្នកគ្រប់គ្រង
-      </h5>
+      <router-link to="/dashboard" class="sidebar-logo-link" aria-label="Alumni System dashboard">
+        <img src="../../assets/Imgage/logo.png" alt="Alumni System" class="sidebar-logo-img">
+      </router-link>
     </div>
 
     <!-- Menu -->
@@ -102,6 +98,7 @@ import { computed } from "vue";
 // import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
 
+
 defineProps({
   isOpen: {
     type: Boolean,
@@ -172,21 +169,31 @@ const handleLogout = () => {
 }
 
 /* Header */
-.logo-box {
-  width: 35px;
-  height: 35px;
-
-  border-radius: 8px;
-
-  background: #216477;
-
+.sidebar-header {
+  min-height: 112px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.text-main {
-  color: #216477;
+.sidebar-logo-link {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-logo-link:hover {
+  background: #f8fafc;
+}
+
+.sidebar-logo-img {
+  width: min(120px, 80%);
+  height: 80px;
+  object-fit: contain;
 }
 
 /* Menu */

@@ -2,9 +2,10 @@
     <nav aria-label="Article pagination" class="pagination-wrap d-flex justify-content-center mt-2">
         <ul class="pagination mb-0">
             <li class="page-item" :class="{ disabled: currentPage <= 1 }">
-                <BaseButton type="button" variant="light" shape="sharp" class="page-link" @click="goToPrevious"
-                    :disabled="currentPage <= 1">
-                    Previous
+                <BaseButton type="button" variant="light" shape="sharp" class="page-link page-link--control"
+                    aria-label="ទំព័រមុន" @click="goToPrevious" :disabled="currentPage <= 1">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    <span class="pagination-control-label">មុន</span>
                 </BaseButton>
             </li>
 
@@ -15,9 +16,10 @@
             </li>
 
             <li class="page-item" :class="{ disabled: currentPage >= totalPages }">
-                <BaseButton type="button" variant="light" shape="sharp" class="page-link" @click="goToNext"
-                    :disabled="currentPage >= totalPages">
-                    Next
+                <BaseButton type="button" variant="light" shape="sharp" class="page-link page-link--control"
+                    aria-label="ទំព័របន្ទាប់" @click="goToNext" :disabled="currentPage >= totalPages">
+                    <span class="pagination-control-label">បន្ទាប់</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </BaseButton>
             </li>
         </ul>
@@ -82,14 +84,16 @@ const goToNext = () => {
     --page-text: #1f2937;
     --page-hover-bg: #f3f6fb;
     --page-hover-border: #bcc8d8;
-    --page-active-bg: #1f2937;
-    --page-active-border: #1f2937;
+    --page-active-bg: #216477;
+    --page-active-border: #216477;
     --page-active-text: #ffffff;
     --page-disabled-text: #a0a7b2;
 }
 
 .pagination {
     gap: 0.45rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .page-item .page-link {
@@ -105,8 +109,13 @@ const goToNext = () => {
     align-items: center;
     justify-content: center;
     line-height: 1;
+    white-space: nowrap;
     transition: all 0.2s ease;
     box-shadow: 0 1px 1px rgba(15, 23, 42, 0.06);
+}
+
+.page-link--control {
+    gap: 0.35rem;
 }
 
 .page-item:not(.active):not(.disabled) .page-link:hover {
@@ -148,6 +157,23 @@ const goToNext = () => {
         height: 2.15rem;
         padding: 0 0.65rem;
         font-size: 0.9rem;
+    }
+
+    .page-link--control {
+        width: 2.15rem;
+        padding: 0;
+    }
+
+    .pagination-control-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 }
 </style>

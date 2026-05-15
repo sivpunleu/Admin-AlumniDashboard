@@ -43,7 +43,8 @@ api.interceptors.request.use(
     }
 
     if (!token) {
-      token = localStorage.getItem("token");
+      token =
+        localStorage.getItem("token") || sessionStorage.getItem("token");
     }
 
     if (token) {

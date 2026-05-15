@@ -5,20 +5,43 @@ import swal from "sweetalert2";
 import router from "@/router";
 import { useProfileStore } from "@/stores/useProfile";
 
+const getStoredToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
+
+const getActiveStorage = () =>
+  localStorage.getItem("token") ? localStorage : sessionStorage;
+
 const getStoredUser = () => {
-  const storedUser = localStorage.getItem("user");
+  const storage = getActiveStorage();
+  const storedUser = storage.getItem("user");
   if (!storedUser) return null;
 
   try {
     return JSON.parse(storedUser);
   } catch {
     localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
     return null;
   }
 };
 
+const clearStoredAuth = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+};
+
+const persistAuth = (userToken, userData, remember) => {
+  const storage = remember ? localStorage : sessionStorage;
+
+  clearStoredAuth();
+  storage.setItem("token", userToken);
+  storage.setItem("user", JSON.stringify(userData));
+};
+
 export const useAuthStore = defineStore("auth", () => {
-  const token = ref(localStorage.getItem("token") || null);
+  const token = ref(getStoredToken() || null);
   const user = ref(getStoredUser());
   const loading = ref(false);
   const errors = ref({});
@@ -41,12 +64,11 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     user.value = null;
     if (profileStore) profileStore.profile = null;
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredAuth();
     delete api.defaults.headers.common["Authorization"];
   };
 
-  const login = async (credentials) => {
+  const login = async (credentials, { remember = false } = {}) => {
     loading.value = true;
     errors.value = {};
     try {
@@ -75,8 +97,7 @@ export const useAuthStore = defineStore("auth", () => {
       // បើផ្ទៀងផ្ទាត់ជោគជ័យ ទើបឱ្យ Save ទិន្នន័យ
       token.value = userToken;
       user.value = userData;
-      localStorage.setItem("token", userToken);
-      localStorage.setItem("user", JSON.stringify(userData));
+      persistAuth(userToken, userData, remember);
       api.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
 
       const profileStore = useProfileStore();
@@ -129,9 +150,10 @@ export const useAuthStore = defineStore("auth", () => {
   const setUser = (userData) => {
     user.value = userData || null;
     if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
+      getActiveStorage().setItem("user", JSON.stringify(userData));
     } else {
       localStorage.removeItem("user");
+      sessionStorage.removeItem("user");
     }
   };
 

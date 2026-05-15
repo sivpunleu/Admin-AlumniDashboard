@@ -5,7 +5,7 @@
                 @click="handleBackdropClick">
                 <div class="base-modal__dialog" :class="dialogClass" @click.stop>
                     <div class="base-modal__header" v-if="!hideHeader">
-                        <slot name="header">
+                        <slot name="header" :title-id="titleId">
                             <h5 :id="titleId" class="base-modal__title">{{ title }}</h5>
                         </slot>
                         <BaseButton v-if="showClose" type="button" variant="light" shape="sharp"

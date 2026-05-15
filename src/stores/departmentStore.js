@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import logger from "@/utils/logger";
 import { confirmDelete } from "@/utils/confirmDialog";
 
 export const useDepartmentStore = defineStore("department", () => {
@@ -30,7 +31,7 @@ export const useDepartmentStore = defineStore("department", () => {
       totalItems.value = payload.total || departments.value.length;
       totalPages.value = payload.last_page || 1;
     } catch (err) {
-      console.error("Fetch Error:", err);
+      logger.error("Fetch Error:", err);
     } finally {
       isLoading.value = false;
     }
@@ -74,7 +75,7 @@ export const useDepartmentStore = defineStore("department", () => {
         await fetchDepartments();
       }
     } catch (err) {
-      console.error("Update Error:", err);
+      logger.error("Update Error:", err);
       Swal.fire(
         "កំហុស",
         err.response?.data?.message || "មិនអាចកែប្រែទិន្នន័យបានទេ",

@@ -161,14 +161,16 @@ const formatDateTime = (value) => {
 </script>
 
 <template>
-    <div class="p-4 bg-light min-vh-100">
+    <div class="event-page">
         <!-- ផ្នែកក្បាល (Header Section) -->
-        <div class="page-toolbar mb-4 bg-white p-4 rounded-4 shadow-sm">
-            <h4 class="fw-bold mb-0" style="color: #216477;">ការគ្រប់គ្រងព្រឹត្តិការណ៍</h4>
+        <div class="event-toolbar page-toolbar mb-4 bg-white p-4 rounded-4 shadow-sm">
+            <h4 class="event-title fw-bold mb-0">ការគ្រប់គ្រងព្រឹត្តិការណ៍</h4>
             <div class="page-toolbar__actions">
-                <input v-model="store.queryParams.search" type="text" class="form-control rounded-pill px-3"
+                <input v-model="store.queryParams.search" type="text" class="event-search form-control rounded-pill px-3"
                     placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
-                <BaseButton @click="openAddModal" variant="primary" shape="sharp" size="sm">ព្រឹត្តិការណ៍ថ្មី</BaseButton>
+                <BaseButton @click="openAddModal" variant="primary">
+                    <i class="bi bi-plus-circle me-2"></i> បង្កើតថ្មី
+                </BaseButton>
             </div>
         </div>
 
@@ -296,6 +298,26 @@ const formatDateTime = (value) => {
 </template>
 
 <style scoped>
+.event-page {
+    min-height: 100vh;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.event-toolbar {
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.event-title {
+    color: #216477;
+}
+
+.event-search {
+    width: 220px;
+    max-width: 100%;
+}
+
 .btn-white {
     background: white;
     border: none;
@@ -310,4 +332,15 @@ const formatDateTime = (value) => {
     height: 48px;
     object-fit: cover;
 }
+
+@media (max-width: 768px) {
+    .event-page {
+        padding: 0;
+    }
+
+    .event-search {
+        width: 100%;
+    }
+}
+
 </style>

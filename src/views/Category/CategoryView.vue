@@ -74,9 +74,9 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div class="category-page p-4 min-vh-100">
+    <div class="category-page min-vh-100">
         <!-- ផ្នែកក្បាល (Header Section) -->
-        <div class="header-card page-toolbar mb-4 p-4 rounded-4 shadow-sm border-0 bg-white">
+        <div class="category-header header-card page-toolbar mb-4 p-4 rounded-4 shadow-sm border-0 bg-white">
             <div>
                 <h2 class="fw-bold text-dark mb-1">ប្រភេទ</h2>
                 <nav aria-label="breadcrumb">
@@ -132,7 +132,7 @@ const handleSubmit = async () => {
         </div>
 
         <!-- ការបែងចែកទំព័រ (Pagination) -->
-        <div class="page-toolbar mt-5">
+        <div class="category-pagination page-toolbar mt-5">
             <p class="small text-muted mb-0">សរុប: {{ store.totalItems }} ប្រភេទ</p>
             <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
                 @change-page="handlePageChange" />
@@ -173,48 +173,17 @@ const handleSubmit = async () => {
 <style scoped>
 .category-page {
     background-color: #f8fafc;
+    padding: 1rem;
+}
+
+.category-header,
+.category-pagination {
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .search-box-custom:focus-within {
     border-color: #216477 !important;
-}
-
-.category-card:hover {
-    transform: translateY(-5px);
-    transition: 0.3s;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
-}
-
-.icon-gradient {
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, #216477, #2f8aa0);
-    box-shadow: 0 5px 10px rgba(33, 100, 119, 0.2);
-}
-
-.pagination-custom .page-link {
-    color: #216477;
-    font-weight: bold;
-}
-
-.page-item.active .page-link {
-    background-color: #216477;
-    border-color: #216477;
-    color: white;
-}
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
 }
 
 .line-clamp-3 {
@@ -222,5 +191,21 @@ const handleSubmit = async () => {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .category-page {
+        padding: 0;
+    }
+
+    .category-header,
+    .category-pagination {
+        align-items: stretch;
+    }
+
+    .category-header .btn,
+    .category-pagination :deep(.pagination-wrap) {
+        width: 100%;
+    }
 }
 </style>

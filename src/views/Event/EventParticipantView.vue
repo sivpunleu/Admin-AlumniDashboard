@@ -240,20 +240,22 @@ watch(() => props.id, async (newId) => {
 </script>
 
 <template>
-    <div class="p-4 bg-light min-vh-100">
-        <BaseButton @click="router.back()" variant="outline" class="mb-3">
-            <i class="bi bi-arrow-left me-1"></i>
-            ត្រឡប់
-        </BaseButton>
-        <div class="page-toolbar mb-4 bg-white p-4 rounded-4 shadow-sm">
+    <div class="participant-page">
+
+        <div class="participant-toolbar page-toolbar mb-4 bg-white p-4 rounded-4 shadow-sm">
             <!-- back -->
             <div>
 
-                <h4 class="fw-bold mb-1" style="color: #216477;">ការចូលរួមព្រឹត្តិការណ៍</h4>
-                <p class="text-muted mb-0 small">ជ្រើសរើសព្រឹត្តិការណ៍ ដើម្បីមើលព័ត៌មានអ្នកចូលរួមតាមស្ថានភាព។</p>
+                <h4 class="participant-title fw-bold mb-1">
+                    <BaseButton @click="router.back()" variant="light" size="sm" class="me-2">
+                        <i class="bi bi-arrow-left me-1"></i>
+                    </BaseButton>
+                    ការចូលរួមព្រឹត្តិការណ៍</h4>
+                <p class="text-muted mb-0 small text-truncate">ជ្រើសរើសព្រឹត្តិការណ៍ ដើម្បីមើលព័ត៌មានអ្នកចូលរួមតាមស្ថានភាព។</p>
             </div>
-            <div class="page-toolbar__actions">
-                <select v-model="selectedEventId" class="form-select rounded-pill px-3" @change="openEventDetail()">
+            <div class="page-toolbar__actions participant-toolbar__actions">
+                <select v-model="selectedEventId" class="participant-event-select form-select rounded-pill px-3"
+                    @change="openEventDetail()">
                     <option value="">ជ្រើសរើសព្រឹត្តិការណ៍</option>
                     <option v-for="event in store.events" :key="event.id" :value="event.id">
                         {{ event.title }} (ID: {{ event.id }})
@@ -446,6 +448,29 @@ watch(() => props.id, async (newId) => {
 </template>
 
 <style scoped>
+.participant-page {
+    min-height: 100vh;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.participant-toolbar {
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.participant-title {
+    color: #216477;
+}
+
+.participant-toolbar__actions {
+    min-width: min(100%, 360px);
+}
+
+.participant-event-select {
+    width: 100%;
+}
+
 .selected-event {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -533,5 +558,32 @@ watch(() => props.id, async (newId) => {
     justify-content: center;
     flex: 0 0 auto;
     border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .participant-page {
+        padding: 0;
+    }
+
+    .participant-toolbar {
+        align-items: stretch !important;
+    }
+
+    .participant-toolbar__actions {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .participant-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .participant-empty {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }
 </style>
