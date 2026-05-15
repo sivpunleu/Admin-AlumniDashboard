@@ -117,6 +117,7 @@ import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/useAuth";
 import { useProfileStore } from "@/stores/useProfile";
 import api from "@/API/api";
+import logger from "@/utils/logger";
 
 defineProps({
     sidebarOpen: {
@@ -199,7 +200,7 @@ const fetchNotifications = async () => {
             })),
         ];
     } catch (error) {
-        console.error("Error loading notifications:", error);
+        logger.error("Error loading notifications:", error);
         notifications.value = [];
     } finally {
         isNotificationLoading.value = false;

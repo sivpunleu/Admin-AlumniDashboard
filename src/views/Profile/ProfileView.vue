@@ -146,7 +146,9 @@ import * as generationStore from '@/stores/generationStore';
 import { useProfileStore } from '@/stores/useProfile';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.css';
 import Swal from 'sweetalert2';
+import logger from '@/utils/logger';
 
 const profileStore = useProfileStore();
 const departmentStore = useDepartmentStore();
@@ -172,25 +174,6 @@ const rawImageSrc = ref("");
 const cropperImgRef = ref(null);
 const cropperInstance = ref(null);
 const cropUploading = ref(false);
-const avatarCropperTemplate = `
-<cropper-canvas background>
-    <cropper-image rotatable scalable skewable translatable></cropper-image>
-    <cropper-shade hidden></cropper-shade>
-    <cropper-handle action="select" plain></cropper-handle>
-    <cropper-selection initial-coverage="0.7" initial-aspect-ratio="1" aspect-ratio="1" movable resizable>
-        <cropper-grid role="grid" bordered covered></cropper-grid>
-        <cropper-crosshair centered></cropper-crosshair>
-        <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
-        <cropper-handle action="n-resize"></cropper-handle>
-        <cropper-handle action="e-resize"></cropper-handle>
-        <cropper-handle action="s-resize"></cropper-handle>
-        <cropper-handle action="w-resize"></cropper-handle>
-        <cropper-handle action="ne-resize"></cropper-handle>
-        <cropper-handle action="nw-resize"></cropper-handle>
-        <cropper-handle action="se-resize"></cropper-handle>
-        <cropper-handle action="sw-resize"></cropper-handle>
-    </cropper-selection>
-</cropper-canvas>`;
 
 const currentUser = computed(() => profileStore.profile || {});
 const displayName = computed(() => currentUser.value?.profile?.fullname || 'User');
@@ -232,7 +215,15 @@ const onAvatarSelected = (e) => {
                 cropperInstance.value = null;
             }
             cropperInstance.value = new Cropper(cropperImgRef.value, {
-                template: avatarCropperTemplate,
+                aspectRatio: 1,
+                viewMode: 1,
+                autoCropArea: 0.9,
+                background: false,
+                responsive: true,
+                movable: true,
+                zoomable: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
             });
         });
     };
@@ -244,13 +235,14 @@ const confirmCrop = async () => {
 
     cropUploading.value = true;
     try {
-        const cropperSelection = cropperInstance.value.getCropperSelection();
-        if (!cropperSelection) throw new Error('Cropper selection not found');
-
-        const outputCanvas = await cropperSelection.$toCanvas({
+        const outputCanvas = cropperInstance.value.getCroppedCanvas({
             width: 512,
             height: 512,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
         });
+
+        if (!outputCanvas) throw new Error('Failed to generate cropped image');
 
         const blob = await new Promise((resolve) => {
             outputCanvas.toBlob((result) => resolve(result), 'image/jpeg', 0.92);
@@ -261,7 +253,7 @@ const confirmCrop = async () => {
         await profileStore.uploadAvatar(blob); // បញ្ជូន Blob ទៅកាន់ Store ផ្ទាល់
         closeCropperModal();
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         Swal.fire('កំហុស', 'មិនអាចកាត់តរូបភាពបានទេ', 'error');
     } finally {
         cropUploading.value = false;
@@ -340,7 +332,7 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     gap: 5px;
 }
 
-.btn-action {
+.btn-action-avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -352,15 +344,15 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     transition: 0.2s;
 }
 
-.btn-action.upload {
+.btn-action-avatar.upload {
     background: #216477;
 }
 
-.btn-action.delete {
+.btn-action-avatar.delete {
     background: #dc3545;
 }
 
-.btn-action:hover {
+.btn-action-avatar:hover {
     transform: scale(1.1);
 }
 
@@ -423,7 +415,7 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 }
 
 .cropper-card {
-    width: 90%;
+    width: 100%;
     max-width: 500px;
 }
 
@@ -484,14 +476,20 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 }
 
 :deep(.cropper-point) {
-    width: 10px;
-    height: 10px;
-    margin-top: -5px;
-    margin-left: -5px;
+    width: 16px;
+    /* កែពី 10px មក 16px ឬ 20px */
+    height: 16px;
+    /* កែពី 10px មក 16px ឬ 20px */
+    margin-top: -8px;
+    /* ត្រូវជាពាក់កណ្តាលនៃ height (ឧទាហរណ៍ -8px ប្រសិនបើ height គឺ 16px) */
+    margin-left: -8px;
+    /* ត្រូវជាពាក់កណ្តាលនៃ width */
     background-color: #39f;
     border: 2px solid white;
     border-radius: 50%;
     box-sizing: border-box;
+    opacity: 1;
+    /* បង្កើនភាពច្បាស់ឱ្យឃើញកាន់តែច្បាស់ */
 }
 
 :deep(.cropper-point.n) {

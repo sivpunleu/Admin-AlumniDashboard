@@ -1,14 +1,17 @@
 <template>
   <main class="admin-login-page">
     <section class="admin-login-card" aria-label="Admin login">
+      <!-- LEFT BRAND -->
       <aside class="admin-login-brand" aria-label="Alumni brand">
-        <div class="admin-login-logo">
-          <i class="bi bi-mortarboard-fill"></i>
-          <span>អតីតនិស្សិត</span>
+        <div class="admin-login-logo-wrapper">
+          <div class="admin-login-logo">
+            <img src=".././assets/Imgage/logo.png" alt="Alumni Logo" class="admin-login-logo-img" />
+          </div>
         </div>
 
         <div class="admin-login-brand-copy">
-          <h1>Reconnect &<br />Empower</h1>
+          <h1>Alumni System</h1>
+
           <p>
             គ្រប់គ្រងទិន្នន័យអតីតនិស្សិត ព្រឹត្តិការណ៍ និងសកម្មភាពសហគមន៍
             ក្នុងកន្លែងតែមួយ។
@@ -16,6 +19,7 @@
         </div>
       </aside>
 
+      <!-- RIGHT FORM -->
       <section class="admin-login-form-panel" aria-label="Login form">
         <div class="admin-login-form">
           <header class="admin-login-header">
@@ -24,44 +28,61 @@
           </header>
 
           <form novalidate @submit.prevent="handleLogin">
+            <!-- EMAIL -->
             <div class="admin-login-field">
-              <label for="email" class="admin-login-label">អាសយដ្ឋានអ៊ីមែល</label>
+              <label for="email" class="admin-login-label">
+                អាសយដ្ឋានអ៊ីមែល
+              </label>
+
               <div class="admin-login-input">
                 <i class="bi bi-envelope"></i>
+
                 <input id="email" v-model="form.email" type="email" name="email"
                   :class="{ 'is-invalid': authStore.errors.email }" placeholder="admin@alumni.edu" autocomplete="email"
                   required :aria-invalid="!!authStore.errors.email" aria-describedby="email-error" @blur="validateEmail"
                   @input="validateEmail" />
               </div>
+
               <p v-if="authStore.errors.email" id="email-error" class="admin-login-error">
                 {{ authStore.errors.email[0] }}
               </p>
             </div>
 
+            <!-- PASSWORD -->
             <div class="admin-login-field">
               <div class="admin-login-label-row">
-                <label for="password" class="admin-login-label">ពាក្យសម្ងាត់</label>
-                <label @click="showPassword = !showPassword" class="admin-login-label"> {{ showPassword ? "លាក់ពាក្យសម្ងាត់" : "បង្ហាញពាក្យសម្ងាត់" }}</label>
+                <label for="password" class="admin-login-label">
+                  ពាក្យសម្ងាត់
+                </label>
               </div>
+
               <div class="admin-login-input">
                 <i class="bi bi-lock"></i>
+
                 <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" name="password"
                   :class="{ 'is-invalid': authStore.errors.password }" placeholder="បញ្ចូលពាក្យសម្ងាត់"
                   autocomplete="current-password" required minlength="6" :aria-invalid="!!authStore.errors.password"
                   aria-describedby="password-error" @blur="validatePassword" @input="validatePassword" />
-                <i v-if="showPassword" class="bi bi-eye-slash" @click="showPassword = !showPassword"></i>
-                <i v-else class="bi bi-eye" @click="showPassword = !showPassword"></i>
+
+                <button type="button" class="admin-login-toggle" :aria-pressed="showPassword"
+                  :aria-label="showPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
+                  @click="showPassword = !showPassword">
+                  <i :class="['bi', showPassword ? 'bi-eye-slash' : 'bi-eye']" aria-hidden="true"></i>
+                </button>
               </div>
+
               <p v-if="authStore.errors.password" id="password-error" class="admin-login-error">
                 {{ authStore.errors.password[0] }}
               </p>
             </div>
 
+            <!-- REMEMBER -->
             <label class="admin-login-remember">
               <input v-model="rememberMe" type="checkbox" />
               <span>ចងចាំខ្ញុំ</span>
             </label>
 
+            <!-- BUTTON -->
             <BaseButton type="submit" variant="primary" class="w-100" :disabled="loading" :loading="loading">
               {{ loading ? "កំពុងផ្ទៀងផ្ទាត់..." : "ចូលគណនី" }}
             </BaseButton>
@@ -78,18 +99,25 @@ import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
 import { useRouter } from "vue-router";
 import swal from "sweetalert2";
+import logger from "@/utils/logger";
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const form = ref({ email: "", password: "" });
+const form = ref({
+  email: "",
+  password: "",
+});
+
 const loading = ref(false);
 const showPassword = ref(false);
 const rememberMe = ref(false);
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateEmail() {
   const email = form.value.email.trim();
+
   form.value.email = email;
 
   if (!email) {
@@ -103,6 +131,7 @@ function validateEmail() {
 
 function validatePassword() {
   const pass = form.value.password;
+
   if (!pass) {
     authStore.errors.password = ["សូមបញ្ចូលពាក្យសម្ងាត់!"];
   } else if (pass.length < 6) {
@@ -123,8 +152,9 @@ const handleLogin = async () => {
   if (!validateForm()) return;
 
   loading.value = true;
+
   try {
-    await authStore.login(form.value);
+    await authStore.login(form.value, { remember: rememberMe.value });
 
     swal.fire({
       icon: "success",
@@ -133,9 +163,10 @@ const handleLogin = async () => {
       timer: 1500,
       showConfirmButton: false,
     });
+
     router.push("/dashboard");
   } catch (error) {
-    console.error("Login stopped:", error.message);
+    logger.error("Login stopped:", error.message);
   } finally {
     loading.value = false;
   }
@@ -148,129 +179,140 @@ const handleLogin = async () => {
   width: 100%;
   display: grid;
   place-items: center;
-  padding: clamp(1rem, 4vw, 3rem);
-  background: #f4f7f9;
+  padding: 2rem;
+  background: linear-gradient(135deg, #e8f1f4 0%, #f4f7f9 100%);
 }
 
-.admin-login-page *,
-.admin-login-page *::before,
-.admin-login-page *::after {
-  box-sizing: border-box;
-}
+/* CARD */
 
 .admin-login-card {
-  width: min(100%, 900px);
-  max-width: 900px;
-  min-height: 520px;
+  width: min(100%, 950px);
+  min-height: 580px;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: 1fr 1.1fr;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 28px;
   background: #ffffff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
 }
+
+/* LEFT */
 
 .admin-login-brand {
   position: relative;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
   padding: 3rem;
   overflow: hidden;
-  background: #216477;
-  color: #ffffff;
+  background: linear-gradient(180deg, #216477 0%, #1a4f5d 100%);
   text-align: center;
+  color: white;
 }
 
-.admin-login-brand::before,
+/* DECORATION */
+
+.admin-login-brand::before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  /* background: rgba(255, 255, 255, 0.06); */
+  top: -120px;
+  right: -120px;
+}
+
 .admin-login-brand::after {
   content: "";
   position: absolute;
-  border: 5px solid rgba(255, 255, 255, 0.95);
-  border-radius: 999px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  /* background: rgba(255, 255, 255, 0.05); */
+  bottom: -100px;
+  left: -80px;
 }
 
-.admin-login-brand::before {
-  width: 56px;
-  height: 56px;
-  right: -29px;
-  top: 71%;
-}
+/* LOGO */
 
-.admin-login-brand::after {
-  width: 64px;
-  height: 64px;
-  left: -31px;
-  bottom: -34px;
-  background: #ffffff;
+.admin-login-logo-wrapper {
+  position: relative;
+  z-index: 2;
 }
 
 .admin-login-logo {
-  width: 104px;
-  height: 104px;
-  display: grid;
-  place-items: center;
-  padding: 0.75rem;
-  border-radius: 14px;
-  background: #ffffff;
-  color: #216477;
-  font-size: 2.25rem;
-  font-weight: 800;
-  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.14);
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  border-radius: 28px;
+  background: #ffff;
+  transition: 0.35s ease;
 }
 
-.admin-login-logo span {
-  font-size: 0.76rem;
-  line-height: 1.2;
+
+.admin-login-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 22px;
 }
+
+/* TEXT */
 
 .admin-login-brand-copy {
-  max-width: 330px;
+  position: relative;
+  z-index: 2;
+  max-width: 360px;
 }
 
 .admin-login-brand-copy h1 {
-  margin: 0 0 0.7rem;
-  color: #ffffff;
+  margin-bottom: 1rem;
   font-size: 2.3rem;
   font-weight: 800;
-  line-height: 1.08;
+  color: white;
 }
 
 .admin-login-brand-copy p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 0.95rem;
-  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.9;
+  font-size: 0.96rem;
 }
 
+/* RIGHT */
+
 .admin-login-form-panel {
-  display: grid;
-  place-items: center;
-  padding: clamp(2rem, 5vw, 4rem);
-  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
 }
 
 .admin-login-form {
-  width: min(100%, 390px);
+  width: 100%;
+  max-width: 400px;
 }
 
 .admin-login-header {
-  margin-bottom: 2.2rem;
+  margin-bottom: 2rem;
   text-align: center;
 }
 
 .admin-login-header h2 {
-  margin: 0 0 0.45rem;
+  margin-bottom: 0.5rem;
   color: #0f172a;
-  font-size: 1.85rem;
+  font-size: 2rem;
   font-weight: 800;
 }
 
 .admin-login-header p {
-  margin: 0;
-  color: #8a96a3;
-  font-size: 0.9rem;
+  color: #64748b;
 }
 
 .admin-login-field {
@@ -279,166 +321,123 @@ const handleLogin = async () => {
 
 .admin-login-label-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  align-items: center;
 }
 
 .admin-login-label {
-  display: block;
-  margin-bottom: 0.48rem;
-  color: #475569;
-  font-size: 0.78rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
   font-weight: 700;
-}
-
-.admin-login-link {
-  margin-bottom: 0.48rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #216477;
-  font-size: 0.75rem;
-  font-weight: 800;
+  color: #475569;
 }
 
 .admin-login-input {
-  min-height: 52px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0 1rem;
-  border: 1px solid #d7dfe8;
-  border-radius: 13px;
-  background: #f5f7f9;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  border-radius: 16px;
+  border: 1px solid #dbe3ea;
+  background: #f8fafc;
+  transition: 0.25s ease;
 }
 
 .admin-login-input:focus-within {
-  border-color: rgba(33, 100, 119, 0.6);
-  background: #ffffff;
+  background: white;
+  border-color: #216477;
   box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
 }
 
 .admin-login-input i {
-  color: #8a96a3;
-  font-size: 1rem;
+  color: #94a3b8;
 }
 
 .admin-login-input input {
   width: 100%;
   min-width: 0;
-  min-height: 50px;
-  border: 0;
-  outline: 0;
+  border: none;
+  outline: none;
   background: transparent;
   color: #0f172a;
-  font-size: 0.95rem;
-}
-
-.admin-login-input input:focus {
-  outline: none;
 }
 
 .admin-login-input input::placeholder {
-  color: #7a8794;
+  color: #94a3b8;
 }
 
-.admin-login-input input.is-invalid {
-  color: #b42318;
-}
-
-.admin-login-error {
-  margin: 0.4rem 0 0;
-  color: #dc3545;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.admin-login-remember {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 2rem;
-  color: #475569;
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.admin-login-remember input {
-  width: 15px;
-  height: 15px;
-  accent-color: #216477;
-}
-
-.admin-login-submit {
-  width: 100%;
-  min-height: 52px;
+.admin-login-toggle {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #216477;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  transition: background-color 0.2s ease;
+}
+
+.admin-login-toggle:hover,
+.admin-login-toggle:focus-visible {
+  background: #e8f1f4;
+  outline: none;
+}
+
+.admin-login-error {
+  margin-top: 0.45rem;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-login-remember {
+  display: flex;
+  align-items: center;
   gap: 0.55rem;
-  border: 0;
-  border-radius: 12px;
-  background: #216477;
-  color: #ffffff;
-  font-weight: 800;
-  box-shadow: 0 18px 35px rgba(33, 100, 119, 0.24);
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  margin-bottom: 2rem;
+  font-size: 0.9rem;
+  color: #475569;
 }
 
-.admin-login-submit:hover,
-.admin-login-submit:focus {
-  background: #1a4f5d;
-  transform: translateY(-1px);
+.admin-login-remember input {
+  accent-color: #216477;
 }
 
-.admin-login-submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.76;
-  transform: none;
-}
-
-@media (max-width: 820px) {
+@media (max-width: 850px) {
   .admin-login-card {
     grid-template-columns: 1fr;
   }
 
   .admin-login-brand {
-    min-height: 290px;
-    gap: 1.5rem;
-    padding: 2rem;
-  }
-
-  .admin-login-brand-copy h1 {
-    font-size: 2rem;
+    min-height: 320px;
   }
 }
 
 @media (max-width: 520px) {
   .admin-login-page {
     padding: 0;
-    place-items: stretch;
   }
 
   .admin-login-card {
-    min-height: auto;
     border-radius: 0;
   }
 
-  .admin-login-brand {
-    min-height: 240px;
+  .admin-login-form-panel {
+    padding: 2rem 1.3rem;
   }
 
   .admin-login-logo {
-    width: 86px;
-    height: 86px;
-    font-size: 1.8rem;
+    width: 120px;
+    height: 120px;
   }
 
-  .admin-login-form-panel {
-    padding: 1.5rem;
+  .admin-login-brand-copy h1 {
+    font-size: 1.9rem;
   }
 }
 </style>

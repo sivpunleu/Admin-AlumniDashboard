@@ -82,9 +82,9 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-    <div class="main-content p-4">
+    <div class="department-page">
         <!-- --- របារទីតាំង / ចំណងជើងទំព័រ --- -->
-        <div class="page-toolbar mb-4">
+        <div class="department-toolbar page-toolbar mb-4">
             <div>
                 <h3 class="fw-bold text-dark mb-1">ដេប៉ាតឺម៉ង់សិក្សា</h3>
                 <nav aria-label="breadcrumb">
@@ -102,12 +102,12 @@ const handleSubmit = async () => {
         <!-- --- កាតមាតិកាចម្បង --- -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-bottom py-3 px-4">
-                <div class="row align-items-center">
+                <div class="department-card-header row align-items-center g-3">
                     <div class="col-md-4">
                         <h5 class="mb-0 fw-bold text-secondary">បញ្ជីដេប៉ាតឺម៉ង់</h5>
                     </div>
                     <div class="col-md-8">
-                        <div class="search-box float-md-end">
+                        <div class="search-box department-search">
                             <div class="input-group search-group rounded-pill overflow-hidden border">
                                 <span class="input-group-text bg-white border-0"><i
                                         class="bi bi-search text-muted"></i></span>
@@ -209,75 +209,36 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
-.main-content {
+.department-page {
     background-color: #f8fafc;
     min-height: 100vh;
+    padding: 1rem;
 }
 
-/* រចនាប័ទ្មតារាងផ្ទាល់ខ្លួន */
-.custom-table tr td {
-    padding: 1rem 0.75rem;
-    vertical-align: middle;
+.department-toolbar {
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-:deep(.table thead th:last-child),
-:deep(.table tbody td:last-child) {
-    text-align: end;
+.department-card-header {
+    row-gap: 0.75rem;
 }
 
-:deep(.table thead th:first-child),
-:deep(.table tbody td:first-child) {
-    padding-left: 1.5rem;
-}
-
-:deep(.table thead th:last-child),
-:deep(.table tbody td:last-child) {
-    padding-right: 1.5rem;
-}
-
-.bg-faint-primary {
-    background-color: #f1f5f9;
+.department-search {
+    width: 100%;
+    max-width: 320px;
+    margin-left: auto;
 }
 
 /* ប្រអប់ស្វែងរក */
 .search-group {
-    max-width: 320px;
+    width: 100%;
     transition: all 0.3s ease;
 }
 
 .search-group:focus-within {
     border-color: #216477 !important;
     box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
-}
-
-/* ការកំណត់ការបែងចែកទំព័រ */
-.pagination-custom .page-link {
-    border: none;
-    color: #475569;
-    font-weight: 600;
-    margin: 0 4px;
-    border-radius: 8px !important;
-    padding: 8px 14px;
-}
-
-.pagination-custom .page-item.active .page-link {
-    background-color: #216477;
-    color: white;
-}
-
-/* UI របស់ Modal */
-.custom-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
 }
 
 .custom-input {
@@ -299,5 +260,16 @@ const handleSubmit = async () => {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+@media (max-width: 768px) {
+    .department-page {
+        padding: 0;
+    }
+
+    .department-search {
+        max-width: none;
+        margin-left: 0;
+    }
 }
 </style>

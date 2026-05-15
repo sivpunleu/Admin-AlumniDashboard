@@ -54,9 +54,9 @@ const buttonClass = computed(() => {
         lg: 'btn-lg px-5',
     };
     const shapeMap = {
-        pill: 'rounded-pill',
-        rounded: 'rounded-4',
-        sharp: 'rounded-0',
+        pill: 'btn-shape-pill',
+        rounded: 'btn-shape-rounded',
+        sharp: 'btn-shape-sharp',
     };
 
     return [
@@ -75,8 +75,18 @@ const buttonClass = computed(() => {
     transition: all 0.3s ease;
     cursor: pointer;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    border-radius: 15px !important;
+}
 
+.btn-shape-pill {
+    border-radius: 999px;
+}
+
+.btn-shape-rounded {
+    border-radius: 12px;
+}
+
+.btn-shape-sharp {
+    border-radius: 8px;
 }
 
 .btn:hover:not(:disabled) {

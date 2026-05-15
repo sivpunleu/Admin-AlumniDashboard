@@ -2,6 +2,7 @@ import { ref } from "vue";
 import api from "@/API/api";
 import Swal from "sweetalert2";
 import { useAuthStore } from "@/stores/useAuth";
+import logger from "@/utils/logger";
 
 export const users = ref([]);
 export const isLoading = ref(false);
@@ -54,7 +55,7 @@ export const fetchUsers = async () => {
       params.status = activeTab.value;
     }
 
-    console.log(
+    logger.debug(
       "Fetching users with params:",
       params,
       "activeTab:",
@@ -65,18 +66,18 @@ export const fetchUsers = async () => {
     try {
       // prefer the generic /users endpoint which seems more stable
       res = await api.get("/users", { params });
-      console.log("/users endpoint succeeded");
+      logger.info("/users endpoint succeeded");
     } catch (err) {
-      console.warn(
+      logger.warn(
         "/users endpoint failed, trying /users/alumni",
         err?.response?.status,
       );
       // try alumni endpoint as fallback
       res = await api.get("/users/alumni", { params });
-      console.log("/users/alumni endpoint succeeded");
+      logger.info("/users/alumni endpoint succeeded");
     }
 
-    console.log("API Response:", res.data);
+    logger.debug("API Response:", res.data);
 
     // Try different response structures
     const payload = res.data?.data ?? res.data;
@@ -116,11 +117,11 @@ export const fetchUsers = async () => {
       pagesFromMeta ?? Math.max(1, Math.ceil(totalItems.value / perPage)),
     );
 
-    console.log("Final users count:", users.value.length);
-    console.log("Final users:", users.value);
+    logger.info("Final users count:", users.value.length);
+    logger.debug("Final users:", users.value);
   } catch (err) {
-    console.error("Fetch error:", err);
-    console.error("Error details:", err.response?.data);
+    logger.error("Fetch error:", err);
+    logger.error("Error details:", err.response?.data);
     users.value = [];
   } finally {
     isLoading.value = false;
@@ -232,9 +233,9 @@ export const handleRegisterAlumni = async () => {
       status: registerForm.value.status || "PENDING",
     };
 
-    console.log("Registering alumni with payload:", payload);
+    logger.debug("Registering alumni with payload:", payload);
     const response = await api.post("/users/alumni", payload);
-    console.log("Registration response:", response.data);
+    logger.info("Registration response:", response.data);
 
     // Reset form
     registerForm.value = {
@@ -255,8 +256,8 @@ export const handleRegisterAlumni = async () => {
     await fetchUsers();
     Swal.fire("ជោគជ័យ", "គណនីត្រូវបានបង្កើតបានសម្រេច", "success");
   } catch (err) {
-    console.error("Registration error:", err);
-    console.error("Error response data:", err.response?.data);
+    logger.error("Registration error:", err);
+    logger.error("Error response data:", err.response?.data);
     const errorMessage =
       err.response?.data?.message ||
       err.response?.data?.error ||
@@ -282,7 +283,7 @@ export const handleChangeStatus = async (userId) => {
       // Ensure userId is a clean numeric ID
       const cleanUserId = String(userId).split(":")[0];
 
-      console.log(
+      logger.debug(
         "Sending status update for user",
         cleanUserId,
         "with payload:",
@@ -295,20 +296,20 @@ export const handleChangeStatus = async (userId) => {
         response = await api.put(`/users/${cleanUserId}`, payload);
       } catch (err) {
         if (err.response?.status === 500) {
-          console.warn("PUT /users/:id failed, trying /users/alumni/:id");
+          logger.warn("PUT /users/:id failed, trying /users/alumni/:id");
           response = await api.put(`/users/alumni/${cleanUserId}`, payload);
         } else {
           throw err;
         }
       }
 
-      console.log("Status update response:", response.data);
+      logger.info("Status update response:", response.data);
       await fetchUsers();
       Swal.fire("រួចរាល់", "ស្ថានភាពត្រូវបានប្តូរ", "success");
     } catch (err) {
-      console.error("Change status error:", err);
-      console.error("Error response data:", err.response?.data);
-      console.error("Error status:", err.response?.status);
+      logger.error("Change status error:", err);
+      logger.error("Error response data:", err.response?.data);
+      logger.error("Error status:", err.response?.status);
       const errorMessage =
         err.response?.data?.message || "មិនបានគ្រប់គ្រងផ្លាស់ប្តូរស្ថានភាព";
       Swal.fire("បរាជ័យ", errorMessage, "error");

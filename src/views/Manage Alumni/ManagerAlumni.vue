@@ -5,6 +5,8 @@ import BaseButton from "../../components/UI/Base/BaseButton.vue";
 import BaseModal from "../../components/UI/Base/BaseModal.vue";
 import BaseTable from "../../components/UI/Base/BaseTable.vue";
 import * as store from "../../stores/managerAlumni";
+import { useDepartmentStore } from "@/stores/departmentStore";
+import * as generationStore from "@/stores/generationStore";
 
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'bg-success-subtle text-success border-success-subtle';
@@ -20,7 +22,17 @@ const getStatusLabel = (status) => {
 
 const normalizeStatus = (user) => String(user?.status || user?.profile?.status || 'PENDING').toUpperCase();
 
-onMounted(() => store.fetchUsers());
+const departmentStore = useDepartmentStore();
+const showRegisterModal = store.showRegisterModal;
+
+onMounted(async () => {
+  await Promise.all([
+    departmentStore.fetchDepartments(),
+    generationStore.fetchGenerations(),
+  ]);
+  store.fetchUsers();
+});
+
 watch([() => store.searchQuery.value, () => store.activeTab.value], () => {
   store.currentPage.value = 1;
   store.fetchUsers();
@@ -67,9 +79,9 @@ const tableColumns = [
 </script>
 
 <template>
-  <div class="p-4 bg-dashboard min-vh-100 font-khmer">
+  <div class="manager-alumni-page bg-dashboard min-vh-100 font-khmer">
     <!-- Header Section -->
-    <div class="page-toolbar align-items-start mb-4">
+    <div class="manager-page-toolbar page-toolbar align-items-start mb-4">
       <div>
         <h2 class="fw-bold text-dark mb-1">គ្រប់គ្រងអតីតនិស្សិត</h2>
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
@@ -86,7 +98,7 @@ const tableColumns = [
 
     <!-- Search & Filter Bar (យោងតាម image_a84f9e.png) -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
-      <div class="card-body p-2 page-toolbar">
+      <div class="card-body p-2 page-toolbar manager-filter-toolbar">
         <div class="search-input-wrapper flex-grow-1">
           <i class="bi bi-search text-muted"></i>
           <input v-model="searchModel" type="text" class="form-control-custom"
@@ -107,7 +119,8 @@ const tableColumns = [
 
     <!-- Data Table -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-      <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+      <div
+        class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center manager-table-header">
         <h5 class="fw-bold m-0 text-dark">កំណត់ត្រាអតីតនិស្សិត <button class="btn-count">{{ store.totalItems.value }}
             កំណត់ត្រា</button></h5>
         <div class="text-muted small">
@@ -176,7 +189,7 @@ const tableColumns = [
   </div>
 
   <!-- Register Modal using BaseModal -->
-  <BaseModal v-model="store.showRegisterModal.value" title="ចុះឈ្មោះអតីតនិស្សិត" hideDefaultFooter>
+  <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" hideDefaultFooter>
     <form class="app-form" novalidate @submit.prevent="store.handleRegisterAlumni">
       <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
@@ -204,7 +217,7 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">ពាក្យសម្ងាត់ *</label>
+        <label class="form-label fw-bold small">ពាក្យសម្ងាត់ </label>
         <input v-model="store.registerForm.value.password" type="password" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.password }" required
           @input="delete store.registerErrors.value.password" />
@@ -214,7 +227,7 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">អះអាងពាក្យសម្ងាត់ *</label>
+        <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ </label>
         <input v-model="store.registerForm.value.confirmPassword" type="password" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }" required
           @input="delete store.registerErrors.value.confirmPassword" />
@@ -224,14 +237,17 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">ដេបាតមេន *</label>
+        <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ </label>
         <select v-model="store.registerForm.value.departmentId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
           @change="delete store.registerErrors.value.departmentId">
-          <option value="">-- ជ្រើសរើស --</option>
-          <option value="1">Computer Science</option>
-          <option value="2">Business</option>
-          <option value="3">Engineering</option>
+          <option value="">ជ្រើសរើស
+            <i class="bi bi-chevron-down"></i>
+          </option>
+          <option v-for="department in departmentStore.departments || []" :key="department.id" :value="department.id">
+            {{ department.name }}
+          </option>
+
         </select>
         <div v-if="store.registerErrors.value.departmentId" class="invalid-feedback">
           {{ store.registerErrors.value.departmentId }}
@@ -239,16 +255,16 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">ជំនាន់ *</label>
+        <label class="form-label fw-bold small">ជំនាន់ </label>
         <select v-model="store.registerForm.value.generationId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
           @change="delete store.registerErrors.value.generationId">
-          <option value="">-- ជ្រើសរើស --</option>
-          <option value="1">2020</option>
-          <option value="2">2021</option>
-          <option value="3">2022</option>
-          <option value="4">2023</option>
-          <option value="5">2024</option>
+          <option value="">ជ្រើសរើស
+            <i class="bi bi-chevron-down"></i>
+          </option>
+          <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id">
+            {{ generation.name }}
+          </option>
         </select>
         <div v-if="store.registerErrors.value.generationId" class="invalid-feedback">
           {{ store.registerErrors.value.generationId }}
@@ -270,7 +286,7 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">ជីវប្របត្តិ</label>
+        <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
         <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"></textarea>
       </div>
 
@@ -280,7 +296,7 @@ const tableColumns = [
         </BaseButton>
         <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
           class="flex-grow-1">
-          ឆ។ចៈណ្រនា
+          ចុះឈ្មោះ
         </BaseButton>
       </div>
     </form>
@@ -294,6 +310,20 @@ const tableColumns = [
 
 .bg-dashboard {
   background-color: #f9fafb;
+}
+
+.manager-alumni-page {
+  padding: 1rem;
+}
+
+.manager-page-toolbar,
+.manager-table-header {
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.manager-filter-toolbar {
+  gap: 0.75rem;
 }
 
 .btn-white {
@@ -316,6 +346,14 @@ const tableColumns = [
   display: flex;
   align-items: center;
   padding-left: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.filter-tabs-wrapper {
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 .tab-btn {
@@ -326,6 +364,7 @@ const tableColumns = [
   font-size: 13px;
   color: #64748b;
   transition: 0.2s;
+  white-space: nowrap;
 }
 
 .tab-btn.active {
@@ -370,94 +409,35 @@ const tableColumns = [
   color: #64748b;
 }
 
-.btn-action {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.p-btn {
-  border: none;
-  background: #f3f4f6;
-  color: #374151;
-  padding: 5px 15px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin: 0 2px;
-}
-
-.p-btn.active {
-  background: #216477;
-  color: white;
-  font-weight: bold;
-}
-
 .smaller {
   font-size: 11px;
 }
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-}
+@media (max-width: 768px) {
+  .manager-alumni-page {
+    padding: 0;
+  }
 
-.modal-dialog {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
+  .manager-table-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 
-.modal-content {
-  padding: 24px;
-}
+  .manager-filter-toolbar {
+    align-items: stretch;
+  }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+  .filter-tabs-wrapper {
+    width: 100%;
+  }
 
-.modal-title {
-  margin: 0;
-  color: #1f2937;
-  font-size: 18px;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-body {
-  color: #1f2937;
+  .tab-btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    padding: 8px 10px;
+    text-align: center;
+  }
 }
 
 .form-label {

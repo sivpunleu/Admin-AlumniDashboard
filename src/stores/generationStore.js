@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import api from "@/API/api";
 import Swal from "sweetalert2";
+import logger from "@/utils/logger";
 import { useAuthStore } from "@/stores/useAuth";
 import { confirmDelete } from "@/utils/confirmDialog";
 
@@ -44,7 +45,7 @@ export const fetchGenerations = async () => {
       generations.value = res.data.data.items || res.data.data;
     }
   } catch (err) {
-    console.error("Fetch Error:", err);
+    logger.error("Fetch Error:", err);
     Swal.fire("Error", "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ", "error");
   } finally {
     isLoading.value = false;
@@ -67,7 +68,7 @@ export const fetchGenerationDetails = async (id) => {
       generationDetails.value = record;
     }
   } catch (err) {
-    console.error("Fetch Details Error:", err);
+    logger.error("Fetch Details Error:", err);
     Swal.fire("Error", "មិនអាចទាញព័ត៌មានលម្អិតនៃជំនាន់នេះបានទេ", "error");
   } finally {
     isLoading.value = false;
@@ -85,7 +86,7 @@ export const handleCreate = async () => {
         <div class="text-start">
           <label class="small fw-bold">Generation Name</label>
           <input id="swal-name" class="swal2-input m-0 w-100" placeholder="e.g. ANT">
-          
+
           <div class="row mt-3">
             <div class="col-6">
               <label class="small fw-bold">Start Year</label>
@@ -162,7 +163,7 @@ export const handleUpdate = async (gen) => {
         <div class="text-start">
           <label class="small fw-bold">Generation Name</label>
           <input id="swal-name" class="swal2-input m-0 w-100" value="${gen.name || ""}">
-          
+
           <div class="row mt-3">
             <div class="col-6">
               <label class="small fw-bold">Start Year</label>

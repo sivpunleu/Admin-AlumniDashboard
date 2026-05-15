@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
 import { confirmDelete } from "@/utils/confirmDialog";
+import logger from "@/utils/logger";
 
 export const useEventStore = defineStore("event", () => {
   const events = ref([]);
@@ -29,7 +30,7 @@ export const useEventStore = defineStore("event", () => {
       events.value = payload.items || payload;
       paginationMeta.value = payload.meta || {};
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       isLoading.value = false;
     }
@@ -43,7 +44,7 @@ export const useEventStore = defineStore("event", () => {
       return selectedEvent.value;
     } catch (err) {
       selectedEvent.value = null;
-      console.error(err);
+      logger.error(err);
       return null;
     } finally {
       isLoading.value = false;
@@ -149,7 +150,11 @@ export const useEventStore = defineStore("event", () => {
             : [];
         const meta = payload?.meta || payload || {};
         const totalPages = Number(
-          meta.last_page || meta.lastPage || meta.totalPages || meta.total_pages || 1,
+          meta.last_page ||
+            meta.lastPage ||
+            meta.totalPages ||
+            meta.total_pages ||
+            1,
         );
         const currentPage = Number(
           meta.current_page || meta.currentPage || meta.page || page,
@@ -164,7 +169,7 @@ export const useEventStore = defineStore("event", () => {
       return true;
     } catch (err) {
       participants.value = [];
-      console.error(err);
+      logger.error(err);
       return false;
     } finally {
       isLoading.value = false;
@@ -175,7 +180,8 @@ export const useEventStore = defineStore("event", () => {
     try {
       isLoading.value = true;
       let success = false;
-      const participantId = participant?.id || participant?.participantId || null;
+      const participantId =
+        participant?.id || participant?.participantId || null;
       const userId = participant?.user?.id || participant?.userId || null;
       const payload = {
         status,
