@@ -187,7 +187,7 @@ const handleSubmit = async () => {
                             <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                         </div>
                         <div>
-                            <label class="form-label small fw-bold text-muted">ការពិពណ៌នា (មិនបង្ខំ)</label>
+                            <label class="form-label small fw-bold text-muted">ការពិពណ៌នា </label>
                             <textarea v-model="form.description" class="form-control custom-input" rows="4"
                                 placeholder="បន្ថែមព័ត៌មានលម្អិតអំពីដេប៉ាតឺម៉ង់នេះ..."></textarea>
                         </div>

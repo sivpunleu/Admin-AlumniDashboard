@@ -20,6 +20,8 @@ export const useEventStore = defineStore("event", () => {
   });
 
   const paginationMeta = ref({});
+  const totalItems = ref(0);
+  const totalPages = ref(1);
 
   // --- ១. គ្រប់គ្រងព្រឹត្តិការណ៍ (CRUD) ---
   async function fetchEvents() {
@@ -27,8 +29,23 @@ export const useEventStore = defineStore("event", () => {
       isLoading.value = true;
       const res = await api.get("/events", { params: queryParams.value });
       const payload = res.data.data || res.data;
+      const meta = payload.meta || payload || {};
       events.value = payload.items || payload;
-      paginationMeta.value = payload.meta || {};
+      paginationMeta.value = meta;
+      totalItems.value = Number(
+        meta.total ||
+          meta.totalItems ||
+          meta.total_items ||
+          events.value.length ||
+          0,
+      );
+      totalPages.value = Number(
+        meta.last_page ||
+          meta.lastPage ||
+          meta.totalPages ||
+          meta.total_pages ||
+          1,
+      );
     } catch (err) {
       logger.error(err);
     } finally {
@@ -188,33 +205,41 @@ export const useEventStore = defineStore("event", () => {
         ...(participantId ? { participantId } : {}),
         ...(userId ? { userId } : {}),
       };
-      const endpoints = [
+      const requests = [
+        { method: "post", endpoint: `/events/${eventId}/participate` },
+        { method: "post", endpoint: `/events/${eventId}/participation` },
         ...(participantId
           ? [
-              `/events/${eventId}/participants/${participantId}`,
-              `/events/${eventId}/participants/${participantId}/response`,
+              {
+                method: "put",
+                endpoint: `/events/${eventId}/participants/${participantId}`,
+              },
+              {
+                method: "put",
+                endpoint: `/events/${eventId}/participants/${participantId}/response`,
+              },
+              {
+                method: "post",
+                endpoint: `/events/${eventId}/participants/${participantId}`,
+              },
+              {
+                method: "post",
+                endpoint: `/events/${eventId}/participants/${participantId}/response`,
+              },
             ]
           : []),
-        `/events/${eventId}/participation`,
-        `/events/${eventId}/participate`,
+        { method: "put", endpoint: `/events/${eventId}/participate` },
+        { method: "put", endpoint: `/events/${eventId}/participation` },
       ];
 
-      for (const endpoint of endpoints) {
+      for (const request of requests) {
         try {
-          await api.put(endpoint, payload);
+          await api[request.method](request.endpoint, payload);
           success = true;
           break;
         } catch (err) {
           if (![404, 405].includes(err?.response?.status)) {
-            try {
-              await api.post(endpoint, payload);
-              success = true;
-              break;
-            } catch (postErr) {
-              if (![404, 405].includes(postErr?.response?.status)) {
-                throw postErr;
-              }
-            }
+            throw err;
           }
         }
       }
@@ -247,6 +272,8 @@ export const useEventStore = defineStore("event", () => {
     isLoading,
     queryParams,
     paginationMeta,
+    totalItems,
+    totalPages,
     fetchEvents,
     fetchEvent,
     createEvent,
