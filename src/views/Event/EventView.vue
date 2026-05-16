@@ -2,11 +2,14 @@
 import { onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useEventStore } from '@/stores/eventStore';
+import { useCategoryStore } from '@/stores/categoryStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
+import BasePage from '@/components/UI/Base/BasePage.vue';
 import BaseTable from '@/components/UI/Base/BaseTable.vue';
 
 const store = useEventStore();
+const categoryStore = useCategoryStore();
 const router = useRouter();
 const isModalOpen = ref(false);
 const isEditing = ref(false);
@@ -38,12 +41,20 @@ const errors = reactive({
     categoryId: ''
 });
 
-onMounted(() => store.fetchEvents());
+onMounted(() => {
+    store.fetchEvents();
+    categoryStore.fetchCategories();
+});
 
 watch(() => store.queryParams.search, () => {
     store.queryParams._page = 1;
     store.fetchEvents();
 });
+
+const handlePageChange = (page) => {
+    store.queryParams._page = page;
+    store.fetchEvents();
+};
 
 const openAddModal = () => {
     isEditing.value = false;
@@ -166,8 +177,8 @@ const formatDateTime = (value) => {
         <div class="event-toolbar page-toolbar mb-4 bg-white p-4 rounded-4 shadow-sm">
             <h4 class="event-title fw-bold mb-0">ការគ្រប់គ្រងព្រឹត្តិការណ៍</h4>
             <div class="page-toolbar__actions">
-                <input v-model="store.queryParams.search" type="text" class="event-search form-control rounded-pill px-3"
-                    placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
+                <input v-model="store.queryParams.search" type="text"
+                    class="event-search form-control rounded-pill px-3" placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
                 <BaseButton @click="openAddModal" variant="primary">
                     <i class="bi bi-plus-circle me-2"></i> បង្កើតថ្មី
                 </BaseButton>
@@ -235,6 +246,11 @@ const formatDateTime = (value) => {
                 </template>
             </BaseTable>
 
+            <div class="event-pagination page-toolbar mt-4">
+                <p class="small text-muted mb-0">សរុប: {{ store.totalItems }} ព្រឹត្តិការណ៍</p>
+                <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
+                    @change-page="handlePageChange" />
+            </div>
         </div>
 
         <!-- ផ្ទាំង Modal សម្រាប់បង្កើត/កែប្រែ -->
@@ -272,9 +288,13 @@ const formatDateTime = (value) => {
                     </div>
                     <div class="col-md-4">
                         <label class="small fw-bold">លេខសម្គាល់ប្រភេទ (Category ID)</label>
-                        <input v-model.number="form.categoryId" type="number" class="form-control"
+                        <select v-model.number="form.categoryId" class="form-control"
                             :class="{ 'is-invalid': errors.categoryId }" required @input="errors.categoryId = ''"
                             @blur="validateForm">
+                            <option :value="0">សូមជ្រើសរើសប្រភេទ</option>
+                            <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}
+                            </option>
+                        </select>
                         <div v-if="errors.categoryId" class="invalid-feedback">{{ errors.categoryId }}</div>
                     </div>
                     <div class="col-12">
@@ -307,6 +327,16 @@ const formatDateTime = (value) => {
 .event-toolbar {
     gap: 1rem;
     flex-wrap: wrap;
+}
+
+.event-pagination {
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 0.125rem 0.5rem rgba(15, 23, 42, 0.06);
 }
 
 .event-title {
@@ -342,5 +372,4 @@ const formatDateTime = (value) => {
         width: 100%;
     }
 }
-
 </style>

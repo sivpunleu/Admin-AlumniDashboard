@@ -2,14 +2,22 @@
 import { onMounted, computed, ref, reactive, watch } from "vue";
 import Swal from "sweetalert2";
 import * as genStore from "../../stores/generationStore";
+import { useDepartmentStore } from "@/stores/departmentStore";
 import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import BaseModal from "@/components/UI/Base/BaseModal.vue";
 import BasePage from "@/components/UI/Base/BasePage.vue";
 import BaseTable from "@/components/UI/Base/BaseTable.vue";
 import api from "@/API/api";
 
+const departmentStore = useDepartmentStore();
+
 // ទាញយកទិន្នន័យនៅពេល Component ត្រូវបានដាក់បញ្ចូល (Mount)
-onMounted(() => genStore.fetchGenerations());
+onMounted(async () => {
+    await Promise.all([
+        genStore.fetchGenerations(),
+        departmentStore.fetchDepartments(),
+    ]);
+});
 
 // មុខងារស្វែងរក (Filter/search by id or name - image_ff96c3.png)
 const filteredGens = computed(() => {
@@ -74,7 +82,7 @@ const openCreateModal = () => {
     form.name = "";
     form.startYear = new Date().getFullYear();
     form.endYear = new Date().getFullYear();
-    form.departmentId = null;
+    form.departmentId = "";
     form.description = "";
     clearErrors();
     showModal.value = true;
@@ -86,7 +94,7 @@ const openEditModal = (gen) => {
     form.name = gen.name || "";
     form.startYear = gen.startYear || new Date().getFullYear();
     form.endYear = gen.endYear || new Date().getFullYear();
-    form.departmentId = gen.departmentId || null;
+    form.departmentId = gen.departmentId ?? "";
     form.description = gen.description || "";
     clearErrors();
     showModal.value = true;
@@ -122,8 +130,10 @@ const validateForm = () => {
         errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាង ឬស្មើឆ្នាំចាប់ផ្តើម";
     }
 
-    if (form.departmentId && Number(form.departmentId) <= 0) {
-        errors.departmentId = "Department ID មិនត្រឹមត្រូវ";
+    if (!form.departmentId) {
+        errors.departmentId = "សូមជ្រើសរើសដេប៉ាតឺម៉ង់";
+    } else if (Number(form.departmentId) <= 0) {
+        errors.departmentId = "លេខសម្គាល់ដេប៉ាតឺម៉ង់មិនត្រឹមត្រូវ";
     }
 
     return !Object.values(errors).some(Boolean);
@@ -141,7 +151,7 @@ const submitForm = async () => {
                     description: form.description,
                     startYear: parseInt(form.startYear),
                     endYear: parseInt(form.endYear),
-                    departmentId: form.departmentId ? parseInt(form.departmentId) : undefined,
+                    departmentId: Number(form.departmentId),
                 };
                 const res = await api.post("/generations", payload);
                 if (res.data?.result) {
@@ -155,6 +165,7 @@ const submitForm = async () => {
                     description: form.description,
                     startYear: parseInt(form.startYear),
                     endYear: parseInt(form.endYear),
+                    departmentId: Number(form.departmentId),
                 };
                 const res = await api.put(`/generations/${selectedGenId.value}`, payload);
                 if (res.data?.result) {
@@ -291,10 +302,16 @@ const handlePageChange = (page) => {
                 </div>
 
                 <div>
-                    <label class="small fw-bold">លេខសម្គាល់ដេប៉ាតឺម៉ង់</label>
-                    <input v-model="form.departmentId" type="number" class="form-control"
-                        :class="{ 'is-invalid': errors.departmentId }" placeholder="e.g. 2"
-                        @input="errors.departmentId = ''" @blur="validateForm">
+                    <label class="small fw-bold">ដេប៉ាតឺម៉ង់</label>
+                    <select v-model="form.departmentId" class="form-control"
+                        :class="{ 'is-invalid': errors.departmentId }" @change="errors.departmentId = ''"
+                        @blur="validateForm">
+                        <option value="">ជ្រើសរើសដេប៉ាតឺម៉ង់</option>
+                        <option v-for="department in departmentStore.departments || []" :key="department.id"
+                            :value="department.id">
+                            {{ department.name }}
+                        </option>
+                    </select>
                     <div v-if="errors.departmentId" class="invalid-feedback">{{ errors.departmentId }}</div>
                 </div>
 

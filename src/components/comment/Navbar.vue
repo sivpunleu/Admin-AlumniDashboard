@@ -53,16 +53,18 @@
                                 <p class="small text-muted mb-0">មិនមានការជូនដំណឹងថ្មីទេ</p>
                             </div>
 
-                            <router-link v-for="notification in notifications" v-else :key="notification.id"
-                                class="notification-item text-decoration-none" :to="notification.to">
-                                <span :class="['notification-icon', `notification-icon--${notification.tone}`]">
-                                    <i :class="['bi', notification.icon]"></i>
-                                </span>
-                                <span class="notification-copy">
-                                    <span class="fw-semibold text-dark">{{ notification.title }}</span>
-                                    <span class="text-muted extra-small">{{ notification.description }}</span>
-                                </span>
-                            </router-link>
+                            <template v-else>
+                                <router-link v-for="notification in notifications" :key="notification.id"
+                                    class="notification-item text-decoration-none" :to="notification.to">
+                                    <span :class="['notification-icon', `notification-icon--${notification.tone}`]">
+                                        <i :class="['bi', notification.icon]"></i>
+                                    </span>
+                                    <span class="notification-copy">
+                                        <span class="fw-semibold text-dark">{{ notification.title }}</span>
+                                        <span class="text-muted extra-small">{{ notification.description }}</span>
+                                    </span>
+                                </router-link>
+                            </template>
                         </template>
                     </div>
                 </div>
@@ -112,7 +114,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/useAuth";
 import { useProfileStore } from "@/stores/useProfile";
@@ -135,6 +137,8 @@ const route = useRoute();
 const avatarLoadError = ref(false);
 const isNotificationLoading = ref(false);
 const notifications = ref([]);
+const NOTIFICATION_REFRESH_INTERVAL = 60000;
+let notificationRefreshTimer = null;
 
 const notificationCount = computed(() => notifications.value.length);
 
@@ -159,6 +163,8 @@ const getUserStatus = (user) => {
 };
 
 const fetchNotifications = async () => {
+    if (isNotificationLoading.value) return;
+
     try {
         isNotificationLoading.value = true;
         const [usersResponse, eventsResponse] = await Promise.all([
@@ -262,6 +268,12 @@ const handleLogout = () => {
 
 onMounted(() => {
     fetchNotifications();
+    notificationRefreshTimer = setInterval(fetchNotifications, NOTIFICATION_REFRESH_INTERVAL);
+});
+
+onUnmounted(() => {
+    clearInterval(notificationRefreshTimer);
+    notificationRefreshTimer = null;
 });
 </script>
 
