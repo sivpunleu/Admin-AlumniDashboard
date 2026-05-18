@@ -138,12 +138,19 @@ export const useEventStore = defineStore("event", () => {
   }
 
   async function deleteThumbnail(id) {
-    try {
-      await api.delete(`/events/${id}/thumbnail`);
-      await fetchEvents();
-      Swal.fire("ជោគជ័យ", "បានលុបរូបភាព", "success");
-    } catch (err) {
-      Swal.fire("កំហុស", "លុបមិនបាន", "error");
+    const result = await confirmDelete({
+      text: "រូបភាព Thumbnail នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
+      confirmButtonText: "បាទ លុបរូបភាព",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/events/${id}/thumbnail`);
+        await fetchEvents();
+        Swal.fire("ជោគជ័យ", "បានលុបរូបភាព", "success");
+      } catch (err) {
+        Swal.fire("កំហុស", "លុបមិនបាន", "error");
+      }
     }
   }
 
