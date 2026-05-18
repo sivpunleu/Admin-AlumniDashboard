@@ -40,12 +40,12 @@ export const fetchGenerations = async () => {
   try {
     isLoading.value = true;
     const res = await api.get("/generations");
-    if (res.data?.result) {
-      // គាំទ្រទាំង format data.items ឬ data ផ្ទាល់
-      generations.value = res.data.data.items || res.data.data;
-    }
+    const payload = res.data?.data ?? res.data;
+    const data = payload?.items ?? payload?.data?.items ?? payload?.data ?? payload;
+    generations.value = Array.isArray(data) ? data : [];
   } catch (err) {
     logger.error("Fetch Error:", err);
+    generations.value = [];
     Swal.fire("Error", "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ", "error");
   } finally {
     isLoading.value = false;

@@ -11,7 +11,7 @@ export const activeTab = ref("ALL"); // Binding ជាមួយ Filter Select
 export const PRIMARY_COLOR = "#216477";
 
 export const currentPage = ref(1);
-export const itemsPerPage = ref(0); // 0 = show all users
+export const itemsPerPage = ref(10);
 export const totalPages = ref(1);
 export const totalItems = ref(0);
 
@@ -30,30 +30,140 @@ export const registerForm = ref({
 });
 export const registerErrors = ref({});
 
+export const getPerPage = () => itemsPerPage.value || 10;
+
 export const clearRegisterErrors = () => {
   registerErrors.value = {};
 };
 
+const getUserStatus = (user) =>
+  String(user?.status || user?.profile?.status || "PENDING").toUpperCase();
+
+const getUserRole = (user) =>
+  String(
+    user?.role?.name ||
+      user?.role ||
+      user?.profile?.role?.name ||
+      user?.profile?.role ||
+      user?.userRole ||
+      "",
+  ).toLowerCase();
+
+const hasAlumniRole = (user) => {
+  const role = getUserRole(user);
+  return !role || role.includes("alumni");
+};
+
+const getUserSearchText = (user) =>
+  [
+    user?.id,
+    user?.fullname,
+    user?.fullName,
+    user?.name,
+    user?.username,
+    user?.email,
+    user?.phone,
+    user?.profile?.fullname,
+    user?.profile?.fullName,
+    user?.profile?.email,
+    user?.profile?.phone,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+const matchesSearch = (user) => {
+  const query = searchQuery.value?.trim().toLowerCase();
+  return !query || getUserSearchText(user).includes(query);
+};
+
+const extractItems = (root, payload) => {
+  const data =
+    payload?.items ||
+    payload?.data?.items ||
+    root?.items ||
+    root?.data?.items ||
+    payload?.data ||
+    payload ||
+    [];
+
+  return Array.isArray(data) ? data : [];
+};
+
+const pickNumber = (sources, keys) => {
+  for (const source of sources) {
+    for (const key of keys) {
+      const value = source?.[key];
+      if (value !== undefined && value !== null && value !== "") {
+        const numberValue = Number(value);
+        if (Number.isFinite(numberValue)) {
+          return numberValue;
+        }
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const getPaginationMeta = (root, payload) => {
+  const sources = [
+    payload?.meta,
+    root?.meta,
+    payload?.pagination,
+    root?.pagination,
+    payload,
+    root,
+  ];
+
+  return {
+    total: pickNumber(sources, ["total", "totalItems"]),
+    pages: pickNumber(sources, ["last_page", "totalPages", "pageCount"]),
+  };
+};
+
+const getFetchParams = ({ includePagination = true } = {}) => {
+  const params = {};
+
+  if (includePagination) {
+    params._page = currentPage.value;
+    params._per_page = getPerPage();
+  }
+
+  if (searchQuery.value?.trim()) {
+    params.search = searchQuery.value.trim();
+  }
+
+  if (activeTab.value !== "ALL") {
+    params.status = activeTab.value;
+  }
+
+  return params;
+};
+
+const paginateClientSide = (data, perPage) => {
+  const total = data.length;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+
+  if (currentPage.value > pages) {
+    currentPage.value = pages;
+  }
+
+  const start = (currentPage.value - 1) * perPage;
+  return {
+    data: data.slice(start, start + perPage),
+    total,
+    pages,
+  };
+};
+
 // មុខងារ Fetch Users ដែល Support Search, Filter និង Pagination
 export const fetchUsers = async () => {
-  const perPage = itemsPerPage.value || 10;
+  const perPage = getPerPage();
 
   try {
     isLoading.value = true;
-    const params = {};
-
-    params._page = currentPage.value;
-    params._per_page = perPage;
-
-    // Only add search if not empty
-    if (searchQuery.value?.trim()) {
-      params.search = searchQuery.value.trim();
-    }
-
-    // Only add status if not "ALL"
-    if (activeTab.value !== "ALL") {
-      params.status = activeTab.value;
-    }
+    const params = getFetchParams();
 
     logger.debug(
       "Fetching users with params:",
@@ -62,60 +172,61 @@ export const fetchUsers = async () => {
       activeTab.value,
     );
 
-    let res;
-    try {
-      // prefer the generic /users endpoint which seems more stable
-      res = await api.get("/users", { params });
-      logger.info("/users endpoint succeeded");
-    } catch (err) {
-      logger.warn(
-        "/users endpoint failed, trying /users/alumni",
-        err?.response?.status,
-      );
-      // try alumni endpoint as fallback
-      res = await api.get("/users/alumni", { params });
-      logger.info("/users/alumni endpoint succeeded");
-    }
+    const res = await api.get("/users", { params });
+    logger.info("/users endpoint succeeded");
+    const usedGenericUsersEndpoint = true;
+    const needsClientPagination = false;
+    const needsClientFilters = true;
 
     logger.debug("API Response:", res.data);
 
-    // Try different response structures
-    const payload = res.data?.data ?? res.data;
-    let data =
-      payload?.items || payload?.data?.items || payload?.data || payload || [];
+    const root = res.data ?? {};
+    const payload = root?.data ?? root;
+    let data = extractItems(root, payload);
+    let usedClientFilter = false;
 
-    // Ensure it's an array
-    if (!Array.isArray(data)) {
-      data = [];
+    if (usedGenericUsersEndpoint) {
+      const canFilterByRole = data.some((user) => getUserRole(user));
+      const alumniOnly = data.filter(hasAlumniRole);
+      if (canFilterByRole && alumniOnly.length > 0) {
+        usedClientFilter = alumniOnly.length !== data.length;
+        data = alumniOnly;
+      }
+    }
+
+    if (needsClientFilters || usedGenericUsersEndpoint) {
+      const searchOnly = data.filter(matchesSearch);
+      usedClientFilter = usedClientFilter || searchOnly.length !== data.length;
+      data = searchOnly;
     }
 
     // Client-side filter by status if API doesn't filter correctly
     if (activeTab.value !== "ALL") {
-      data = data.filter((user) => {
-        const userStatus = String(
-          user?.status || user?.profile?.status || "PENDING",
-        ).toUpperCase();
-        return userStatus === activeTab.value;
-      });
+      const statusOnly = data.filter((user) => getUserStatus(user) === activeTab.value);
+      usedClientFilter = usedClientFilter || statusOnly.length !== data.length;
+      data = statusOnly;
     }
 
     users.value = data;
-    const totalFromMeta =
-      payload?.meta?.total ??
-      payload?.total ??
-      payload?.pagination?.total ??
-      payload?.meta?.totalItems ??
-      payload?.totalItems;
-    const pagesFromMeta =
-      payload?.meta?.last_page ??
-      payload?.meta?.totalPages ??
-      payload?.pagination?.totalPages ??
-      payload?.pageCount;
-
-    totalItems.value = Number(totalFromMeta ?? data.length ?? 0);
-    totalPages.value = Number(
-      pagesFromMeta ?? Math.max(1, Math.ceil(totalItems.value / perPage)),
+    const { total: totalFromMeta, pages: pagesFromMeta } = getPaginationMeta(
+      root,
+      payload,
     );
+
+    if (needsClientPagination) {
+      const paginated = paginateClientSide(data, perPage);
+      users.value = paginated.data;
+      totalItems.value = paginated.total;
+      totalPages.value = paginated.pages;
+    } else {
+      totalItems.value = usedClientFilter
+        ? data.length
+        : totalFromMeta ?? data.length;
+      const calculatedPages = Math.max(1, Math.ceil(totalItems.value / perPage));
+      totalPages.value = usedClientFilter
+        ? calculatedPages
+        : Number(pagesFromMeta ?? calculatedPages);
+    }
 
     logger.info("Final users count:", users.value.length);
     logger.debug("Final users:", users.value);
@@ -123,6 +234,9 @@ export const fetchUsers = async () => {
     logger.error("Fetch error:", err);
     logger.error("Error details:", err.response?.data);
     users.value = [];
+    totalItems.value = 0;
+    totalPages.value = 1;
+    currentPage.value = 1;
   } finally {
     isLoading.value = false;
   }
@@ -268,6 +382,51 @@ export const handleRegisterAlumni = async () => {
   }
 };
 
+const updateUserStatus = async (userId, status) => {
+  try {
+    isLoading.value = true;
+    const payload = { status };
+
+    // Ensure userId is a clean numeric ID
+    const cleanUserId = String(userId).split(":")[0];
+
+    logger.debug(
+      "Sending status update for user",
+      cleanUserId,
+      "with payload:",
+      payload,
+    );
+
+    // Try different endpoint paths
+    let response;
+    try {
+      response = await api.put(`/users/${cleanUserId}`, payload);
+    } catch (err) {
+      if (err.response?.status === 500) {
+        logger.warn("PUT /users/:id failed, trying /users/alumni/:id");
+        response = await api.put(`/users/alumni/${cleanUserId}`, payload);
+      } else {
+        throw err;
+      }
+    }
+
+    logger.info("Status update response:", response.data);
+    await fetchUsers();
+    Swal.fire("រួចរាល់", "ស្ថានភាពត្រូវបានប្តូរ", "success");
+  } catch (err) {
+    logger.error("Change status error:", err);
+    logger.error("Error response data:", err.response?.data);
+    logger.error("Error status:", err.response?.status);
+    const errorMessage =
+      err.response?.data?.message || "មិនបានគ្រប់គ្រងផ្លាស់ប្តូរស្ថានភាព";
+    Swal.fire("បរាជ័យ", errorMessage, "error");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+export const handleApproveUser = (userId) => updateUserStatus(userId, "APPROVE");
+
 export const handleChangeStatus = async (userId) => {
   const { value: status } = await Swal.fire({
     title: "ប្តូរស្ថានភាព",
@@ -276,45 +435,6 @@ export const handleChangeStatus = async (userId) => {
     showCancelButton: true,
   });
   if (status) {
-    try {
-      isLoading.value = true;
-      const payload = { status };
-
-      // Ensure userId is a clean numeric ID
-      const cleanUserId = String(userId).split(":")[0];
-
-      logger.debug(
-        "Sending status update for user",
-        cleanUserId,
-        "with payload:",
-        payload,
-      );
-
-      // Try different endpoint paths
-      let response;
-      try {
-        response = await api.put(`/users/${cleanUserId}`, payload);
-      } catch (err) {
-        if (err.response?.status === 500) {
-          logger.warn("PUT /users/:id failed, trying /users/alumni/:id");
-          response = await api.put(`/users/alumni/${cleanUserId}`, payload);
-        } else {
-          throw err;
-        }
-      }
-
-      logger.info("Status update response:", response.data);
-      await fetchUsers();
-      Swal.fire("រួចរាល់", "ស្ថានភាពត្រូវបានប្តូរ", "success");
-    } catch (err) {
-      logger.error("Change status error:", err);
-      logger.error("Error response data:", err.response?.data);
-      logger.error("Error status:", err.response?.status);
-      const errorMessage =
-        err.response?.data?.message || "មិនបានគ្រប់គ្រងផ្លាស់ប្តូរស្ថានភាព";
-      Swal.fire("បរាជ័យ", errorMessage, "error");
-    } finally {
-      isLoading.value = false;
-    }
+    await updateUserStatus(userId, status);
   }
 };

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import BasePage from "../../components/UI/Base/BasePage.vue";
 import BaseButton from "../../components/UI/Base/BaseButton.vue";
 import BaseModal from "../../components/UI/Base/BaseModal.vue";
@@ -11,44 +11,117 @@ import * as generationStore from "@/stores/generationStore";
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'bg-success-subtle text-success border-success-subtle';
   if (status === 'PENDING') return 'bg-warning-subtle text-warning border-warning-subtle';
+  if (status === 'REJECT' || status === 'DEACTIVATED') return 'bg-danger-subtle text-danger border-danger-subtle';
   return 'bg-light text-secondary border-light';
 };
 
 const getStatusLabel = (status) => {
   if (status === 'APPROVE') return 'យល់ព្រម';
   if (status === 'PENDING') return 'កំពុងរង់ចាំ';
-  return 'បានធ្វើឱ្យអសកម្ម';
+  if (status === 'REJECT' || status === 'DEACTIVATED') return 'បានធ្វើឱ្យអសកម្ម';
+  return status || 'Unknown';
 };
 
 const normalizeStatus = (user) => String(user?.status || user?.profile?.status || 'PENDING').toUpperCase();
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://ant-g2-ams.tt.linkpc.net/api/v1").replace(/\/+$/, "");
+const getApiOrigin = () => {
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return API_BASE_URL.replace(/\/api\/.*$/i, '');
+  }
+};
+const API_ORIGIN = getApiOrigin();
+
+const getAlumniName = (user) => (
+  user?.profile?.fullname ||
+  user?.profile?.fullName ||
+  user?.fullname ||
+  user?.fullName ||
+  user?.name ||
+  user?.username ||
+  user?.email ||
+  'Unknown Alumni'
+);
+
+const getAlumniEmail = (user) => user?.email || user?.profile?.email || '';
+
+const getAlumniAvatar = (user) => {
+  const rawAvatar =
+    user?.profile?.avatar ||
+    user?.profile?.avatarUrl ||
+    user?.profile?.avatar_url ||
+    user?.profile?.image ||
+    user?.profile?.photo ||
+    user?.avatar ||
+    user?.avatarUrl ||
+    user?.avatar_url ||
+    user?.image ||
+    user?.photo;
+
+  if (!rawAvatar) return '';
+  if (/^(https?:|data:|blob:)/i.test(rawAvatar)) return rawAvatar;
+
+  const cleanAvatar = String(rawAvatar).replace(/\\/g, '/').replace(/^\/+/, '');
+
+  if (/^(api|storage|uploads|images)\//i.test(cleanAvatar)) {
+    return `${API_ORIGIN}/${cleanAvatar}`;
+  }
+
+  return `${API_BASE_URL}/${cleanAvatar}`;
+};
+
+const getAlumniInitial = (user) => getAlumniName(user).trim().charAt(0).toUpperCase() || 'U';
+
+const handleAvatarError = (event) => {
+  event.target.style.display = 'none';
+};
+
+const handleAvatarLoad = (event) => {
+  event.target.style.display = '';
+};
+
 const departmentStore = useDepartmentStore();
 const showRegisterModal = store.showRegisterModal;
+let searchDebounceTimer;
 
-onMounted(async () => {
-  await Promise.all([
-    departmentStore.fetchDepartments(),
-    generationStore.fetchGenerations(),
-  ]);
+onMounted(() => {
   store.fetchUsers();
+  departmentStore.fetchDepartments();
+  generationStore.fetchGenerations();
 });
 
-watch([() => store.searchQuery.value, () => store.activeTab.value], () => {
+watch([() => store.searchQuery.value, () => store.activeTab.value], ([, activeTab], [, previousActiveTab]) => {
   store.currentPage.value = 1;
-  store.fetchUsers();
+  clearTimeout(searchDebounceTimer);
+
+  if (activeTab !== previousActiveTab) {
+    store.fetchUsers();
+    return;
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    store.fetchUsers();
+  }, 350);
 });
 
 const handlePageChange = (page) => {
+  clearTimeout(searchDebounceTimer);
   store.currentPage.value = page;
   store.fetchUsers();
 };
+
+onUnmounted(() => {
+  clearTimeout(searchDebounceTimer);
+});
 
 const pageSummary = computed(() => {
   if (!store.totalItems.value) {
     return "0";
   }
 
-  const perPage = store.itemsPerPage.value || 10;
+  const perPage = store.getPerPage();
   const start = (store.currentPage.value - 1) * perPage + 1;
   const end = Math.min(store.currentPage.value * perPage, store.totalItems.value);
 
@@ -81,13 +154,13 @@ const tableColumns = [
 <template>
   <div class="manager-alumni-page bg-dashboard min-vh-100 font-khmer">
     <!-- Header Section -->
-    <div class="manager-page-toolbar page-toolbar align-items-start mb-4">
+    <div class="manager-page-toolbar page-toolbar align-items-start mb-4 manager-animate manager-animate--toolbar">
       <div>
         <h2 class="fw-bold text-dark mb-1">គ្រប់គ្រងអតីតនិស្សិត</h2>
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
       </div>
       <div class="page-toolbar__actions">
-        <button class="btn btn-white border shadow-sm btn-sm px-3"><i class="bi bi-filter-right"></i>
+        <button type="button" class="btn btn-white border shadow-sm btn-sm px-3" disabled aria-disabled="true"><i class="bi bi-filter-right"></i>
           តម្រងកម្រិតខ្ពស់</button>
         <button @click="store.requireAdmin(store.openRegisterModal)"
           class="btn btn-primary-custom btn-sm px-3 shadow-sm">
@@ -97,12 +170,12 @@ const tableColumns = [
     </div>
 
     <!-- Search & Filter Bar (យោងតាម image_a84f9e.png) -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 manager-animate manager-animate--filter">
       <div class="card-body p-2 page-toolbar manager-filter-toolbar">
         <div class="search-input-wrapper flex-grow-1">
           <i class="bi bi-search text-muted"></i>
           <input v-model="searchModel" type="text" class="form-control-custom"
-            placeholder="ស្វែងរកតាមឈ្មោះ, អ៊ីមែល ឬអត្តលេខ..." />
+            placeholder="ស្វែងរកតាមឈ្មោះ, អ៊ីមែល ..." />
         </div>
         <div class="filter-tabs-wrapper bg-light p-1 rounded-3 d-flex border">
           <button @click="activeTabModel = 'ALL'"
@@ -144,10 +217,14 @@ const tableColumns = [
       <BaseTable v-else :columns="tableColumns" :data="store.users.value">
         <template #cell-alumni="{ item }">
           <div class="d-flex align-items-center">
-            <div class="avatar-sm me-3">{{ (item.fullname || 'U')[0] }}</div>
+            <div class="avatar-sm me-3" :aria-label="getAlumniName(item)">
+              <span>{{ getAlumniInitial(item) }}</span>
+              <img v-if="getAlumniAvatar(item)" :src="getAlumniAvatar(item)" :alt="getAlumniName(item)"
+                class="avatar-sm__image" @error="handleAvatarError" @load="handleAvatarLoad" />
+            </div>
             <div>
-              <div class="fw-bold small text-dark">{{ item.fullname || item.name }}</div>
-              <div class="text-muted smaller">{{ item.email }}</div>
+              <div class="fw-bold small text-dark">{{ getAlumniName(item) }}</div>
+              <div class="text-muted smaller">{{ getAlumniEmail(item) }}</div>
             </div>
           </div>
         </template>
@@ -168,7 +245,7 @@ const tableColumns = [
 
         <template #cell-actions="{ item }">
           <div class="d-flex justify-content-end gap-2">
-            <BaseButton v-if="normalizeStatus(item) === 'PENDING'" @click="store.handleChangeStatus(item.id)"
+            <BaseButton v-if="normalizeStatus(item) === 'PENDING'" @click="store.handleApproveUser(item.id)"
               variant="light" size="sm">
               <i class="bi bi-check-lg text-success me-1"></i> យល់ព្រម
             </BaseButton>
@@ -241,9 +318,7 @@ const tableColumns = [
         <select v-model="store.registerForm.value.departmentId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
           @change="delete store.registerErrors.value.departmentId">
-          <option value="">ជ្រើសរើស
-            <i class="bi bi-chevron-down"></i>
-          </option>
+          <option value="">ជ្រើសរើស</option>
           <option v-for="department in departmentStore.departments || []" :key="department.id" :value="department.id">
             {{ department.name }}
           </option>
@@ -259,9 +334,7 @@ const tableColumns = [
         <select v-model="store.registerForm.value.generationId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
           @change="delete store.registerErrors.value.generationId">
-          <option value="">ជ្រើសរើស
-            <i class="bi bi-chevron-down"></i>
-          </option>
+          <option value="">ជ្រើសរើស</option>
           <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id">
             {{ generation.name }}
           </option>
@@ -316,6 +389,26 @@ const tableColumns = [
   padding: 1rem;
 }
 
+.manager-animate {
+  animation: manager-panel-enter 220ms ease-out both;
+}
+
+.manager-animate--toolbar {
+  animation-delay: 20ms;
+}
+
+.manager-animate--filter {
+  animation-delay: 70ms;
+}
+
+.card {
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+.manager-animate--filter:hover {
+  box-shadow: 0 0.5rem 1.4rem rgba(15, 23, 42, 0.08) !important;
+}
+
 .manager-page-toolbar,
 .manager-table-header {
   gap: 1rem;
@@ -329,6 +422,18 @@ const tableColumns = [
 .btn-white {
   background-color: white;
   border-radius: 10px;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.btn-white:hover,
+.btn-primary-custom:hover {
+  transform: translateY(-1px);
+}
+
+.btn-white:active,
+.btn-primary-custom:active {
+  transform: translateY(0);
 }
 
 .form-control-custom {
@@ -348,12 +453,20 @@ const tableColumns = [
   padding-left: 12px;
   min-width: 0;
   width: 100%;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.search-input-wrapper:focus-within {
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
+  transform: translateY(-1px);
 }
 
 .filter-tabs-wrapper {
   max-width: 100%;
   flex-wrap: wrap;
   gap: 0.25rem;
+  transition: box-shadow 180ms ease;
 }
 
 .tab-btn {
@@ -363,8 +476,13 @@ const tableColumns = [
   border-radius: 8px;
   font-size: 13px;
   color: #64748b;
-  transition: 0.2s;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: #216477;
+  transform: translateY(-1px);
 }
 
 .tab-btn.active {
@@ -384,6 +502,16 @@ const tableColumns = [
   place-items: center;
   font-weight: bold;
   font-size: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.avatar-sm__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .badge-status {
@@ -453,12 +581,22 @@ const tableColumns = [
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .form-control:focus {
   border-color: #216477;
   outline: none;
   box-shadow: 0 0 0 3px rgba(33, 100, 119, 0.1);
+  transform: translateY(-1px);
+}
+
+.form-control.is-invalid {
+  animation: manager-invalid-shake 180ms ease;
+}
+
+.invalid-feedback {
+  animation: manager-feedback-enter 160ms ease-out both;
 }
 
 .btn-secondary {
@@ -473,5 +611,125 @@ const tableColumns = [
 
 .btn-secondary:hover {
   background: #d1d5db;
+}
+
+.app-form > div {
+  animation: manager-form-field-enter 180ms ease-out both;
+}
+
+.app-form > div:nth-child(2) {
+  animation-delay: 20ms;
+}
+
+.app-form > div:nth-child(3) {
+  animation-delay: 40ms;
+}
+
+.app-form > div:nth-child(4) {
+  animation-delay: 60ms;
+}
+
+.app-form > div:nth-child(5) {
+  animation-delay: 80ms;
+}
+
+.app-form > div:nth-child(6) {
+  animation-delay: 100ms;
+}
+
+.app-form > div:nth-child(7) {
+  animation-delay: 120ms;
+}
+
+.app-form > div:nth-child(8) {
+  animation-delay: 140ms;
+}
+
+.app-form > div:nth-child(9) {
+  animation-delay: 160ms;
+}
+
+.app-form > div:nth-child(10) {
+  animation-delay: 180ms;
+}
+
+@keyframes manager-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes manager-form-field-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes manager-feedback-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes manager-invalid-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  35% {
+    transform: translateX(-3px);
+  }
+
+  70% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-animate,
+  .form-control.is-invalid,
+  .invalid-feedback,
+  .app-form > div {
+    animation: none !important;
+  }
+
+  .card,
+  .btn-white,
+  .btn-primary-custom,
+  .search-input-wrapper,
+  .filter-tabs-wrapper,
+  .tab-btn,
+  .form-control,
+  .avatar-sm,
+  .badge-status {
+    transition: none !important;
+  }
+
+  .btn-white:hover,
+  .btn-primary-custom:hover,
+  .search-input-wrapper:focus-within,
+  .tab-btn:hover,
+  .form-control:focus {
+    transform: none !important;
+  }
 }
 </style>

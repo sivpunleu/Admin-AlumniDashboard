@@ -228,8 +228,33 @@ onBeforeUnmount(() => {
     transition: opacity 0.2s ease;
 }
 
+.modal-fade-enter-active .base-modal__dialog,
+.modal-fade-leave-active .base-modal__dialog {
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
 .modal-fade-enter-from,
 .modal-fade-leave-to {
     opacity: 0;
+}
+
+.modal-fade-enter-from .base-modal__dialog,
+.modal-fade-leave-to .base-modal__dialog {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-fade-enter-active,
+    .modal-fade-leave-active,
+    .modal-fade-enter-active .base-modal__dialog,
+    .modal-fade-leave-active .base-modal__dialog {
+        transition: none !important;
+    }
+
+    .modal-fade-enter-from .base-modal__dialog,
+    .modal-fade-leave-to .base-modal__dialog {
+        transform: none !important;
+    }
 }
 </style>

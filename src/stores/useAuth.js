@@ -122,23 +122,28 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
-  const logout = () => {
-    swal
-      .fire({
-        title: "ចាកចេញ?",
-        text: "អ្នកនឹងត្រូវចាកចេញពីប្រព័ន្ធ!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "បាទ ចាកចេញ",
-        cancelButtonText: "បោះបង់",
-        confirmButtonColor: "#d33",
-      })
-      .then((result) => {
-        if (result.isConfirmed) {
-          clearAuth();
-          router.push({ name: "login" });
-        }
-      });
+  const logout = async () => {
+    const result = await swal.fire({
+      title: "ចាកចេញ?",
+      text: "អ្នកនឹងត្រូវចាកចេញពីប្រព័ន្ធ!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "បាទ ចាកចេញ",
+      cancelButtonText: "បោះបង់",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!result.isConfirmed) return;
+
+    clearAuth();
+    await router.push({ name: "login" });
+    await swal.fire({
+      icon: "success",
+      title: "ចាកចេញជោគជ័យ",
+      text: "អ្នកបានចាកចេញពីប្រព័ន្ធរួចរាល់។",
+      timer: 1600,
+      showConfirmButton: false,
+    });
   };
 
   const checkAuth = () => {
