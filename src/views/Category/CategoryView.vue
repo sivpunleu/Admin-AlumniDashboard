@@ -8,7 +8,6 @@ import BaseTable from '@/components/UI/Base/BaseTable.vue';
 
 const store = useCategoryStore();
 
-// --- ស្ថានភាព Modal ---
 const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentId = ref(null);
@@ -17,7 +16,7 @@ const errors = reactive({ name: '' });
 
 onMounted(() => store.fetchCategories());
 
-// តាមដាន (Watch) លើការស្វែងរក
+
 watch(() => store.queryParams.search, () => {
     store.queryParams._page = 1;
     store.fetchCategories();
@@ -52,6 +51,10 @@ const openEditModal = (cat) => {
     isModalOpen.value = true;
 };
 
+const closeModal = () => {
+    isModalOpen.value = false;
+};
+
 const validateForm = () => {
     errors.name = '';
     form.name = form.name.trim();
@@ -69,13 +72,12 @@ const handleSubmit = async () => {
     const success = isEditing.value
         ? await store.updateCategory(currentId.value, { ...form })
         : await store.createCategory({ ...form });
-    if (success) isModalOpen.value = false;
+    if (success) closeModal();
 };
 </script>
 
 <template>
     <div class="category-page min-vh-100">
-        <!-- ផ្នែកក្បាល (Header Section) -->
         <div class="category-header header-card page-toolbar mb-4 p-4 rounded-4 shadow-sm border-0 bg-white">
             <div>
                 <h2 class="fw-bold text-dark mb-1">ប្រភេទ</h2>
@@ -92,7 +94,7 @@ const handleSubmit = async () => {
             </BaseButton>
         </div>
 
-        <!-- របារស្វែងរក (Search Bar) -->
+
         <div class="row mb-4">
             <div class="col-md-5 col-lg-4">
                 <div class="search-box-custom app-search-box rounded-pill px-3 d-flex align-items-center shadow-sm">
@@ -103,7 +105,7 @@ const handleSubmit = async () => {
             </div>
         </div>
 
-        <!-- ផ្នែកបង្ហាញទិន្នន័យ (Grid Section) -->
+
         <div v-if="store.isLoading" class="app-state">
             <div>
                 <div class="spinner-border text-primary" role="status"></div>
@@ -131,7 +133,7 @@ const handleSubmit = async () => {
             </BaseTable>
         </div>
 
-        <!-- ការបែងចែកទំព័រ (Pagination) -->
+
         <div class="category-pagination page-toolbar mt-5">
             <p class="small text-muted mb-0">សរុប: {{ store.totalItems }} ប្រភេទ</p>
             <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
@@ -140,7 +142,7 @@ const handleSubmit = async () => {
 
         <!-- ការប្រើប្រាស់ BaseModal -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'កែប្រែប្រភេទ' : 'ប្រភេទថ្មី'" hide-default-footer>
-            <form class="app-form" novalidate @submit.prevent="handleSubmit">
+            <form id="category-form" class="app-form" novalidate @submit.prevent="handleSubmit">
                 <div>
                     <label class="form-label small fw-bold text-muted text-uppercase">ឈ្មោះ *</label>
                     <input v-model="form.name" type="text" class="form-control py-2 rounded-3 border-2"
@@ -158,9 +160,9 @@ const handleSubmit = async () => {
             <template #footer>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-light rounded-pill px-4 fw-medium"
-                        @click="isModalOpen = false">បោះបង់</button>
-                    <button type="button" class="btn btn-primary-custom rounded-pill px-4 fw-medium"
-                        @click="handleSubmit" :disabled="store.isLoading">
+                        @click="closeModal">បោះបង់</button>
+                    <button type="submit" form="category-form"
+                        class="btn btn-primary-custom rounded-pill px-4 fw-medium" :disabled="store.isLoading">
                         <span v-if="store.isLoading" class="spinner-border spinner-border-sm me-2"></span>
                         {{ isEditing ? 'រក្សាទុកការផ្លាស់ប្តូរ' : 'បង្កើតប្រភេទ' }}
                     </button>
@@ -188,6 +190,7 @@ const handleSubmit = async () => {
 
 .line-clamp-3 {
     display: -webkit-box;
+    line-clamp: 3;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;

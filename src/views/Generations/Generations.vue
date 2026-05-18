@@ -8,8 +8,12 @@ import BaseModal from "@/components/UI/Base/BaseModal.vue";
 import BasePage from "@/components/UI/Base/BasePage.vue";
 import BaseTable from "@/components/UI/Base/BaseTable.vue";
 import api from "@/API/api";
+import logger from "@/utils/logger";
 
 const departmentStore = useDepartmentStore();
+
+const isSuccessResponse = (data) =>
+    data == null || (data.result !== false && data.success !== false);
 
 // ទាញយកទិន្នន័យនៅពេល Component ត្រូវបានដាក់បញ្ចូល (Mount)
 onMounted(async () => {
@@ -19,12 +23,13 @@ onMounted(async () => {
     ]);
 });
 
-// មុខងារស្វែងរក (Filter/search by id or name - image_ff96c3.png)
+
 const filteredGens = computed(() => {
     if (!genStore.searchQuery.value) return genStore.generations.value;
+    const query = genStore.searchQuery.value.toLowerCase();
     return genStore.generations.value.filter(g =>
-        g.id.toString().includes(genStore.searchQuery.value) ||
-        g.name.toLowerCase().includes(genStore.searchQuery.value.toLowerCase())
+        String(g?.id ?? "").includes(query) ||
+        String(g?.name ?? "").toLowerCase().includes(query)
     );
 });
 
@@ -66,12 +71,29 @@ const errors = reactive({
     departmentId: "",
 });
 
+const buildGenerationPayload = (includeDepartment = true) => {
+    const payload = {
+        name: form.name,
+        description: form.description,
+        startYear: parseInt(form.startYear),
+        endYear: parseInt(form.endYear),
+    };
+
+    // include departmentId only when provided. Omit if empty to avoid sending null which may be rejected.
+    if (includeDepartment && form.departmentId !== "" && form.departmentId != null) {
+        payload.departmentId = Number(form.departmentId);
+    }
+
+    return payload;
+};
+
 const modalTitle = computed(() => (modalMode.value === "create" ? "បង្កើតជំនាន់ថ្មី" : "កែប្រែព័ត៌មានជំនាន់"));
 const modalConfirmText = computed(() => (modalMode.value === "create" ? "បង្កើត" : "រក្សាទុក"));
 
 const columns = [
     { key: "name", label: "ឈ្មោះជំនាន់" },
     { key: "years", label: "ឆ្នាំ" },
+    { key: "department", label: "ដេប៉ាតឺម៉ង់" },
     { key: "description", label: "ការពិពណ៌នា" },
     { key: "actions", label: "សកម្មភាព" },
 ];
@@ -94,7 +116,7 @@ const openEditModal = (gen) => {
     form.name = gen.name || "";
     form.startYear = gen.startYear || new Date().getFullYear();
     form.endYear = gen.endYear || new Date().getFullYear();
-    form.departmentId = gen.departmentId ?? "";
+    form.departmentId = gen.departmentId ?? gen.department?.id ?? "";
     form.description = gen.description || "";
     clearErrors();
     showModal.value = true;
@@ -130,9 +152,9 @@ const validateForm = () => {
         errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាង ឬស្មើឆ្នាំចាប់ផ្តើម";
     }
 
-    if (!form.departmentId) {
+    if (modalMode.value === "create" && !form.departmentId) {
         errors.departmentId = "សូមជ្រើសរើសដេប៉ាតឺម៉ង់";
-    } else if (Number(form.departmentId) <= 0) {
+    } else if (form.departmentId && Number(form.departmentId) <= 0) {
         errors.departmentId = "លេខសម្គាល់ដេប៉ាតឺម៉ង់មិនត្រឹមត្រូវ";
     }
 
@@ -140,51 +162,39 @@ const validateForm = () => {
 };
 
 const submitForm = async () => {
-    genStore.requireAdmin(async () => {
+    await genStore.requireAdmin(async () => {
         if (!validateForm()) return;
 
         try {
             genStore.isLoading.value = true;
             if (modalMode.value === "create") {
-                const payload = {
-                    name: form.name,
-                    description: form.description,
-                    startYear: parseInt(form.startYear),
-                    endYear: parseInt(form.endYear),
-                    departmentId: Number(form.departmentId),
-                };
+                const payload = buildGenerationPayload();
                 const res = await api.post("/generations", payload);
-                if (res.data?.result) {
+                if (isSuccessResponse(res.data)) {
                     await genStore.fetchGenerations();
                     Swal.fire("Success", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
                     showModal.value = false;
                 }
             } else if (modalMode.value === "edit") {
-                const payload = {
-                    name: form.name,
-                    description: form.description,
-                    startYear: parseInt(form.startYear),
-                    endYear: parseInt(form.endYear),
-                    departmentId: Number(form.departmentId),
-                };
-                const res = await api.put(`/generations/${selectedGenId.value}`, payload);
-                if (res.data?.result) {
-                    await genStore.fetchGenerations();
-                    Swal.fire("Success", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
-                    showModal.value = false;
+                const payload = buildGenerationPayload(false);
+                logger.info('Updating generation (view) payload', payload);
+                try {
+                    const result = await genStore.updateGeneration(selectedGenId.value, payload);
+                    if (result !== false) showModal.value = false;
+                } catch (err) {
+                    // error already handled in store; keep modal open for correction
                 }
             }
         } catch (err) {
-            Swal.fire("Error", err.response?.data?.message || "Request failed", "error");
+            logger.error('Generation submit failed', err.response?.data || err);
+            const detail = err.response?.data?.message || err.response?.data || err.message || "Request failed";
+            Swal.fire("Error", String(detail), "error");
         } finally {
             genStore.isLoading.value = false;
         }
     });
 };
 
-/**
- * មុខងារបង្កើតជំនាន់ថ្មី (Create new generation - ភ្ជាប់ទៅកាន់ Store)
- */
 const createGeneration = () => {
     openCreateModal();
 };
@@ -203,13 +213,11 @@ const handlePageChange = (page) => {
                 <p class="text-muted small">ស្វែងរក និងគ្រប់គ្រងក្រុមនិស្សិតដែលបានបញ្ចប់ការសិក្សា និងក្រុមអតីតនិស្សិត។
                 </p>
             </div>
-            <!-- ប៊ូតុងបង្កើតថ្មី (Create new generation) -->
             <BaseButton @click="createGeneration" variant="primary">
                 <i class="bi bi-plus-lg me-2"></i> បង្កើតជំនាន់ថ្មី
             </BaseButton>
         </div>
 
-        <!-- ផ្នែកប្រអប់ស្វែងរក (Search Box Section) -->
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="search-box app-search-box p-2 rounded-3 shadow-sm d-flex align-items-center">
@@ -220,7 +228,7 @@ const handlePageChange = (page) => {
             </div>
         </div>
 
-        <!-- ស្ថានភាពកំពុងផ្ទុក (Loading State) -->
+
         <div v-if="genStore.isLoading.value" class="app-state">
             <div>
                 <div class="spinner-border text-primary" role="status"></div>
@@ -234,6 +242,12 @@ const handlePageChange = (page) => {
                 <template #cell-years="{ item }">
                     <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
                         <i class="bi bi-calendar3 me-1"></i> ឆ្នាំ {{ item.startYear }} - {{ item.endYear }}
+                    </span>
+                </template>
+                <!-- department -->
+                <template #cell-department="{ item }">
+                    <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
+                        {{ item.department?.name || 'មិនមានការពិពណ៌នាឡើយ។' }}
                     </span>
                 </template>
 
@@ -301,7 +315,7 @@ const handlePageChange = (page) => {
                     </div>
                 </div>
 
-                <div>
+                <div v-if="modalMode === 'create'">
                     <label class="small fw-bold">ដេប៉ាតឺម៉ង់</label>
                     <select v-model="form.departmentId" class="form-control"
                         :class="{ 'is-invalid': errors.departmentId }" @change="errors.departmentId = ''"
