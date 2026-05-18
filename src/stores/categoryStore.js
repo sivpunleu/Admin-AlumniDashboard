@@ -45,7 +45,7 @@ export const useCategoryStore = defineStore("category", () => {
     try {
       isLoading.value = true;
       await api.post("/categories", payload);
-      await Swal.fire("ជោគជ័យ", "ប្រភេទថ្មីត្រូវបានបង្កើត", "success");
+      Swal.fire("ជោគជ័យ", "ប្រភេទថ្មីត្រូវបានបង្កើត", "success");
       await fetchCategories();
 
       return true;
@@ -62,7 +62,7 @@ export const useCategoryStore = defineStore("category", () => {
     try {
       isLoading.value = true;
       await api.put(`/categories/${id}`, payload);
-      await Swal.fire("ជោគជ័យ", "ទិន្នន័យត្រូវបានកែប្រែ", "success");
+      Swal.fire("ជោគជ័យ", "ទិន្នន័យត្រូវបានកែប្រែ", "success");
       await fetchCategories();
       return true;
     } catch (err) {

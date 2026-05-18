@@ -14,6 +14,12 @@ export const currentPage = ref(1);
 export const itemsPerPage = ref(10);
 export const totalPages = ref(1);
 export const totalItems = ref(0);
+export const allUsersTotal = ref(0);
+export const allUsersApproved = ref(0);
+export const allUsersPending = ref(0);
+export const allUsersDeactivated = ref(0);
+const CLIENT_FILTER_PAGE_SIZE = 100;
+const MAX_CLIENT_FILTER_PAGES = 50;
 
 export const showRegisterModal = ref(false);
 export const registerForm = ref({
@@ -36,8 +42,29 @@ export const clearRegisterErrors = () => {
   registerErrors.value = {};
 };
 
-const getUserStatus = (user) =>
-  String(user?.status || user?.profile?.status || "PENDING").toUpperCase();
+const normalizeStatus = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase();
+
+const getUserStatus = (user) => {
+  const rawStatus = normalizeStatus(
+    user?.status ||
+      user?.profile?.status ||
+      user?.accountStatus ||
+      user?.state,
+  );
+
+  if (["APPROVED", "ACTIVE", "VERIFIED"].includes(rawStatus)) {
+    return "APPROVE";
+  }
+
+  if (["REJECTED", "DEACTIVATE", "INACTIVE", "DISABLED"].includes(rawStatus)) {
+    return "DEACTIVATED";
+  }
+
+  return rawStatus || (user?.isVerifyEmail ? "APPROVE" : "PENDING");
+};
 
 const getUserRole = (user) =>
   String(
@@ -51,8 +78,33 @@ const getUserRole = (user) =>
 
 const hasAlumniRole = (user) => {
   const role = getUserRole(user);
-  return !role || role.includes("alumni");
+  if (!role) return true;
+  if (role.includes("admin")) return false;
+
+  return ["alumni", "user", "student"].some(
+    (allowedRole) => role === allowedRole || role.includes(allowedRole),
+  );
 };
+
+const hasExplicitAlumniRole = (user) => getUserRole(user).includes("alumni");
+
+const getManagedUsers = (data) => {
+  if (!Array.isArray(data)) return [];
+
+  // The current API returns alumni accounts as USER. Only narrow by role when
+  // the response actually contains a dedicated alumni role.
+  return data.some(hasExplicitAlumniRole) ? data.filter(hasAlumniRole) : data;
+};
+
+const isDeactivatedStatus = (status) =>
+  [
+    "REJECT",
+    "REJECTED",
+    "DEACTIVATED",
+    "DEACTIVATE",
+    "INACTIVE",
+    "DISABLED",
+  ].includes(status);
 
 const getUserSearchText = (user) =>
   [
@@ -163,7 +215,57 @@ export const fetchUsers = async () => {
 
   try {
     isLoading.value = true;
-    const params = getFetchParams();
+
+    // Fetch global summary counts (without search/status filters) for dashboard cards.
+    try {
+      let summaryData = [];
+      let summaryPage = 1;
+      let summaryPageLimit = 1;
+
+      do {
+        const summaryRes = await api.get("/users", {
+          params: {
+            _page: summaryPage,
+            _per_page: CLIENT_FILTER_PAGE_SIZE,
+          },
+        });
+
+        const summaryRoot = summaryRes.data ?? {};
+        const summaryPayload = summaryRoot?.data ?? summaryRoot;
+        summaryData.push(...extractItems(summaryRoot, summaryPayload));
+
+        const { pages } = getPaginationMeta(summaryRoot, summaryPayload);
+        if (!pages) break;
+
+        summaryPageLimit = Math.min(pages, MAX_CLIENT_FILTER_PAGES);
+        summaryPage += 1;
+      } while (summaryPage <= summaryPageLimit);
+
+      const summaryAlumni = getManagedUsers(summaryData);
+      const summaryCounts = {
+        approved: 0,
+        pending: 0,
+        deactivated: 0,
+      };
+
+      for (const user of summaryAlumni) {
+        const status = getUserStatus(user);
+        if (status === "APPROVE") summaryCounts.approved += 1;
+        else if (status === "PENDING") summaryCounts.pending += 1;
+        else if (isDeactivatedStatus(status)) {
+          summaryCounts.deactivated += 1;
+        }
+      }
+
+      allUsersTotal.value = summaryAlumni.length;
+      allUsersApproved.value = summaryCounts.approved;
+      allUsersPending.value = summaryCounts.pending;
+      allUsersDeactivated.value = summaryCounts.deactivated;
+    } catch (summaryErr) {
+      logger.warn("Unable to fetch global summary counts:", summaryErr);
+    }
+
+    const params = getFetchParams({ includePagination: false });
 
     logger.debug(
       "Fetching users with params:",
@@ -172,26 +274,47 @@ export const fetchUsers = async () => {
       activeTab.value,
     );
 
-    const res = await api.get("/users", { params });
-    logger.info("/users endpoint succeeded");
     const usedGenericUsersEndpoint = true;
-    const needsClientPagination = false;
+    const needsClientPagination = true;
     const needsClientFilters = true;
 
-    logger.debug("API Response:", res.data);
+    let root = {};
+    let payload = {};
+    let data = [];
+    let page = 1;
+    let pageLimit = 1;
 
-    const root = res.data ?? {};
-    const payload = root?.data ?? root;
-    let data = extractItems(root, payload);
+    do {
+      const pageParams = {
+        ...params,
+        _page: page,
+        _per_page: CLIENT_FILTER_PAGE_SIZE,
+      };
+      const res = await api.get("/users", { params: pageParams });
+
+      if (page === 1) {
+        logger.info("/users endpoint succeeded");
+        logger.debug("API Response:", res.data);
+      }
+
+      root = res.data ?? {};
+      payload = root?.data ?? root;
+      data.push(...extractItems(root, payload));
+
+      const { pages } = getPaginationMeta(root, payload);
+      if (!pages) break;
+
+      pageLimit = Math.min(pages, MAX_CLIENT_FILTER_PAGES);
+      page += 1;
+    } while (page <= pageLimit);
+
     let usedClientFilter = false;
 
     if (usedGenericUsersEndpoint) {
-      const canFilterByRole = data.some((user) => getUserRole(user));
-      const alumniOnly = data.filter(hasAlumniRole);
-      if (canFilterByRole && alumniOnly.length > 0) {
-        usedClientFilter = alumniOnly.length !== data.length;
-        data = alumniOnly;
-      }
+      const managedUsers = getManagedUsers(data);
+      usedClientFilter =
+        usedClientFilter || managedUsers.length !== data.length;
+      data = managedUsers;
     }
 
     if (needsClientFilters || usedGenericUsersEndpoint) {
@@ -202,7 +325,12 @@ export const fetchUsers = async () => {
 
     // Client-side filter by status if API doesn't filter correctly
     if (activeTab.value !== "ALL") {
-      const statusOnly = data.filter((user) => getUserStatus(user) === activeTab.value);
+      const statusOnly = data.filter((user) => {
+        const status = getUserStatus(user);
+        return activeTab.value === "REJECT"
+          ? isDeactivatedStatus(status)
+          : status === activeTab.value;
+      });
       usedClientFilter = usedClientFilter || statusOnly.length !== data.length;
       data = statusOnly;
     }
@@ -221,8 +349,11 @@ export const fetchUsers = async () => {
     } else {
       totalItems.value = usedClientFilter
         ? data.length
-        : totalFromMeta ?? data.length;
-      const calculatedPages = Math.max(1, Math.ceil(totalItems.value / perPage));
+        : (totalFromMeta ?? data.length);
+      const calculatedPages = Math.max(
+        1,
+        Math.ceil(totalItems.value / perPage),
+      );
       totalPages.value = usedClientFilter
         ? calculatedPages
         : Number(pagesFromMeta ?? calculatedPages);
@@ -425,7 +556,8 @@ const updateUserStatus = async (userId, status) => {
   }
 };
 
-export const handleApproveUser = (userId) => updateUserStatus(userId, "APPROVE");
+export const handleApproveUser = (userId) =>
+  updateUserStatus(userId, "APPROVE");
 
 export const handleChangeStatus = async (userId) => {
   const { value: status } = await Swal.fire({

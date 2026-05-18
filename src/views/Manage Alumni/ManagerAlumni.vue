@@ -18,11 +18,27 @@ const getStatusClass = (status) => {
 const getStatusLabel = (status) => {
   if (status === 'APPROVE') return 'យល់ព្រម';
   if (status === 'PENDING') return 'កំពុងរង់ចាំ';
-  if (status === 'REJECT' || status === 'DEACTIVATED') return 'បានធ្វើឱ្យអសកម្ម';
+  if (status === 'REJECT') return 'បដិសេធ';
+  if (status === 'DEACTIVATED') return 'បានធ្វើឱ្យអសកម្ម';
   return status || 'Unknown';
 };
 
-const normalizeStatus = (user) => String(user?.status || user?.profile?.status || 'PENDING').toUpperCase();
+const normalizeStatus = (user) => {
+  const status = String(
+    user?.status ||
+    user?.profile?.status ||
+    user?.accountStatus ||
+    user?.state ||
+    ''
+  ).trim().toUpperCase();
+
+  if (['APPROVED', 'ACTIVE', 'VERIFIED'].includes(status)) return 'APPROVE';
+  if (['REJECTED', 'DEACTIVATE', 'INACTIVE', 'DISABLED'].includes(status)) {
+    return 'DEACTIVATED';
+  }
+
+  return status || (user?.isVerifyEmail ? 'APPROVE' : 'PENDING');
+};
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://ant-g2-ams.tt.linkpc.net/api/v1").replace(/\/+$/, "");
 const getApiOrigin = () => {
@@ -84,12 +100,26 @@ const handleAvatarLoad = (event) => {
 
 const departmentStore = useDepartmentStore();
 const showRegisterModal = store.showRegisterModal;
+const PRIMARY_COLOR = store.PRIMARY_COLOR;
 let searchDebounceTimer;
 
-onMounted(() => {
+const stats = computed(() => {
+  const result = {
+    total: Number(store.allUsersTotal?.value || 0),
+    approved: Number(store.allUsersApproved?.value || 0),
+    pending: Number(store.allUsersPending?.value || 0),
+    deactivated: Number(store.allUsersDeactivated?.value || 0),
+  };
+
+  return result;
+});
+
+onMounted(async () => {
+  await Promise.all([
+    departmentStore.fetchDepartments(),
+    generationStore.fetchGenerations(),
+  ]);
   store.fetchUsers();
-  departmentStore.fetchDepartments();
-  generationStore.fetchGenerations();
 });
 
 watch([() => store.searchQuery.value, () => store.activeTab.value], ([, activeTab], [, previousActiveTab]) => {
@@ -142,6 +172,54 @@ const activeTabModel = computed({
   },
 });
 
+const normalizeId = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const getGenerationDepartmentId = (generation) => normalizeId(
+  generation?.departmentId ??
+  generation?.department_id ??
+  generation?.department?.id,
+);
+
+// Filter departments based on selected generation
+const filteredDepartments = computed(() => {
+  const generationId = store.registerForm.value.generationId;
+  if (!generationId) {
+    return [];
+  }
+
+  const generation = (generationStore.generations.value || []).find(
+    gen => normalizeId(gen.id) === normalizeId(generationId)
+  );
+
+  const departmentId = getGenerationDepartmentId(generation);
+  if (!departmentId) {
+    return departmentStore.departments || [];
+  }
+
+  const matchedDepartments = (departmentStore.departments || []).filter(
+    dept => normalizeId(dept.id) === departmentId
+  );
+
+  if (matchedDepartments.length) {
+    return matchedDepartments;
+  }
+
+  return generation?.department ? [generation.department] : [];
+});
+
+// Reset department when generation changes
+watch(() => store.registerForm.value.generationId, () => {
+  store.registerForm.value.departmentId = "";
+  delete store.registerErrors.value.departmentId;
+});
+
 const tableColumns = [
   { key: "alumni", label: "សមាជិកអតីតនិស្សិត" },
   { key: "id", label: "លេខសម្គាល់" },
@@ -154,13 +232,14 @@ const tableColumns = [
 <template>
   <div class="manager-alumni-page bg-dashboard min-vh-100 font-khmer">
     <!-- Header Section -->
-    <div class="manager-page-toolbar page-toolbar align-items-start mb-4 manager-animate manager-animate--toolbar">
+    <div class="manager-page-toolbar page-toolbar align-items-start mb-4">
       <div>
         <h2 class="fw-bold text-dark mb-1">គ្រប់គ្រងអតីតនិស្សិត</h2>
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
       </div>
       <div class="page-toolbar__actions">
-        <button type="button" class="btn btn-white border shadow-sm btn-sm px-3" disabled aria-disabled="true"><i class="bi bi-filter-right"></i>
+        <button type="button" class="btn btn-white border shadow-sm btn-sm px-3" disabled aria-disabled="true"><i
+            class="bi bi-filter-right"></i>
           តម្រងកម្រិតខ្ពស់</button>
         <button @click="store.requireAdmin(store.openRegisterModal)"
           class="btn btn-primary-custom btn-sm px-3 shadow-sm">
@@ -168,24 +247,87 @@ const tableColumns = [
         </button>
       </div>
     </div>
-
-    <!-- Search & Filter Bar (យោងតាម image_a84f9e.png) -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 manager-animate manager-animate--filter">
-      <div class="card-body p-2 page-toolbar manager-filter-toolbar">
-        <div class="search-input-wrapper flex-grow-1">
-          <i class="bi bi-search text-muted"></i>
+    <div class="row g-3 mb-5">
+      <!-- អតីតនិស្សិតសរុប -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4"
+          :style="{ borderColor: PRIMARY_COLOR + ' !important' }">
+          <div class="d-flex align-items-center">
+            <div class="icon-box me-3"><i class="bi bi-people fs-4"></i></div>
+            <div>
+              <p class="text-muted small mb-0">អតីតនិស្សិតសរុប</p>
+              <h3 class="fw-bold mb-0">{{ stats.total }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- បានអនុម័ត -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-success">
+          <div class="d-flex align-items-center">
+            <div class="icon-box text-success me-3" style="background: #e6f4ea;"><i class="bi bi-person-check fs-4"></i>
+            </div>
+            <div>
+              <p class="text-muted small mb-0">បានអនុម័ត</p>
+              <h3 class="fw-bold mb-0">{{ stats.approved }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- កំពុងរង់ចាំពិនិត្យ -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-warning">
+          <div class="d-flex align-items-center">
+            <div class="icon-box text-warning me-3" style="background: #fff4e5;"><i
+                class="bi bi-clock-history fs-4"></i></div>
+            <div>
+              <p class="text-muted small mb-0">កំពុងរង់ចាំពិនិត្យ</p>
+              <h3 class="fw-bold mb-0">{{ stats.pending }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- បានផ្អាកដំណើរការ -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-danger">
+          <div class="d-flex align-items-center">
+            <div class="icon-box text-danger me-3" style="background: #fdf2f2;"><i
+                class="bi bi-exclamation-octagon fs-4"></i></div>
+            <div>
+              <p class="text-muted small mb-0">បានផ្អាកដំណើរការ</p>
+              <h3 class="fw-bold mb-0">{{ stats.deactivated }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card manager-filter-card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body page-toolbar manager-filter-toolbar">
+        <label class="search-input-wrapper flex-grow-1" aria-label="Search alumni">
+          <span class="search-input-icon"><i class="bi bi-search"></i></span>
           <input v-model="searchModel" type="text" class="form-control-custom"
             placeholder="ស្វែងរកតាមឈ្មោះ, អ៊ីមែល ..." />
-        </div>
-        <div class="filter-tabs-wrapper bg-light p-1 rounded-3 d-flex border">
-          <button @click="activeTabModel = 'ALL'"
-            :class="['tab-btn', activeTabModel === 'ALL' ? 'active' : '']">ទាំងអស់</button>
-          <button @click="activeTabModel = 'PENDING'"
-            :class="['tab-btn', activeTabModel === 'PENDING' ? 'active' : '']">កំពុងរង់ចាំ</button>
-          <button @click="activeTabModel = 'APPROVE'"
-            :class="['tab-btn', activeTabModel === 'APPROVE' ? 'active' : '']">យល់ព្រម</button>
-          <button @click="activeTabModel = 'REJECT'"
-            :class="['tab-btn', activeTabModel === 'REJECT' ? 'active' : '']">បានធ្វើឱ្យអសកម្ម</button>
+        </label>
+        <div class="filter-tabs-wrapper" role="tablist" aria-label="Filter alumni status">
+          <button type="button" role="tab" :aria-selected="activeTabModel === 'ALL'" @click="activeTabModel = 'ALL'"
+            :class="['tab-btn', activeTabModel === 'ALL' ? 'active' : '']">
+            <i class="bi bi-grid"></i><span>ទាំងអស់</span>
+          </button>
+          <button type="button" role="tab" :aria-selected="activeTabModel === 'PENDING'"
+            @click="activeTabModel = 'PENDING'"
+            :class="['tab-btn', activeTabModel === 'PENDING' ? 'active' : '']">
+            <i class="bi bi-hourglass-split"></i><span>កំពុងរង់ចាំ</span>
+          </button>
+          <button type="button" role="tab" :aria-selected="activeTabModel === 'APPROVE'"
+            @click="activeTabModel = 'APPROVE'"
+            :class="['tab-btn', activeTabModel === 'APPROVE' ? 'active' : '']">
+            <i class="bi bi-check2-circle"></i><span>យល់ព្រម</span>
+          </button>
+          <button type="button" role="tab" :aria-selected="activeTabModel === 'REJECT'"
+            @click="activeTabModel = 'REJECT'"
+            :class="['tab-btn', activeTabModel === 'REJECT' ? 'active' : '']">
+            <i class="bi bi-slash-circle"></i><span>បានធ្វើឱ្យអសកម្ម</span>
+          </button>
         </div>
       </div>
     </div>
@@ -312,23 +454,6 @@ const tableColumns = [
           {{ store.registerErrors.value.confirmPassword }}
         </div>
       </div>
-
-      <div>
-        <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ </label>
-        <select v-model="store.registerForm.value.departmentId" class="form-control"
-          :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
-          @change="delete store.registerErrors.value.departmentId">
-          <option value="">ជ្រើសរើស</option>
-          <option v-for="department in departmentStore.departments || []" :key="department.id" :value="department.id">
-            {{ department.name }}
-          </option>
-
-        </select>
-        <div v-if="store.registerErrors.value.departmentId" class="invalid-feedback">
-          {{ store.registerErrors.value.departmentId }}
-        </div>
-      </div>
-
       <div>
         <label class="form-label fw-bold small">ជំនាន់ </label>
         <select v-model="store.registerForm.value.generationId" class="form-control"
@@ -343,6 +468,23 @@ const tableColumns = [
           {{ store.registerErrors.value.generationId }}
         </div>
       </div>
+      <div>
+        <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ </label>
+        <select v-model="store.registerForm.value.departmentId" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
+          @change="delete store.registerErrors.value.departmentId">
+          <option value="">ជ្រើសរើស</option>
+          <option v-for="department in filteredDepartments" :key="department.id" :value="department.id">
+            {{ department.name }}
+          </option>
+
+        </select>
+        <div v-if="store.registerErrors.value.departmentId" class="invalid-feedback">
+          {{ store.registerErrors.value.departmentId }}
+        </div>
+      </div>
+
+
 
       <div>
         <label class="form-label fw-bold small">ស្ថានភាព *</label>
@@ -389,26 +531,6 @@ const tableColumns = [
   padding: 1rem;
 }
 
-.manager-animate {
-  animation: manager-panel-enter 220ms ease-out both;
-}
-
-.manager-animate--toolbar {
-  animation-delay: 20ms;
-}
-
-.manager-animate--filter {
-  animation-delay: 70ms;
-}
-
-.card {
-  transition: box-shadow 180ms ease, transform 180ms ease;
-}
-
-.manager-animate--filter:hover {
-  box-shadow: 0 0.5rem 1.4rem rgba(15, 23, 42, 0.08) !important;
-}
-
 .manager-page-toolbar,
 .manager-table-header {
   gap: 1rem;
@@ -416,24 +538,19 @@ const tableColumns = [
 }
 
 .manager-filter-toolbar {
-  gap: 0.75rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem;
+}
+
+.manager-filter-card {
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .btn-white {
   background-color: white;
   border-radius: 10px;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.btn-white:hover,
-.btn-primary-custom:hover {
-  transform: translateY(-1px);
-}
-
-.btn-white:active,
-.btn-primary-custom:active {
-  transform: translateY(0);
 }
 
 .form-control-custom {
@@ -441,55 +558,92 @@ const tableColumns = [
   background: transparent;
   width: 100%;
   outline: none;
-  padding: 8px;
+  padding: 0;
   font-size: 14px;
+  color: #0f172a;
+}
+
+.form-control-custom::placeholder {
+  color: #94a3b8;
 }
 
 .search-input-wrapper {
-  background: #f8fafc;
-  border-radius: 12px;
+  min-height: 52px;
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  padding-left: 12px;
+  gap: 0.75rem;
+  padding: 0 1rem;
   min-width: 0;
   width: 100%;
-  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
+.search-input-wrapper:hover,
 .search-input-wrapper:focus-within {
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
-  transform: translateY(-1px);
+  border-color: rgba(33, 100, 119, 0.35);
+  background: #fbfdff;
+  box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.08);
+}
+
+.search-input-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f0f7f9;
+  color: #216477;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 .filter-tabs-wrapper {
+  padding: 0.35rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f1f5f9;
+  display: flex;
   max-width: 100%;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  transition: box-shadow 180ms ease;
+  gap: 0.35rem;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .tab-btn {
   border: none;
   background: transparent;
-  padding: 6px 16px;
-  border-radius: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
   font-size: 13px;
   color: #64748b;
-  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
   white-space: nowrap;
 }
 
 .tab-btn:hover {
   color: #216477;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .tab-btn.active {
-  background: white;
+  background: #ffffff;
   color: #216477;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.tab-btn i {
+  font-size: 14px;
 }
 
 .avatar-sm {
@@ -555,16 +709,27 @@ const tableColumns = [
 
   .manager-filter-toolbar {
     align-items: stretch;
+    flex-direction: column;
+    padding: 0.75rem;
+  }
+
+  .search-input-wrapper {
+    min-height: 48px;
   }
 
   .filter-tabs-wrapper {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .tab-btn {
-    flex: 1 1 calc(50% - 0.25rem);
-    padding: 8px 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 10px;
     text-align: center;
+    line-height: 1.25;
+    white-space: normal;
   }
 }
 
@@ -581,22 +746,12 @@ const tableColumns = [
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .form-control:focus {
   border-color: #216477;
   outline: none;
   box-shadow: 0 0 0 3px rgba(33, 100, 119, 0.1);
-  transform: translateY(-1px);
-}
-
-.form-control.is-invalid {
-  animation: manager-invalid-shake 180ms ease;
-}
-
-.invalid-feedback {
-  animation: manager-feedback-enter 160ms ease-out both;
 }
 
 .btn-secondary {
@@ -611,125 +766,5 @@ const tableColumns = [
 
 .btn-secondary:hover {
   background: #d1d5db;
-}
-
-.app-form > div {
-  animation: manager-form-field-enter 180ms ease-out both;
-}
-
-.app-form > div:nth-child(2) {
-  animation-delay: 20ms;
-}
-
-.app-form > div:nth-child(3) {
-  animation-delay: 40ms;
-}
-
-.app-form > div:nth-child(4) {
-  animation-delay: 60ms;
-}
-
-.app-form > div:nth-child(5) {
-  animation-delay: 80ms;
-}
-
-.app-form > div:nth-child(6) {
-  animation-delay: 100ms;
-}
-
-.app-form > div:nth-child(7) {
-  animation-delay: 120ms;
-}
-
-.app-form > div:nth-child(8) {
-  animation-delay: 140ms;
-}
-
-.app-form > div:nth-child(9) {
-  animation-delay: 160ms;
-}
-
-.app-form > div:nth-child(10) {
-  animation-delay: 180ms;
-}
-
-@keyframes manager-panel-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes manager-form-field-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes manager-feedback-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-3px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes manager-invalid-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  35% {
-    transform: translateX(-3px);
-  }
-
-  70% {
-    transform: translateX(3px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .manager-animate,
-  .form-control.is-invalid,
-  .invalid-feedback,
-  .app-form > div {
-    animation: none !important;
-  }
-
-  .card,
-  .btn-white,
-  .btn-primary-custom,
-  .search-input-wrapper,
-  .filter-tabs-wrapper,
-  .tab-btn,
-  .form-control,
-  .avatar-sm,
-  .badge-status {
-    transition: none !important;
-  }
-
-  .btn-white:hover,
-  .btn-primary-custom:hover,
-  .search-input-wrapper:focus-within,
-  .tab-btn:hover,
-  .form-control:focus {
-    transform: none !important;
-  }
 }
 </style>

@@ -40,6 +40,10 @@ const handlePageChange = (page) => {
     store.fetchDepartments();
 };
 
+const handleDeleteDepartment = async (dept) => {
+    await store.deleteDepartment(dept.id);
+};
+
 const openAddModal = () => {
     isEditing.value = false;
     currentId.value = null;
@@ -72,12 +76,13 @@ const validateForm = () => {
 const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    if (isEditing.value) {
-        await store.updateDepartment(currentId.value, { ...form });
-    } else {
-        await store.createDepartment({ ...form });
+    const success = isEditing.value
+        ? await store.updateDepartment(currentId.value, { ...form })
+        : await store.createDepartment({ ...form });
+
+    if (success) {
+        isModalOpen.value = false;
     }
-    isModalOpen.value = false;
 };
 </script>
 
@@ -155,8 +160,8 @@ const handleSubmit = async () => {
                                 title="កែប្រែ" aria-label="Edit department">
                                 <i class="bi bi-pencil-square fs-6 text-info"></i>
                             </BaseButton>
-                            <BaseButton @click="store.deleteDepartment(item.id)" variant="danger" size="sm"
-                                shape="sharp" title="លុប" aria-label="Delete department">
+                            <BaseButton @click="handleDeleteDepartment(item)" variant="danger" size="sm" shape="sharp"
+                                title="លុប" aria-label="Delete department">
                                 <i class="bi bi-trash3 fs-6 text-light"></i>
                             </BaseButton>
                         </div>
@@ -177,7 +182,7 @@ const handleSubmit = async () => {
         <!-- ប្រើប្រាស់ BaseModal សម្រាប់ទម្រង់បញ្ចូលទិន្នន័យ -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'កែប្រែដេប៉ាតឺម៉ង់' : 'បង្កើតដេប៉ាតឺម៉ង់ថ្មី'" size="md">
             <template #default>
-                <form class="app-form" novalidate @submit.prevent="handleSubmit">
+                <form id="department-form" class="app-form" novalidate @submit.prevent="handleSubmit">
                     <div class="app-form">
                         <div>
                             <label class="form-label small fw-bold text-muted">ឈ្មោះដេប៉ាតឺម៉ង់</label>
@@ -198,7 +203,7 @@ const handleSubmit = async () => {
             <template #footer>
                 <div class="modal-actions">
                     <BaseButton variant="light" @click="isModalOpen = false">បោះបង់</BaseButton>
-                    <BaseButton type="submit" variant="primary" @click="handleSubmit" :disabled="store.isLoading"
+                    <BaseButton type="submit" form="department-form" variant="primary" :disabled="store.isLoading"
                         :loading="store.isLoading">
                         {{ isEditing ? 'រក្សាទុកការផ្លាស់ប្តូរ' : 'បង្កើតដេប៉ាតឺម៉ង់' }}
                     </BaseButton>

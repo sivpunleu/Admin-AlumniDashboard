@@ -11,6 +11,17 @@ export const generationDetails = ref(null);
 export const isLoading = ref(false);
 export const searchQuery = ref("");
 
+const isSuccessResponse = (data) =>
+  data == null || (data.result !== false && data.success !== false);
+
+const escapeHtml = (value = "") =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 /* ================= ជំនួយសិទ្ធិ (ADMIN ROLE CHECK) ================= */
 export const requireAdmin = (callback) => {
   const auth = useAuthStore();
@@ -20,15 +31,16 @@ export const requireAdmin = (callback) => {
   );
 
   if (isAdmin) {
-    callback();
-  } else {
-    Swal.fire({
-      title: "Permission Denied",
-      text: "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ!",
-      icon: "error",
-      confirmButtonColor: "#216477",
-    });
+    return callback();
   }
+
+  Swal.fire({
+    title: "Permission Denied",
+    text: "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ!",
+    icon: "error",
+    confirmButtonColor: "#216477",
+  });
+  return false;
 };
 
 /* ================= សកម្មភាពចម្បង (ACTIONS) ================= */
@@ -41,7 +53,8 @@ export const fetchGenerations = async () => {
     isLoading.value = true;
     const res = await api.get("/generations");
     const payload = res.data?.data ?? res.data;
-    const data = payload?.items ?? payload?.data?.items ?? payload?.data ?? payload;
+    const data =
+      payload?.items ?? payload?.data?.items ?? payload?.data ?? payload;
     generations.value = Array.isArray(data) ? data : [];
   } catch (err) {
     logger.error("Fetch Error:", err);
@@ -82,29 +95,25 @@ export const handleCreate = async () => {
   requireAdmin(async () => {
     const { value: formValues } = await Swal.fire({
       title: "Create New Generation",
-      html: `
-        <div class="text-start">
-          <label class="small fw-bold">Generation Name</label>
-          <input id="swal-name" class="swal2-input m-0 w-100" placeholder="e.g. ANT">
-
-          <div class="row mt-3">
-            <div class="col-6">
-              <label class="small fw-bold">Start Year</label>
-              <input id="swal-start" class="swal2-input m-0 w-100" type="number" placeholder="2025">
-            </div>
-            <div class="col-6">
-              <label class="small fw-bold">End Year</label>
-              <input id="swal-end" class="swal2-input m-0 w-100" type="number" placeholder="2025">
-            </div>
-          </div>
-
-          <label class="small fw-bold mt-3">Department ID</label>
-          <input id="swal-dept" class="swal2-input m-0 w-100" type="number" placeholder="e.g. 2">
-
-          <label class="small fw-bold mt-3">Description</label>
-          <textarea id="swal-desc" class="swal2-textarea m-0 w-100" placeholder="Description"></textarea>
-        </div>
-      `,
+      html:
+        '<div class="text-start">' +
+        '<label class="small fw-bold">Generation Name</label>' +
+        '<input id="swal-name" class="swal2-input m-0 w-100" placeholder="e.g. ANT">' +
+        '<div class="row mt-3">' +
+        '<div class="col-6">' +
+        '<label class="small fw-bold">Start Year</label>' +
+        '<input id="swal-start" class="swal2-input m-0 w-100" type="number" placeholder="2025">' +
+        "</div>" +
+        '<div class="col-6">' +
+        '<label class="small fw-bold">End Year</label>' +
+        '<input id="swal-end" class="swal2-input m-0 w-100" type="number" placeholder="2025">' +
+        "</div>" +
+        "</div>" +
+        '<label class="small fw-bold mt-3">Department ID</label>' +
+        '<input id="swal-dept" class="swal2-input m-0 w-100" type="number" placeholder="e.g. 2">' +
+        '<label class="small fw-bold mt-3">Description</label>' +
+        '<textarea id="swal-desc" class="swal2-textarea m-0 w-100" placeholder="Description"></textarea>' +
+        "</div>",
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "Create",
@@ -135,16 +144,18 @@ export const handleCreate = async () => {
       try {
         isLoading.value = true;
         const response = await api.post("/generations", formValues);
-        if (response.data?.result) {
+        if (isSuccessResponse(response.data)) {
           await fetchGenerations();
           Swal.fire("ជោគជ័យ", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
         }
       } catch (err) {
-        Swal.fire(
-          "បរាជ័យ",
-          err.response?.data?.message || "Error 400: Bad Request",
-          "error",
-        );
+        logger.error("Generation create failed", err.response?.data || err);
+        const detail =
+          err.response?.data?.message ||
+          err.response?.data ||
+          err.message ||
+          "Error 400: Bad Request";
+        Swal.fire("បរាជ័យ", String(detail), "error");
       } finally {
         isLoading.value = false;
       }
@@ -157,28 +168,38 @@ export const handleCreate = async () => {
  */
 export const handleUpdate = async (gen) => {
   requireAdmin(async () => {
+    const safeName = escapeHtml(gen.name || "");
+    const safeStartYear = escapeHtml(gen.startYear || "");
+    const safeEndYear = escapeHtml(gen.endYear || "");
+    const safeDescription = escapeHtml(gen.description || "");
+
     const { value: formValues } = await Swal.fire({
       title: "Update Generation",
-      html: `
-        <div class="text-start">
-          <label class="small fw-bold">Generation Name</label>
-          <input id="swal-name" class="swal2-input m-0 w-100" value="${gen.name || ""}">
-
-          <div class="row mt-3">
-            <div class="col-6">
-              <label class="small fw-bold">Start Year</label>
-              <input id="swal-start" class="swal2-input m-0 w-100" type="number" value="${gen.startYear || ""}">
-            </div>
-            <div class="col-6">
-              <label class="small fw-bold">End Year</label>
-              <input id="swal-end" class="swal2-input m-0 w-100" type="number" value="${gen.endYear || ""}">
-            </div>
-          </div>
-
-          <label class="small fw-bold mt-3">Description</label>
-          <textarea id="swal-desc" class="swal2-textarea m-0 w-100">${gen.description || ""}</textarea>
-        </div>
-      `,
+      html:
+        '<div class="text-start">' +
+        '<label class="small fw-bold">Generation Name</label>' +
+        '<input id="swal-name" class="swal2-input m-0 w-100" value="' +
+        safeName +
+        '">' +
+        '<div class="row mt-3">' +
+        '<div class="col-6">' +
+        '<label class="small fw-bold">Start Year</label>' +
+        '<input id="swal-start" class="swal2-input m-0 w-100" type="number" value="' +
+        safeStartYear +
+        '">' +
+        "</div>" +
+        '<div class="col-6">' +
+        '<label class="small fw-bold">End Year</label>' +
+        '<input id="swal-end" class="swal2-input m-0 w-100" type="number" value="' +
+        safeEndYear +
+        '">' +
+        "</div>" +
+        "</div>" +
+        '<label class="small fw-bold mt-3">Description</label>' +
+        '<textarea id="swal-desc" class="swal2-textarea m-0 w-100">' +
+        safeDescription +
+        "</textarea>" +
+        "</div>",
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "Update",
@@ -207,19 +228,77 @@ export const handleUpdate = async (gen) => {
         isLoading.value = true;
         // ប្រើ PUT ទៅកាន់ /generations/{id}
         const response = await api.put(`/generations/${gen.id}`, formValues);
-        if (response.data?.result) {
+        if (isSuccessResponse(response.data)) {
           await fetchGenerations();
           Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
         }
       } catch (err) {
-        Swal.fire(
-          "បរាជ័យ",
-          err.response?.data?.message || "Error 400: Bad Request",
-          "error",
-        );
+        logger.error("Generation update failed", err.response?.data || err);
+        const detail =
+          err.response?.data?.message ||
+          err.response?.data ||
+          err.message ||
+          "Error 400: Bad Request";
+        Swal.fire("បរាជ័យ", String(detail), "error");
       } finally {
         isLoading.value = false;
       }
+    }
+  });
+};
+
+const normalizeGenerationUpdatePayload = (payload = {}) => {
+  const updatePayload = {};
+  const startYear = payload.startYear ?? payload.start_year;
+  const endYear = payload.endYear ?? payload.end_year;
+
+  if (payload.name !== undefined) updatePayload.name = payload.name;
+  if (payload.description !== undefined)
+    updatePayload.description = payload.description;
+  if (startYear !== undefined) updatePayload.startYear = Number(startYear);
+  if (endYear !== undefined) updatePayload.endYear = Number(endYear);
+
+  return updatePayload;
+};
+
+/**
+ * Update generation by id with payload (used by views)
+ */
+export const updateGeneration = async (id, payload) => {
+  return requireAdmin(async () => {
+    try {
+      isLoading.value = true;
+      const updatePayload = normalizeGenerationUpdatePayload(payload);
+      logger.info("Updating generation (store) payload", updatePayload);
+      const res = await api.put(`/generations/${id}`, updatePayload);
+      if (isSuccessResponse(res.data)) {
+        await fetchGenerations();
+        Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
+      }
+      return res;
+    } catch (err) {
+      const resp = err.response?.data || err;
+      logger.error("Generation update failed (store)", resp);
+      const msg =
+        resp?.message || resp?.error || err.message || "Error: Update failed";
+      let extra = "";
+      if (Array.isArray(resp?.details) && resp.details.length) {
+        try {
+          extra = "\nDetails: " + JSON.stringify(resp.details);
+        } catch (e) {
+          extra = "\nDetails: " + String(resp.details);
+        }
+      } else if (resp?.data) {
+        try {
+          extra = "\nData: " + JSON.stringify(resp.data);
+        } catch (e) {
+          extra = "\nData: " + String(resp.data);
+        }
+      }
+      Swal.fire("បរាជ័យ", String(msg) + extra, "error");
+      throw err;
+    } finally {
+      isLoading.value = false;
     }
   });
 };
@@ -239,7 +318,13 @@ export const handleDelete = async (id) => {
         await fetchGenerations();
         Swal.fire("Deleted!", "លុបទិន្នន័យបានជោគជ័យ", "success");
       } catch (err) {
-        Swal.fire("Error", "មិនអាចលុបទិន្នន័យនេះបានទេ", "error");
+        logger.error("Generation delete failed", err.response?.data || err);
+        const detail =
+          err.response?.data?.message ||
+          err.response?.data ||
+          err.message ||
+          "មិនអាចលុបទិន្នន័យនេះបានទេ";
+        Swal.fire("Error", String(detail), "error");
       }
     }
   });
