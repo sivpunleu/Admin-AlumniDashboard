@@ -5,7 +5,7 @@
       <aside class="admin-login-brand" aria-label="Alumni brand">
         <div class="admin-login-logo-wrapper">
           <div class="admin-login-logo">
-            <img src=".././assets/Imgage/logo.png" alt="Alumni Logo" class="admin-login-logo-img" />
+            <img src=".././../assets/Imgage/logo.png" alt="Alumni Logo" class="admin-login-logo-img" />
           </div>
         </div>
 
@@ -75,12 +75,18 @@
                 {{ authStore.errors.password[0] }}
               </p>
             </div>
+            <div class="admin-login-options d-flex justify-content-between align-items-center mb-4">
+              <!-- REMEMBER -->
+              <label class="admin-login-remember">
+                <input v-model="rememberMe" type="checkbox" />
+                <span>ចងចាំខ្ញុំ</span>
+              </label>
+              <!-- forgot password -->
+              <div class="admin-login-forgot text-end">
+                <router-link to="/forgot-password">ភ្លេចពាក្យសម្ងាត់?</router-link>
+              </div>
+            </div>
 
-            <!-- REMEMBER -->
-            <label class="admin-login-remember">
-              <input v-model="rememberMe" type="checkbox" />
-              <span>ចងចាំខ្ញុំ</span>
-            </label>
 
             <!-- BUTTON -->
             <BaseButton type="submit" variant="primary" class="w-100" :disabled="loading" :loading="loading">
@@ -166,7 +172,10 @@ const handleLogin = async () => {
 
     router.push("/dashboard");
   } catch (error) {
-    logger.error("Login stopped:", error.message);
+    const status = error.response?.status;
+    if (![401, 422].includes(status)) {
+      logger.error("Login stopped:", error.message);
+    }
   } finally {
     loading.value = false;
   }
@@ -181,6 +190,14 @@ const handleLogin = async () => {
   place-items: center;
   padding: 2rem;
   background: linear-gradient(135deg, #e8f1f4 0%, #f4f7f9 100%);
+}
+.admin-login-forgot a {
+  font-size: 0.9rem;
+  color: #216477;
+  text-decoration: none;
+}
+.admin-login-forgot a:hover {
+  text-decoration: underline;
 }
 
 /* CARD */
@@ -399,7 +416,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  margin-bottom: 2rem;
+  /* margin-bottom: 2rem; */
   font-size: 0.9rem;
   color: #475569;
 }

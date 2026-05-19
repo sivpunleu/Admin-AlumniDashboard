@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/useAuth";
-const LoginView = () => import("../views/LoginView.vue");
+const LoginView = () => import("../views/Authentication/LoginView.vue");
+const ForgotPasswordView = () =>
+  import("../views/Authentication/forgotPassword.vue");
+const VerifyAccountView = () =>
+  import("../views/Authentication/VerifyAccount.vue");
 const DashboardLayout = () => import("../components/Layout/Dashboard.vue");
 const HomeView = () => import("@/views/HomeView.vue");
 const ProfileView = () => import("@/views/Profile/ProfileView.vue");
@@ -19,6 +23,24 @@ const routes = [
     name: "login",
     component: LoginView,
     meta: { requiresAuth: false, title: "ចូលប្រើប្រាស់" },
+  },
+  {
+    path: "/forgot-password",
+    name: "forgot-password",
+    component: ForgotPasswordView,
+    meta: { requiresAuth: false, title: "ភ្លេចពាក្យសម្ងាត់" },
+  },
+  {
+    path: "/verify-account",
+    name: "verify-account",
+    component: VerifyAccountView,
+    meta: { requiresAuth: false, title: "ផ្ទៀងផ្ទាត់គណនី" },
+  },
+  {
+    path: "/reset-password/:token?",
+    name: "reset-password",
+    component: ForgotPasswordView,
+    meta: { requiresAuth: false, title: "កំណត់ពាក្យសម្ងាត់ឡើងវិញ" },
   },
   {
     path: "/",

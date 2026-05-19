@@ -98,13 +98,17 @@ const handleAvatarLoad = (event) => {
 };
 
 const departmentStore = useDepartmentStore();
+const showAccountTypeModal = store.showAccountTypeModal;
 const showRegisterModal = store.showRegisterModal;
+const showAdminRegisterModal = store.showAdminRegisterModal;
 const PRIMARY_COLOR = store.PRIMARY_COLOR;
 let searchDebounceTimer;
 const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
 const isInitialPageLoading = ref(true);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const showAdminPassword = ref(false);
+const showAdminConfirmPassword = ref(false);
 const INITIAL_PLACEHOLDER_MIN_MS = 350;
 
 const stats = computed(() => {
@@ -265,6 +269,15 @@ watch(showRegisterModal, (isOpen) => {
   }
 });
 
+watch(showAdminRegisterModal, (isOpen) => {
+  if (!isOpen) {
+    store.resetAdminRegisterForm();
+    store.clearAdminRegisterErrors();
+    showAdminPassword.value = false;
+    showAdminConfirmPassword.value = false;
+  }
+});
+
 const tableColumns = [
   { key: "alumni", label: "សមាជិកអតីតនិស្សិត" },
   { key: "id", label: "លេខសម្គាល់" },
@@ -283,9 +296,13 @@ const tableColumns = [
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
       </div>
       <div class="page-toolbar__actions">
-        <button @click="store.requireAdmin(store.openRegisterModal)"
+        <!-- <button @click="store.requireAdmin(store.openRegisterModal)"
           class="btn btn-primary-custom btn-sm px-3 shadow-sm">
           <i class="bi bi-person-plus-fill me-1"></i> ចុះឈ្មោះអតីតនិស្សិត
+        </button> -->
+        <button @click="store.requireAdmin(store.openModal)"
+          class="btn btn-primary-custom btn-sm px-3 shadow-sm">
+          <i class="bi bi-person-plus-fill me-1"></i> បង្កើតគណនីថ្មី
         </button>
       </div>
     </div>
@@ -424,10 +441,10 @@ const tableColumns = [
       </div>
 
       <div v-else-if="store.users.value.length === 0" class="app-state">
-        <!-- <div>
+        <div>
           <div class="app-state__icon"><i class="bi bi-people"></i></div>
           <p class="mb-0">មិនមានទិន្នន័យទេ</p>
-        </div> -->
+        </div>
       </div>
 
       <BaseTable v-else :columns="tableColumns" :data="store.users.value">
@@ -481,8 +498,32 @@ const tableColumns = [
 
     </div>
   </div>
+  <!-- register modal have admin and alumni -->
+  <BaseModal v-model="showAccountTypeModal" title="បង្កើតគណនីថ្មី" size="md" hideDefaultFooter>
+    <div class="account-type-actions">
+      <button type="button" class="account-type-btn" @click="store.openRegisterModal">
+        <span class="account-type-btn__icon text-primary">
+          <i class="bi bi-mortarboard-fill"></i>
+        </span>
+        <span>
+          <span class="account-type-btn__title">Alumni Register</span>
+          <span class="account-type-btn__text">បង្កើតគណនីអតីតនិស្សិត</span>
+        </span>
+      </button>
+      <button type="button" class="account-type-btn" @click="store.openAdminRegisterModal">
+        <span class="account-type-btn__icon text-success">
+          <i class="bi bi-shield-lock-fill"></i>
+        </span>
+        <span>
+          <span class="account-type-btn__title">Admin Register</span>
+          <span class="account-type-btn__text">បង្កើតគណនីអ្នកគ្រប់គ្រង</span>
+        </span>
+      </button>
+    </div>
+  </BaseModal>
 
-  <!-- Register Modal using BaseModal -->
+
+  <!--alumni Register Modal using BaseModal -->
   <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" size="lg" hideDefaultFooter>
     <form class="app-form register-modal-form" novalidate autocomplete="off" @submit.prevent="store.handleRegisterAlumni">
       <div>
@@ -610,6 +651,114 @@ const tableColumns = [
         <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
           class="flex-grow-1">
           ចុះឈ្មោះ
+        </BaseButton>
+      </div>
+    </form>
+  </BaseModal>
+  <!-- admin register modal uaing BaseModal -->
+  <BaseModal v-model="showAdminRegisterModal" title="ចុះឈ្មោះអ្នកគ្រប់គ្រង" size="lg" hideDefaultFooter>
+    <form class="app-form register-modal-form" novalidate autocomplete="off" @submit.prevent="store.handleRegisterAdmin">
+      <div>
+        <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
+        <input v-model="store.adminRegisterForm.value.fullname" type="text" class="form-control"
+          autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.fullname }"
+          placeholder="បញ្ចូលឈ្មោះពេញលេញ" required
+          @input="delete store.adminRegisterErrors.value.fullname" />
+        <div v-if="store.adminRegisterErrors.value.fullname" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.fullname }}
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label fw-bold small">អ៊ីមែល *</label>
+        <input v-model="store.adminRegisterForm.value.email" type="email" class="form-control"
+          autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.email }"
+          placeholder="បញ្ចូលអ៊ីមែល" required
+          @input="delete store.adminRegisterErrors.value.email" />
+        <div v-if="store.adminRegisterErrors.value.email" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.email }}
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
+        <input v-model="store.adminRegisterForm.value.phone" type="tel" class="form-control"
+          autocomplete="off" placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
+      </div>
+
+      <div>
+        <label class="form-label fw-bold small">ពាក្យសម្ងាត់ *</label>
+        <div class="password-field">
+          <input v-model="store.adminRegisterForm.value.password" :type="showAdminPassword ? 'text' : 'password'"
+            class="form-control password-field__input" autocomplete="new-password"
+            :class="{ 'is-invalid': store.adminRegisterErrors.value.password }"
+            placeholder="បញ្ចូលពាក្យសម្ងាត់" required
+            @input="delete store.adminRegisterErrors.value.password" />
+          <button type="button" class="password-field__toggle"
+            :title="showAdminPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showAdminPassword ? 'Hide password' : 'Show password'"
+            @click="showAdminPassword = !showAdminPassword">
+            <i :class="showAdminPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        <div v-if="store.adminRegisterErrors.value.password" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.password }}
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ *</label>
+        <div class="password-field">
+          <input v-model="store.adminRegisterForm.value.confirmPassword"
+            :type="showAdminConfirmPassword ? 'text' : 'password'" class="form-control password-field__input"
+            autocomplete="new-password" :class="{ 'is-invalid': store.adminRegisterErrors.value.confirmPassword }"
+            placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
+            @input="delete store.adminRegisterErrors.value.confirmPassword" />
+          <button type="button" class="password-field__toggle"
+            :title="showAdminConfirmPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showAdminConfirmPassword ? 'Hide password' : 'Show password'"
+            @click="showAdminConfirmPassword = !showAdminConfirmPassword">
+            <i :class="showAdminConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
+        <div v-if="store.adminRegisterErrors.value.confirmPassword" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.confirmPassword }}
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label fw-bold small">ស្ថានភាព *</label>
+        <select v-model="store.adminRegisterForm.value.status" class="form-control"
+          :class="{ 'is-invalid': store.adminRegisterErrors.value.status }" required
+          @change="delete store.adminRegisterErrors.value.status">
+          <option value="PENDING">កំពុងរង់ចាំ</option>
+          <option value="APPROVE">យល់ព្រម</option>
+          <option value="REJECT">បានផ្អាកដំណើរការ</option>
+        </select>
+        <div v-if="store.adminRegisterErrors.value.status" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.status }}
+        </div>
+      </div>
+
+      <div class="form-field--full">
+        <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
+        <input v-model="store.adminRegisterForm.value.currentJob" type="text" class="form-control"
+          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន" />
+      </div>
+
+      <div class="form-field--full">
+        <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
+        <textarea v-model="store.adminRegisterForm.value.bio" class="form-control" rows="3"
+          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <BaseButton variant="secondary" @click="store.closeAdminRegisterModal" class="flex-grow-1">
+          បិទ
+        </BaseButton>
+        <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
+          class="flex-grow-1">
+          បង្កើត Admin
         </BaseButton>
       </div>
     </form>
@@ -911,6 +1060,64 @@ const tableColumns = [
 
 .smaller {
   font-size: 11px;
+}
+
+.account-type-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-type-btn {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+  color: #0f172a;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.account-type-btn:hover {
+  border-color: rgba(33, 100, 119, 0.35);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.account-type-btn:focus-visible {
+  outline: 2px solid rgba(33, 100, 119, 0.35);
+  outline-offset: 2px;
+}
+
+.account-type-btn__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.account-type-btn__title,
+.account-type-btn__text {
+  display: block;
+}
+
+.account-type-btn__title {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.account-type-btn__text {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 0.15rem;
 }
 
 .register-modal-form {

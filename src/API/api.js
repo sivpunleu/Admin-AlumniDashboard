@@ -3,7 +3,6 @@ import { useAuthStore } from "@/stores/useAuth";
 
 function normalizeBaseUrl(url) {
   if (!url) return url;
-  // remove trailing slash
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 

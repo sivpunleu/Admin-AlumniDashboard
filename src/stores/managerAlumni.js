@@ -21,7 +21,9 @@ export const allUsersDeactivated = ref(0);
 const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
 
+export const showAccountTypeModal = ref(false);
 export const showRegisterModal = ref(false);
+export const showAdminRegisterModal = ref(false);
 
 const getDefaultRegisterForm = () => ({
   fullname: "",
@@ -39,6 +41,20 @@ const getDefaultRegisterForm = () => ({
 export const registerForm = ref(getDefaultRegisterForm());
 export const registerErrors = ref({});
 
+const getDefaultAdminRegisterForm = () => ({
+  fullname: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  bio: "N/A",
+  currentJob: "",
+  status: "APPROVE",
+});
+
+export const adminRegisterForm = ref(getDefaultAdminRegisterForm());
+export const adminRegisterErrors = ref({});
+
 export const getPerPage = () => itemsPerPage.value || 10;
 
 export const clearRegisterErrors = () => {
@@ -47,6 +63,14 @@ export const clearRegisterErrors = () => {
 
 export const resetRegisterForm = () => {
   registerForm.value = getDefaultRegisterForm();
+};
+
+export const clearAdminRegisterErrors = () => {
+  adminRegisterErrors.value = {};
+};
+
+export const resetAdminRegisterForm = () => {
+  adminRegisterForm.value = getDefaultAdminRegisterForm();
 };
 
 const normalizeStatus = (value) =>
@@ -379,6 +403,7 @@ export const fetchUsers = async () => {
 };
 
 export const openRegisterModal = () => {
+  showAccountTypeModal.value = false;
   resetRegisterForm();
   clearRegisterErrors();
   showRegisterModal.value = true;
@@ -388,6 +413,27 @@ export const closeRegisterModal = () => {
   showRegisterModal.value = false;
   resetRegisterForm();
   clearRegisterErrors();
+};
+
+export const openModal = () => {
+  showAccountTypeModal.value = true;
+};
+
+export const closeModal = () => {
+  showAccountTypeModal.value = false;
+};
+
+export const openAdminRegisterModal = () => {
+  showAccountTypeModal.value = false;
+  resetAdminRegisterForm();
+  clearAdminRegisterErrors();
+  showAdminRegisterModal.value = true;
+};
+
+export const closeAdminRegisterModal = () => {
+  showAdminRegisterModal.value = false;
+  resetAdminRegisterForm();
+  clearAdminRegisterErrors();
 };
 
 export const requireAdmin = (callback) => {
@@ -435,6 +481,42 @@ const validateRegisterForm = () => {
   }
 
   return Object.keys(registerErrors.value).length === 0;
+};
+
+const validateAdminRegisterForm = () => {
+  clearAdminRegisterErrors();
+
+  const form = adminRegisterForm.value;
+  const email = form.email?.trim() || "";
+
+  if (!form.fullname?.trim()) {
+    adminRegisterErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
+  }
+
+  if (!email) {
+    adminRegisterErrors.value.email = "សូមបញ្ចូលអ៊ីម៉ែល";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    adminRegisterErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
+  }
+
+  if (!form.password || form.password.length < 6) {
+    adminRegisterErrors.value.password =
+      "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ";
+  }
+
+  if (!form.confirmPassword) {
+    adminRegisterErrors.value.confirmPassword =
+      "សូមបញ្ជាក់ពាក្យសម្ងាត់";
+  } else if (form.password !== form.confirmPassword) {
+    adminRegisterErrors.value.confirmPassword =
+      "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
+  }
+
+  if (!form.status) {
+    adminRegisterErrors.value.status = "សូមជ្រើសរើសស្ថានភាព";
+  }
+
+  return Object.keys(adminRegisterErrors.value).length === 0;
 };
 
 export const handleRegisterAlumni = async () => {
@@ -507,6 +589,46 @@ export const handleRegisterAlumni = async () => {
       err.response?.data?.message ||
       err.response?.data?.error ||
       "មិនបានគ្រប់គ្រងបង្កើតគណនី";
+    Swal.fire("បរាជ័យ", errorMessage, "error");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+export const handleRegisterAdmin = async () => {
+  try {
+    if (!validateAdminRegisterForm()) {
+      return;
+    }
+
+    isLoading.value = true;
+    const payload = {
+      fullname: adminRegisterForm.value.fullname.trim(),
+      email: adminRegisterForm.value.email.trim(),
+      phone: adminRegisterForm.value.phone || "",
+      password: adminRegisterForm.value.password,
+      confirmPassword: adminRegisterForm.value.confirmPassword,
+      bio: adminRegisterForm.value.bio || "N/A",
+      currentJob: adminRegisterForm.value.currentJob || "DARA",
+      status: adminRegisterForm.value.status || "APPROVE",
+    };
+
+    logger.debug("Registering admin with payload:", payload);
+    const response = await api.post("/users/admin", payload);
+    logger.info("Admin registration response:", response.data);
+
+    resetAdminRegisterForm();
+    showAdminRegisterModal.value = false;
+    clearAdminRegisterErrors();
+    await fetchUsers();
+    Swal.fire("ជោគជ័យ", "គណនី Admin ត្រូវបានបង្កើតបានសម្រេច", "success");
+  } catch (err) {
+    logger.error("Admin registration error:", err);
+    logger.error("Error response data:", err.response?.data);
+    const errorMessage =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "មិនអាចបង្កើតគណនី Admin បានទេ";
     Swal.fire("បរាជ័យ", errorMessage, "error");
   } finally {
     isLoading.value = false;
