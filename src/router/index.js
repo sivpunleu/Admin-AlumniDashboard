@@ -18,71 +18,73 @@ const routes = [
     path: "/login",
     name: "login",
     component: LoginView,
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, title: "ចូលប្រើប្រាស់" },
   },
   {
     path: "/",
     component: DashboardLayout,
-    redirect: "/dashboard", // Redirect root to dashboard
-    meta: { requiresAuth: true, requiresAdmin: true }, // Apply auth/admin requirement to all children
+    redirect: "/dashboard",
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+    },
     children: [
       {
         path: "dashboard",
         name: "home",
         component: HomeView,
-        meta: { title: "DASHBOARD" },
+        meta: { title: "ផ្ទាំងគ្រប់គ្រង" },
       },
       {
         path: "profile",
         name: "profile",
         component: ProfileView,
-        meta: { title: "PROFILE" },
+        meta: { title: "ប្រវត្តិរូប" },
       },
       {
         path: "generations",
         name: "generations",
         component: GenerationsView,
-        meta: { title: "GROUPMANAGE" },
+        meta: { title: "គ្រប់គ្រងជំនាន់" },
       },
       {
         path: "manager-alumni",
         name: "manager-alumni",
         component: ManagerAlumniView,
-        meta: { title: "ALUMNI MANAGE" },
+        meta: { title: "គ្រប់គ្រងអតីតនិស្សិត" },
       },
       {
         path: "department",
         name: "department",
         component: DepartmentView,
-        meta: { title: "DEPARTMENT" },
+        meta: { title: "ដេប៉ាតេម៉ង់" },
       },
       {
         path: "category",
         name: "category",
         component: CategoryView,
-        meta: { title: "CATEGORY" },
+        meta: { title: "ប្រភេទ" },
       },
       {
         path: "event",
         name: "event",
         component: EventView,
-        meta: { title: "EVENT" },
+        meta: { title: "ព្រឹត្តិការណ៍" },
       },
       {
         path: "participant/:id?",
         name: "participant",
         component: ParticipantView,
         props: true,
-        meta: { title: "PARTICIPANT" },
+        meta: { title: "អ្នកចូលរួម" },
       },
     ],
   },
-  // Catch-all 404 route
   {
     path: "/:pathMatch(.*)*",
     name: "not-found",
     component: NotFoundView,
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, title: "រកមិនឃើញទំព័រ" },
   },
 ];
 
