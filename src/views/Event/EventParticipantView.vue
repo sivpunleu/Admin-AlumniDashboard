@@ -44,6 +44,8 @@ const participantColumns = [
     { key: 'status', label: 'ស្ថានភាព' },
     { key: 'responseAt', label: 'កាលបរិច្ឆេទ' }
 ];
+const statusSkeletons = Array.from({ length: 3 }, (_, index) => index);
+const participantSkeletonRows = Array.from({ length: 6 }, (_, index) => index);
 
 const selectedEvent = computed(() => {
     const eventId = String(selectedEventId.value || '').trim();
@@ -247,11 +249,65 @@ watch(() => props.id, async (newId) => {
             <span>{{ successMessage }}</span>
         </div>
 
-        <div v-if="store.isLoading" class="participant-panel app-state">
-            <div>
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-3 mb-0 fw-medium">កំពុងទាញយកទិន្នន័យ...</p>
-            </div>
+        <div v-if="store.isLoading" class="participant-skeleton" aria-busy="true" aria-live="polite"
+            aria-label="កំពុងផ្ទុកទិន្នន័យអ្នកចូលរួម">
+            <section class="participant-panel selected-event-panel participant-skeleton-event">
+                <div class="selected-event-main">
+                    <span class="skeleton-placeholder skeleton-event-icon"></span>
+                    <span class="skeleton-event-copy">
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--eyebrow"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--title"></span>
+                        <span class="skeleton-meta-row">
+                            <span class="skeleton-placeholder skeleton-pill skeleton-pill--small"></span>
+                            <span class="skeleton-placeholder skeleton-pill skeleton-pill--meta"></span>
+                            <span class="skeleton-placeholder skeleton-pill skeleton-pill--date"></span>
+                        </span>
+                    </span>
+                </div>
+                <div class="selected-event-total skeleton-total-panel">
+                    <span class="skeleton-placeholder skeleton-total-number"></span>
+                    <span class="skeleton-placeholder skeleton-total-label"></span>
+                </div>
+            </section>
+
+            <section class="status-grid">
+                <div v-for="item in statusSkeletons" :key="item" class="status-card skeleton-status-card">
+                    <span class="skeleton-placeholder skeleton-status-icon"></span>
+                    <span class="skeleton-status-copy">
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--status-label"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--status-count"></span>
+                    </span>
+                </div>
+            </section>
+
+            <section class="participant-panel records-panel participant-skeleton-records">
+                <div class="panel-header">
+                    <div class="records-title">
+                        <span class="records-dot"></span>
+                        <div class="skeleton-records-heading">
+                            <span class="skeleton-placeholder skeleton-line skeleton-line--records-title"></span>
+                            <span class="skeleton-placeholder skeleton-line skeleton-line--records-subtitle"></span>
+                        </div>
+                    </div>
+                    <span class="skeleton-placeholder skeleton-refresh"></span>
+                </div>
+
+                <div class="participant-table-skeleton">
+                    <div class="skeleton-table-header">
+                        <span v-for="column in participantColumns" :key="column.key"
+                            class="skeleton-placeholder skeleton-heading"></span>
+                    </div>
+                    <div v-for="row in participantSkeletonRows" :key="row" class="skeleton-table-row">
+                        <span class="skeleton-person-cell">
+                            <span class="skeleton-placeholder skeleton-avatar"></span>
+                            <span class="skeleton-placeholder skeleton-line skeleton-line--person"></span>
+                        </span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--email"></span>
+                        <span class="skeleton-placeholder skeleton-pill skeleton-pill--status"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--response"></span>
+                    </div>
+                </div>
+            </section>
         </div>
 
         <template v-else>
@@ -470,6 +526,213 @@ watch(() => props.id, async (newId) => {
     border-radius: 12px;
     background: var(--participant-surface);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+.participant-skeleton {
+    display: grid;
+    gap: 1rem;
+}
+
+.participant-skeleton-records,
+.skeleton-status-card {
+    --status-accent: var(--participant-primary);
+    --status-soft: var(--participant-soft);
+}
+
+.skeleton-status-card {
+    pointer-events: none;
+}
+
+.skeleton-placeholder {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-event-icon {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+}
+
+.skeleton-event-copy,
+.skeleton-records-heading,
+.skeleton-status-copy {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.skeleton-event-copy {
+    width: 100%;
+}
+
+.skeleton-line {
+    height: 12px;
+}
+
+.skeleton-line--eyebrow {
+    width: 92px;
+    height: 10px;
+}
+
+.skeleton-line--title {
+    width: min(320px, 76%);
+    height: 22px;
+    border-radius: 8px;
+}
+
+.skeleton-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.skeleton-pill {
+    height: 24px;
+}
+
+.skeleton-pill--small {
+    width: 58px;
+}
+
+.skeleton-pill--meta {
+    width: 128px;
+}
+
+.skeleton-pill--date {
+    width: 156px;
+}
+
+.skeleton-total-panel {
+    display: grid;
+    justify-items: end;
+    gap: 0.45rem;
+}
+
+.skeleton-total-number {
+    width: 56px;
+    height: 34px;
+}
+
+.skeleton-total-label {
+    width: 116px;
+    height: 12px;
+}
+
+.skeleton-status-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+}
+
+.skeleton-line--status-label {
+    width: 132px;
+}
+
+.skeleton-line--status-count {
+    width: 42px;
+    height: 24px;
+}
+
+.skeleton-line--records-title {
+    width: 148px;
+    height: 18px;
+    border-radius: 8px;
+}
+
+.skeleton-line--records-subtitle {
+    width: 170px;
+    height: 10px;
+}
+
+.skeleton-refresh {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+}
+
+.participant-table-skeleton {
+    overflow-x: auto;
+}
+
+.skeleton-table-header,
+.skeleton-table-row {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.35fr) minmax(220px, 1.25fr) minmax(120px, 0.8fr) minmax(160px, 1fr);
+    align-items: center;
+    gap: 1rem;
+    min-width: 640px;
+}
+
+.skeleton-table-header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.skeleton-table-row {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.skeleton-table-row:last-child {
+    border-bottom: 0;
+}
+
+.skeleton-heading {
+    width: 72px;
+    height: 12px;
+}
+
+.skeleton-person-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.skeleton-avatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+}
+
+.skeleton-line--person {
+    width: min(150px, 72%);
+}
+
+.skeleton-line--email {
+    width: min(220px, 82%);
+}
+
+.skeleton-pill--status {
+    width: 96px;
+}
+
+.skeleton-line--response {
+    width: min(142px, 80%);
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .panel-header {
@@ -969,6 +1232,31 @@ watch(() => props.id, async (newId) => {
         align-items: flex-start;
         flex-direction: column;
         padding: 1rem;
+    }
+
+    .skeleton-total-panel {
+        justify-items: start;
+    }
+
+    .participant-table-skeleton {
+        overflow-x: hidden;
+    }
+
+    .skeleton-table-header {
+        display: none;
+    }
+
+    .skeleton-table-row {
+        grid-template-columns: 1fr;
+        min-width: 0;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-placeholder::after {
+        animation: none;
     }
 }
 </style>

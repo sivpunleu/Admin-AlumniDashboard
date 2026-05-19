@@ -6,8 +6,8 @@ import logger from "@/utils/logger";
 
 export const users = ref([]);
 export const isLoading = ref(false);
-export const searchQuery = ref(""); // Binding ជាមួយ Search Input
-export const activeTab = ref("ALL"); // Binding ជាមួយ Filter Select
+export const searchQuery = ref("");
+export const activeTab = ref("ALL");
 export const PRIMARY_COLOR = "#216477";
 
 export const currentPage = ref(1);
@@ -22,24 +22,31 @@ const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
 
 export const showRegisterModal = ref(false);
-export const registerForm = ref({
+
+const getDefaultRegisterForm = () => ({
   fullname: "",
   email: "",
   phone: "",
   password: "",
   confirmPassword: "",
   bio: "N/A",
-  currentJob: "DARA",
+  currentJob: "",
   departmentId: "",
   generationId: "",
   status: "PENDING",
 });
+
+export const registerForm = ref(getDefaultRegisterForm());
 export const registerErrors = ref({});
 
 export const getPerPage = () => itemsPerPage.value || 10;
 
 export const clearRegisterErrors = () => {
   registerErrors.value = {};
+};
+
+export const resetRegisterForm = () => {
+  registerForm.value = getDefaultRegisterForm();
 };
 
 const normalizeStatus = (value) =>
@@ -209,14 +216,12 @@ const paginateClientSide = (data, perPage) => {
   };
 };
 
-// មុខងារ Fetch Users ដែល Support Search, Filter និង Pagination
 export const fetchUsers = async () => {
   const perPage = getPerPage();
 
   try {
     isLoading.value = true;
 
-    // Fetch global summary counts (without search/status filters) for dashboard cards.
     try {
       let summaryData = [];
       let summaryPage = 1;
@@ -374,8 +379,15 @@ export const fetchUsers = async () => {
 };
 
 export const openRegisterModal = () => {
+  resetRegisterForm();
   clearRegisterErrors();
   showRegisterModal.value = true;
+};
+
+export const closeRegisterModal = () => {
+  showRegisterModal.value = false;
+  resetRegisterForm();
+  clearRegisterErrors();
 };
 
 export const requireAdmin = (callback) => {
@@ -446,7 +458,7 @@ export const handleRegisterAlumni = async () => {
     ) {
       Swal.fire(
         "ការរឹងមាំ",
-        "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ",
+        "ពាក្យសម្ងាត់ត្រូវមានយអក្រ 6 តួអក្សរឡើងទៅ",
         "warning",
       );
       return;
@@ -482,19 +494,7 @@ export const handleRegisterAlumni = async () => {
     const response = await api.post("/users/alumni", payload);
     logger.info("Registration response:", response.data);
 
-    // Reset form
-    registerForm.value = {
-      fullname: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
-      bio: "N/A",
-      currentJob: "DARA",
-      departmentId: "",
-      generationId: "",
-      status: "PENDING",
-    };
+    resetRegisterForm();
 
     showRegisterModal.value = false;
     clearRegisterErrors();

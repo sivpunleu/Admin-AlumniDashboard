@@ -8,7 +8,6 @@ export const useDepartmentStore = defineStore("department", () => {
   const departments = ref([]);
   const isLoading = ref(false);
 
-  // ប៉ារ៉ាម៉ែត្រសម្រាប់ Pagination & Search (យោងតាមរូបភាព image_108a85.png)
   const queryParams = ref({
     _page: 1,
     _per_page: 10,
@@ -19,6 +18,27 @@ export const useDepartmentStore = defineStore("department", () => {
 
   const totalItems = ref(0);
   const totalPages = ref(1);
+  const departmentInUseMessage =
+    "មិនអាចលុបទិន្នន័យនេះបានទេ ដេប៉ាតឺម៉ង់ត្រូវបានប្រើប្រាស់";
+
+  function isDepartmentInUseError(err) {
+    const status = err.response?.status;
+    const message = String(
+      err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "",
+    ).toLowerCase();
+
+    return (
+      [409, 422].includes(status) ||
+      message.includes("in use") ||
+      message.includes("used") ||
+      message.includes("foreign") ||
+      message.includes("constraint") ||
+      message.includes("ប្រើប្រាស់")
+    );
+  }
 
   // ១. ទាញយកទិន្នន័យ (GET /departments)
   async function fetchDepartments() {
@@ -57,7 +77,6 @@ export const useDepartmentStore = defineStore("department", () => {
       const res = await api.put(`/departments/${id}`, payload);
 
       if (res.data) {
-        // ទាញយកទិន្នន័យថ្មីមកបង្ហាញក្នុងតារាងឡើងវិញ
         await fetchDepartments();
         Swal.fire(
           "ជោគជ័យ",
@@ -88,7 +107,11 @@ export const useDepartmentStore = defineStore("department", () => {
       Swal.fire("ជោគជ័យ", "ដេប៉ាតឺម៉ង់ត្រូវបានលុប", "success");
       return true;
     } catch (err) {
-      Swal.fire("កំហុស", "មិនអាចលុបទិន្នន័យនេះបានទេ", "error");
+      logger.error("Delete Department Error:", err.response?.data || err);
+      const message = isDepartmentInUseError(err)
+        ? departmentInUseMessage
+        : "មិនអាចលុបទិន្នន័យនេះបានទេ";
+      Swal.fire("កំហុស", message, "error");
       return false;
     }
   }
