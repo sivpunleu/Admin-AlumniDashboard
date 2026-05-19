@@ -563,7 +563,11 @@ export const handleChangeStatus = async (userId) => {
   const { value: status } = await Swal.fire({
     title: "ប្តូរស្ថានភាព",
     input: "select",
-    inputOptions: { PENDING: "PENDING", APPROVE: "APPROVE", REJECT: "REJECT" },
+    inputOptions: {
+      PENDING: "កំពុងរង់ចាំ",
+      APPROVE: "យល់ព្រម",
+      REJECT: "បានផ្អាកដំណើរការ",
+    },
     showCancelButton: true,
   });
   if (status) {

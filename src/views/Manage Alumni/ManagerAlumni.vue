@@ -18,8 +18,7 @@ const getStatusClass = (status) => {
 const getStatusLabel = (status) => {
   if (status === 'APPROVE') return 'យល់ព្រម';
   if (status === 'PENDING') return 'កំពុងរង់ចាំ';
-  if (status === 'REJECT') return 'បដិសេធ';
-  if (status === 'DEACTIVATED') return 'បានធ្វើឱ្យអសកម្ម';
+  if (status === 'REJECT' || status === 'DEACTIVATED') return 'បានផ្អាកដំណើរការ';
   return status || 'Unknown';
 };
 
@@ -238,16 +237,13 @@ const tableColumns = [
         <p class="text-muted small">ពិនិត្យ អនុម័ត និងគ្រប់គ្រងសំណើចុះឈ្មោះរបស់អតីតនិស្សិត។</p>
       </div>
       <div class="page-toolbar__actions">
-        <button type="button" class="btn btn-white border shadow-sm btn-sm px-3" disabled aria-disabled="true"><i
-            class="bi bi-filter-right"></i>
-          តម្រងកម្រិតខ្ពស់</button>
         <button @click="store.requireAdmin(store.openRegisterModal)"
           class="btn btn-primary-custom btn-sm px-3 shadow-sm">
           <i class="bi bi-person-plus-fill me-1"></i> ចុះឈ្មោះអតីតនិស្សិត
         </button>
       </div>
     </div>
-    <div class="row g-3 mb-5">
+    <div class="row g-3 mb-4">
       <!-- អតីតនិស្សិតសរុប -->
       <div class="col-md-3">
         <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4"
@@ -326,7 +322,7 @@ const tableColumns = [
           <button type="button" role="tab" :aria-selected="activeTabModel === 'REJECT'"
             @click="activeTabModel = 'REJECT'"
             :class="['tab-btn', activeTabModel === 'REJECT' ? 'active' : '']">
-            <i class="bi bi-slash-circle"></i><span>បានធ្វើឱ្យអសកម្ម</span>
+            <i class="bi bi-slash-circle"></i><span>បានផ្អាកដំណើរការ</span>
           </button>
         </div>
       </div>
@@ -408,8 +404,8 @@ const tableColumns = [
   </div>
 
   <!-- Register Modal using BaseModal -->
-  <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" hideDefaultFooter>
-    <form class="app-form" novalidate @submit.prevent="store.handleRegisterAlumni">
+  <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" size="lg" hideDefaultFooter>
+    <form class="app-form register-modal-form" novalidate @submit.prevent="store.handleRegisterAlumni">
       <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
         <input v-model="store.registerForm.value.fullname" type="text" class="form-control"
@@ -491,16 +487,16 @@ const tableColumns = [
         <select v-model="store.registerForm.value.status" class="form-control" required>
           <option value="PENDING">កំពុងរង់ចាំ</option>
           <option value="APPROVE">យល់ព្រម</option>
-          <option value="REJECT">បានធ្វើឱ្យអសកម្ម</option>
+          <option value="REJECT">បានផ្អាកដំណើរការ</option>
         </select>
       </div>
 
-      <div>
+      <div class="form-field--full">
         <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
         <input v-model="store.registerForm.value.currentJob" type="text" class="form-control" />
       </div>
 
-      <div>
+      <div class="form-field--full">
         <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
         <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"></textarea>
       </div>
@@ -695,6 +691,16 @@ const tableColumns = [
   font-size: 11px;
 }
 
+.register-modal-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.register-modal-form .form-field--full,
+.register-modal-form .modal-actions {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 768px) {
   .manager-alumni-page {
     padding: 0;
@@ -730,6 +736,10 @@ const tableColumns = [
     text-align: center;
     line-height: 1.25;
     white-space: normal;
+  }
+
+  .register-modal-form {
+    grid-template-columns: 1fr;
   }
 }
 

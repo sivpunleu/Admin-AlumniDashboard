@@ -279,8 +279,8 @@ watch(() => props.id, async (newId) => {
                                 </div>
                             </div>
                             <div class="selected-event-total">
-                                <strong>{{ totalParticipants }}</strong>
-                                <span>អ្នកចូលរួមសរុប</span>
+                                <strong class="fw-bold text-center">{{ totalParticipants }}</strong>
+                                <span class="text-center">អ្នកចូលរួមសរុប</span>
                             </div>
                         </section>
 
@@ -303,7 +303,7 @@ watch(() => props.id, async (newId) => {
                                     <span class="records-dot"></span>
                                     <div>
                                         <h5 class="fw-bold mb-1">{{ activeStatusMeta.label }}</h5>
-                                        <p class="text-muted small mb-0">{{ activeParticipantCount }} នាក់ក្នុងស្ថានភាពនេះ</p>
+                                        <p class="text-muted small mb-0">{{ activeParticipantCount }}អ្នកក្នុងស្ថានភាពនេះ</p>
                                     </div>
                                 </div>
                                 <BaseButton @click="queryParticipantRecords" variant="light" size="sm" shape="sharp"
@@ -318,7 +318,7 @@ watch(() => props.id, async (newId) => {
                                         <span class="participant-avatar">{{ getParticipantInitial(item) }}</span>
                                         <span class="participant-person__copy">
                                             <span class="participant-person__name">{{ getParticipantName(item) }}</span>
-                                            <small class="text-muted">ID: {{ item.id ?? '-' }}</small>
+                                            <!-- <small class="text-muted">ID: {{ item.id ?? '-' }}</small> -->
                                         </span>
                                     </div>
                                 </template>
