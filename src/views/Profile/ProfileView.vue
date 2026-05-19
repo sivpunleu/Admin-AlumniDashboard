@@ -7,42 +7,63 @@
                 <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100 overflow-hidden">
                         <div class="card-body">
-                            <div class="avatar-edit-container mb-4">
-                                <div class="position-relative d-inline-block">
-                                    <div class="avatar-ring">
-                                        <img :src="avatarUrl" alt="profile" class="profile-img-lg shadow"
-                                            @error="handleAvatarError" @load="handleAvatarLoad" />
-                                    </div>
-                                    <div class="avatar-actions">
-                                        <BaseButton variant="primary" shape="sharp" size="sm"
-                                            class="btn-action-avatar upload" @click="triggerAvatarPicker"
-                                            title="Upload avatar">
-                                            <i class="bi bi-camera-fill"></i>
-                                        </BaseButton>
-                                        <BaseButton v-if="currentUser?.profile?.avatar" variant="danger" shape="sharp"
-                                            size="sm" class="btn-action-avatar delete" @click="handleDeleteAvatar"
-                                            title="Delete avatar">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </BaseButton>
+                            <template v-if="isInitialLoading">
+                                <div class="profile-summary-skeleton" aria-busy="true" aria-live="polite"
+                                    aria-label="កំពុងផ្ទុកព័ត៌មានគណនី">
+                                    <span class="skeleton-placeholder skeleton-profile-avatar"></span>
+                                    <span class="skeleton-placeholder skeleton-line skeleton-line--profile-name"></span>
+                                    <span class="skeleton-placeholder skeleton-line skeleton-line--profile-job"></span>
+                                    <div class="skeleton-profile-meta row g-2 text-center border-top pt-4">
+                                        <div class="col-6 border-end">
+                                            <span class="skeleton-placeholder skeleton-line skeleton-line--meta-value"></span>
+                                            <span class="skeleton-placeholder skeleton-line skeleton-line--meta-label"></span>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="skeleton-placeholder skeleton-line skeleton-line--meta-value"></span>
+                                            <span class="skeleton-placeholder skeleton-line skeleton-line--meta-label"></span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
 
-                            <h4 class="fw-bold text-dark mb-1">{{ displayName }}</h4>
-                            <p class="text-muted small mb-4">{{ form.currentJob || 'សមាជិកអតីតនិស្សិត' }}</p>
+                            <template v-else>
+                                <div class="avatar-edit-container mb-4">
+                                    <div class="position-relative d-inline-block">
+                                        <div class="avatar-ring">
+                                            <img :src="avatarUrl" alt="profile" class="profile-img-lg shadow"
+                                                @error="handleAvatarError" @load="handleAvatarLoad" />
+                                        </div>
+                                        <div class="avatar-actions">
+                                            <BaseButton variant="primary" shape="sharp" size="sm"
+                                                class="btn-action-avatar upload" @click="triggerAvatarPicker"
+                                                title="Upload avatar">
+                                                <i class="bi bi-camera-fill"></i>
+                                            </BaseButton>
+                                            <BaseButton v-if="currentUser?.profile?.avatar" variant="danger" shape="sharp"
+                                                size="sm" class="btn-action-avatar delete" @click="handleDeleteAvatar"
+                                                title="Delete avatar">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </BaseButton>
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div class="row g-2 text-center border-top pt-4">
-                                <div class="col-6 border-end">
-                                    <h6 class="fw-bold mb-0 text-primary">{{ currentUser?.profile?.generation?.name ||
-                                        'N/A' }}</h6>
-                                    <small class="text-muted extra-small">ជំនាន់</small>
+                                <h4 class="fw-bold text-dark mb-1">{{ displayName }}</h4>
+                                <p class="text-muted small mb-4">{{ form.currentJob || 'សមាជិកអតីតនិស្សិត' }}</p>
+
+                                <div class="row g-2 text-center border-top pt-4">
+                                    <div class="col-6 border-end">
+                                        <h6 class="fw-bold mb-0 text-primary">{{ currentUser?.profile?.generation?.name ||
+                                            'N/A' }}</h6>
+                                        <small class="text-muted extra-small">ជំនាន់</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <h6 class="fw-bold mb-0 text-primary  px-2">{{
+                                            currentUser?.profile?.department?.name || 'N/A' }}</h6>
+                                        <small class="text-muted extra-small">ដេប៉ាតឺម៉ង</small>
+                                    </div>
                                 </div>
-                                <div class="col-6">
-                                    <h6 class="fw-bold mb-0 text-primary text-truncate px-2">{{
-                                        currentUser?.profile?.department?.name || 'N/A' }}</h6>
-                                    <small class="text-muted extra-small">ដេប៉ាតឺម៉ង</small>
-                                </div>
-                            </div>
+                            </template>
                         </div>
                         <input ref="avatarInput" type="file" accept="image/*" class="d-none"
                             @change="onAvatarSelected" />
@@ -57,13 +78,31 @@
                                 <div class="icon-box-primary me-3"><i class="bi bi-person-badge"></i></div>
                                 <h5 class="fw-bold mb-0">ព័ត៌មានផ្ទាល់ខ្លួន</h5>
                             </div>
-                            <BaseButton v-if="!isEditing" @click="toggleEdit(true)" variant="light" size="sm">
+                            <BaseButton v-if="!isInitialLoading && !isEditing" @click="toggleEdit(true)" variant="light" size="sm">
                                 <i class="bi bi-pencil-square me-2"></i>កែសម្រួល
                             </BaseButton>
                         </div>
 
                         <div class="card-body p-4 p-md-5">
-                            <form @submit.prevent="handleUpdateProfile">
+                            <div v-if="isInitialLoading" class="profile-form-skeleton" aria-busy="true"
+                                aria-live="polite" aria-label="កំពុងផ្ទុកទម្រង់ព័ត៌មានផ្ទាល់ខ្លួន">
+                                <div class="row g-4">
+                                    <div v-for="item in formSkeletonItems" :key="item" class="col-md-6">
+                                        <span class="skeleton-placeholder skeleton-line skeleton-line--label"></span>
+                                        <span class="skeleton-placeholder skeleton-input"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <span class="skeleton-placeholder skeleton-line skeleton-line--label"></span>
+                                        <span class="skeleton-placeholder skeleton-input"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <span class="skeleton-placeholder skeleton-line skeleton-line--label"></span>
+                                        <span class="skeleton-placeholder skeleton-textarea"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form v-else @submit.prevent="handleUpdateProfile">
                                 <div class="row g-4">
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">នាមខ្លួនពេញ</label>
@@ -154,6 +193,8 @@ const profileStore = useProfileStore();
 const departmentStore = useDepartmentStore();
 const avatarInput = ref(null);
 const isEditing = ref(false);
+const isInitialLoading = ref(true);
+const formSkeletonItems = Array.from({ length: 4 }, (_, index) => index);
 
 const form = reactive({
     fullname: '',
@@ -180,22 +221,26 @@ const displayName = computed(() => currentUser.value?.profile?.fullname || 'User
 const avatarUrl = computed(() => currentUser.value?.profile?.avatar || 'https://ui-avatars.com/api/?name=' + displayName.value);
 
 onMounted(async () => {
-    const profileData = await profileStore.fetchProfile();
-    await Promise.all([
-        departmentStore.fetchDepartments(),
-        generationStore.fetchGenerations(),
-    ]);
+    try {
+        const profileData = await profileStore.fetchProfile();
+        await Promise.all([
+            departmentStore.fetchDepartments(),
+            generationStore.fetchGenerations(),
+        ]);
 
-    const sourceProfile = profileData?.profile || profileData || {};
-    Object.assign(form, {
-        fullname: sourceProfile.fullname,
-        phone: sourceProfile.phone,
-        currentJob: sourceProfile.currentJob,
-        bio: sourceProfile.bio,
-        email: profileData?.email || sourceProfile.email || "",
-        departmentId: sourceProfile.department?.id || sourceProfile.departmentId || "",
-        generationId: sourceProfile.generation?.id || sourceProfile.generationId || "",
-    });
+        const sourceProfile = profileData?.profile || profileData || {};
+        Object.assign(form, {
+            fullname: sourceProfile.fullname,
+            phone: sourceProfile.phone,
+            currentJob: sourceProfile.currentJob,
+            bio: sourceProfile.bio,
+            email: profileData?.email || sourceProfile.email || "",
+            departmentId: sourceProfile.department?.id || sourceProfile.departmentId || "",
+            generationId: sourceProfile.generation?.id || sourceProfile.generationId || "",
+        });
+    } finally {
+        isInitialLoading.value = false;
+    }
 });
 
 
@@ -321,6 +366,102 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     height: 150px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.profile-summary-skeleton {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+}
+
+.skeleton-placeholder {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-profile-avatar {
+    width: 162px;
+    height: 162px;
+    margin-bottom: 0.75rem;
+    border: 6px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-line {
+    height: 12px;
+}
+
+.skeleton-line--profile-name {
+    width: 150px;
+    height: 22px;
+    border-radius: 8px;
+}
+
+.skeleton-line--profile-job {
+    width: 180px;
+    height: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.skeleton-profile-meta {
+    width: 100%;
+}
+
+.skeleton-profile-meta .skeleton-placeholder {
+    margin-inline: auto;
+}
+
+.skeleton-line--meta-value {
+    width: 72px;
+    height: 16px;
+    margin-bottom: 0.45rem;
+    border-radius: 8px;
+}
+
+.skeleton-line--meta-label {
+    width: 54px;
+    height: 10px;
+}
+
+.profile-form-skeleton {
+    width: 100%;
+}
+
+.skeleton-line--label {
+    width: 92px;
+    height: 10px;
+    margin-bottom: 0.55rem;
+}
+
+.skeleton-input {
+    width: 100%;
+    height: 50px;
+    border-radius: 12px;
+}
+
+.skeleton-textarea {
+    width: 100%;
+    height: 118px;
+    border-radius: 12px;
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .avatar-actions {
@@ -542,5 +683,11 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 
 .extra-small {
     font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-placeholder::after {
+        animation: none;
+    }
 }
 </style>

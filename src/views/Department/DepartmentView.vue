@@ -25,6 +25,7 @@ const tableColumns = [
     { key: 'description', label: 'ការពិពណ៌នា' },
     { key: 'actions', label: 'សកម្មភាព' }
 ];
+const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
 
 onMounted(() => {
     store.fetchDepartments();
@@ -125,10 +126,23 @@ const handleSubmit = async () => {
             </div>
 
             <div class="card-body p-0">
-                <div v-if="store.isLoading" class="app-state">
-                    <div>
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-3 mb-0 fw-medium">កំពុងផ្ទុកទិន្នន័យ...</p>
+                <div v-if="store.isLoading" class="department-skeleton" aria-busy="true" aria-live="polite"
+                    aria-label="កំពុងផ្ទុកទិន្នន័យដេប៉ាតឺម៉ង់">
+                    <div class="department-skeleton__header">
+                        <span v-for="column in tableColumns" :key="column.key"
+                            class="skeleton-placeholder skeleton-heading"></span>
+                    </div>
+                    <div v-for="row in skeletonRows" :key="row" class="department-skeleton__row">
+                        <span class="skeleton-placeholder skeleton-id"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
+                        <span class="skeleton-description-lines">
+                            <span class="skeleton-placeholder skeleton-line skeleton-line--description"></span>
+                            <span class="skeleton-placeholder skeleton-line skeleton-line--description-short"></span>
+                        </span>
+                        <span class="skeleton-actions">
+                            <span class="skeleton-placeholder skeleton-action"></span>
+                            <span class="skeleton-placeholder skeleton-action"></span>
+                        </span>
                     </div>
                 </div>
 
@@ -170,9 +184,11 @@ const handleSubmit = async () => {
             </div>
 
             <!-- ផ្នែកខាងក្រោម / ការបែងចែកទំព័រ -->
-            <div class="card-footer bg-white border-top py-3 px-4">
-                <div class="text-muted small fw-medium text-center mb-2">
-                    បង្ហាញដេប៉ាតឺម៉ង់សរុប <span class="text-dark fw-bold">{{ store.totalItems }}</span>
+            <div class="card-footer bg-white border-top d-flex flex-column flex-md-row align-items-center justify-content-between py-3 px-4">
+                <div class="text-muted small fw-medium  mb-2">
+                    បង្ហាញដេប៉ាតឺម៉ង់សរុប
+                    <span v-if="store.isLoading" class="skeleton-placeholder skeleton-total"></span>
+                    <span v-else class="text-dark fw-bold">{{ store.totalItems }}</span>
                 </div>
                 <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
                     @change-page="handlePageChange" />
@@ -246,6 +262,110 @@ const handleSubmit = async () => {
     box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
 }
 
+.department-skeleton {
+    overflow-x: auto;
+}
+
+.department-skeleton__header,
+.department-skeleton__row {
+    display: grid;
+    grid-template-columns: minmax(80px, 0.45fr) minmax(190px, 1fr) minmax(260px, 1.4fr) minmax(120px, 0.55fr);
+    align-items: center;
+    gap: 1rem;
+    min-width: 720px;
+}
+
+.department-skeleton__header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.department-skeleton__row {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.department-skeleton__row:last-child {
+    border-bottom: 0;
+}
+
+.skeleton-placeholder {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-heading {
+    width: 72px;
+    height: 12px;
+}
+
+.skeleton-id {
+    width: 52px;
+    height: 24px;
+}
+
+.skeleton-line {
+    height: 13px;
+}
+
+.skeleton-line--name {
+    width: min(190px, 78%);
+}
+
+.skeleton-description-lines {
+    display: grid;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.skeleton-line--description {
+    width: min(300px, 92%);
+}
+
+.skeleton-line--description-short {
+    width: min(210px, 68%);
+    height: 11px;
+}
+
+.skeleton-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.skeleton-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+.skeleton-total {
+    display: inline-block;
+    width: 34px;
+    height: 13px;
+    margin-left: 0.35rem;
+    vertical-align: -2px;
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
 .custom-input {
     border: 2px solid #e2e8f0;
     border-radius: 12px;
@@ -275,6 +395,31 @@ const handleSubmit = async () => {
     .department-search {
         max-width: none;
         margin-left: 0;
+    }
+
+    .department-skeleton {
+        overflow-x: hidden;
+    }
+
+    .department-skeleton__header {
+        display: none;
+    }
+
+    .department-skeleton__row {
+        grid-template-columns: 1fr;
+        min-width: 0;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .skeleton-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-placeholder::after {
+        animation: none;
     }
 }
 </style>

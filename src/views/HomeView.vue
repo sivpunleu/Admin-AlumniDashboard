@@ -27,6 +27,8 @@ const quickActions = [
   { label: 'ការចូលរួម', icon: 'bi-person-check-fill', path: '/participant', tone: 'success' },
   { label: 'ដេប៉ាតឺម៉ង់', icon: 'bi-diagram-3-fill', path: '/department', tone: 'warning' }
 ];
+const recentSkeletonRows = Array.from({ length: 5 }, (_, index) => index);
+const upcomingSkeletonRows = Array.from({ length: 3 }, (_, index) => index);
 
 const normalizeStatus = (value) => String(value || 'PENDING').toUpperCase();
 
@@ -184,7 +186,8 @@ onMounted(() => {
             <div class="icon-box me-3"><i class="bi bi-people fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">អតីតនិស្សិតសរុប</p>
-              <h3 class="fw-bold mb-0">{{ stats.total }}</h3>
+              <span v-if="isLoading" class="skeleton-placeholder skeleton-stat-value"></span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.total }}</h3>
             </div>
           </div>
         </div>
@@ -197,7 +200,8 @@ onMounted(() => {
             </div>
             <div>
               <p class="text-muted small mb-0">បានអនុម័ត</p>
-              <h3 class="fw-bold mb-0">{{ stats.approved }}</h3>
+              <span v-if="isLoading" class="skeleton-placeholder skeleton-stat-value"></span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.approved }}</h3>
             </div>
           </div>
         </div>
@@ -210,7 +214,8 @@ onMounted(() => {
                 class="bi bi-clock-history fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">កំពុងរង់ចាំពិនិត្យ</p>
-              <h3 class="fw-bold mb-0">{{ stats.pending }}</h3>
+              <span v-if="isLoading" class="skeleton-placeholder skeleton-stat-value"></span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.pending }}</h3>
             </div>
           </div>
         </div>
@@ -223,7 +228,8 @@ onMounted(() => {
                 class="bi bi-exclamation-octagon fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">បានផ្អាកដំណើរការ</p>
-              <h3 class="fw-bold mb-0">{{ stats.deactivated }}</h3>
+              <span v-if="isLoading" class="skeleton-placeholder skeleton-stat-value"></span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.deactivated }}</h3>
             </div>
           </div>
         </div>
@@ -240,9 +246,26 @@ onMounted(() => {
               class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">មើលទាំងអស់</button>
           </div>
 
-          <div v-if="isLoading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted small">កំពុងផ្ទុកទិន្នន័យបេក្ខជន...</p>
+          <div v-if="isLoading" class="dashboard-table-skeleton" aria-busy="true" aria-live="polite"
+            aria-label="កំពុងផ្ទុកការចុះឈ្មោះថ្មីៗ">
+            <div class="skeleton-table-header">
+              <span class="skeleton-placeholder skeleton-heading"></span>
+              <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
+              <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
+              <span class="skeleton-placeholder skeleton-heading skeleton-heading--end"></span>
+            </div>
+            <div v-for="row in recentSkeletonRows" :key="row" class="skeleton-table-row">
+              <span class="skeleton-person-cell">
+                <span class="skeleton-placeholder skeleton-avatar"></span>
+                <span class="skeleton-person-lines">
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--email"></span>
+                </span>
+              </span>
+              <span class="skeleton-placeholder skeleton-line skeleton-line--date"></span>
+              <span class="skeleton-placeholder skeleton-pill skeleton-pill--status"></span>
+              <span class="skeleton-placeholder skeleton-dot-action"></span>
+            </div>
           </div>
 
           <div v-else class="table-responsive">
@@ -301,17 +324,32 @@ onMounted(() => {
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <div>
               <h5 class="fw-bold mb-1">សង្ខេបព្រឹត្តិការណ៍</h5>
-              <p class="text-muted small mb-0">ព្រឹត្តិការណ៍សរុប {{ stats.events }} និងជិតមកដល់ {{ stats.upcomingEvents
-                }}</p>
+              <p class="text-muted small mb-0">
+                <template v-if="isLoading">
+                  <span class="skeleton-placeholder skeleton-summary-line"></span>
+                </template>
+                <template v-else>
+                  ព្រឹត្តិការណ៍សរុប {{ stats.events }} និងជិតមកដល់ {{ stats.upcomingEvents }}
+                </template>
+              </p>
             </div>
             <button @click="router.push('/event')" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
               មើលព្រឹត្តិការណ៍
             </button>
           </div>
 
-          <div v-if="isLoading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted small">កំពុងផ្ទុកព្រឹត្តិការណ៍...</p>
+          <div v-if="isLoading" class="upcoming-skeleton-list" aria-busy="true" aria-live="polite"
+            aria-label="កំពុងផ្ទុកព្រឹត្តិការណ៍ជិតមកដល់">
+            <div v-for="row in upcomingSkeletonRows" :key="row" class="upcoming-event skeleton-upcoming-event">
+              <span class="skeleton-event-lines">
+                <span class="skeleton-placeholder skeleton-line skeleton-line--event-title"></span>
+                <span class="skeleton-placeholder skeleton-line skeleton-line--event-location"></span>
+              </span>
+              <span class="skeleton-event-date-lines">
+                <span class="skeleton-placeholder skeleton-line skeleton-line--event-date"></span>
+                <span class="skeleton-placeholder skeleton-line skeleton-line--event-link"></span>
+              </span>
+            </div>
           </div>
 
           <div v-else-if="!upcomingEvents.length" class="dashboard-empty">
@@ -433,6 +471,168 @@ onMounted(() => {
 .quick-action--warning .quick-action__icon {
   background: #fff4e5;
   color: #b45309;
+}
+
+.skeleton-placeholder {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-stat-value {
+  width: 58px;
+  height: 32px;
+  margin-top: 0.2rem;
+}
+
+.dashboard-table-skeleton {
+  overflow-x: auto;
+}
+
+.skeleton-table-header,
+.skeleton-table-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) minmax(160px, 0.9fr) minmax(120px, 0.75fr) minmax(80px, 0.4fr);
+  align-items: center;
+  gap: 1rem;
+  min-width: 720px;
+}
+
+.skeleton-table-header {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.skeleton-table-row {
+  padding: 0.95rem 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.skeleton-table-row:last-child {
+  border-bottom: 0;
+}
+
+.skeleton-heading {
+  width: 72px;
+  height: 12px;
+}
+
+.skeleton-heading--center {
+  justify-self: center;
+}
+
+.skeleton-heading--end,
+.skeleton-dot-action {
+  justify-self: end;
+}
+
+.skeleton-person-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.skeleton-person-lines,
+.skeleton-event-lines,
+.skeleton-event-date-lines {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.skeleton-line {
+  height: 12px;
+}
+
+.skeleton-line--name {
+  width: min(180px, 75%);
+}
+
+.skeleton-line--email {
+  width: min(220px, 88%);
+  height: 10px;
+}
+
+.skeleton-line--date {
+  width: 104px;
+  justify-self: center;
+}
+
+.skeleton-pill {
+  height: 24px;
+}
+
+.skeleton-pill--status {
+  width: 86px;
+  justify-self: center;
+}
+
+.skeleton-dot-action {
+  width: 28px;
+  height: 12px;
+}
+
+.skeleton-summary-line {
+  width: 220px;
+  height: 12px;
+}
+
+.upcoming-skeleton-list {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-upcoming-event {
+  pointer-events: none;
+}
+
+.skeleton-line--event-title {
+  width: min(240px, 76%);
+  height: 14px;
+}
+
+.skeleton-line--event-location {
+  width: min(180px, 62%);
+  height: 11px;
+}
+
+.skeleton-event-date-lines {
+  justify-items: end;
+}
+
+.skeleton-line--event-date {
+  width: 92px;
+  height: 13px;
+}
+
+.skeleton-line--event-link {
+  width: 118px;
+  height: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .dashboard-empty {
@@ -567,6 +767,36 @@ onMounted(() => {
 
   .upcoming-event .text-end {
     text-align: left !important;
+  }
+
+  .dashboard-table-skeleton {
+    overflow-x: hidden;
+  }
+
+  .skeleton-table-header {
+    display: none;
+  }
+
+  .skeleton-table-row {
+    grid-template-columns: 1fr;
+    min-width: 0;
+    gap: 0.75rem;
+  }
+
+  .skeleton-line--date,
+  .skeleton-pill--status,
+  .skeleton-dot-action {
+    justify-self: start;
+  }
+
+  .skeleton-event-date-lines {
+    justify-items: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-placeholder::after {
+    animation: none;
   }
 }
 </style>

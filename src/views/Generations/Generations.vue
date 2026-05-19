@@ -97,6 +97,7 @@ const columns = [
     { key: "description", label: "ការពិពណ៌នា" },
     { key: "actions", label: "សកម្មភាព" },
 ];
+const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
 
 const openCreateModal = () => {
     modalMode.value = "create";
@@ -229,10 +230,25 @@ const handlePageChange = (page) => {
         </div>
 
 
-        <div v-if="genStore.isLoading.value" class="app-state">
-            <div>
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-3 mb-0">កំពុងទាញទិន្នន័យ...</p>
+        <div v-if="genStore.isLoading.value" class="generation-skeleton-card bg-white rounded-4 shadow-sm border"
+            aria-busy="true" aria-live="polite" aria-label="កំពុងផ្ទុកទិន្នន័យជំនាន់">
+            <div class="generation-skeleton-header">
+                <span v-for="column in columns" :key="column.key" class="skeleton-placeholder skeleton-heading"></span>
+            </div>
+            <div class="generation-table-skeleton">
+                <div v-for="row in skeletonRows" :key="row" class="generation-skeleton-row">
+                    <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
+                    <span class="skeleton-placeholder skeleton-pill skeleton-pill--year"></span>
+                    <span class="skeleton-placeholder skeleton-pill skeleton-pill--department"></span>
+                    <span class="skeleton-description-lines">
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--description"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--description-short"></span>
+                    </span>
+                    <span class="skeleton-actions">
+                        <span class="skeleton-placeholder skeleton-action"></span>
+                        <span class="skeleton-placeholder skeleton-action"></span>
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -365,6 +381,109 @@ const handlePageChange = (page) => {
     color: #adb5bd;
 }
 
+.generation-skeleton-card {
+    overflow-x: auto;
+}
+
+.generation-skeleton-header,
+.generation-skeleton-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 1fr) minmax(120px, 0.75fr) minmax(150px, 0.85fr) minmax(220px, 1.25fr) minmax(110px, 0.55fr);
+    align-items: center;
+    gap: 1rem;
+    min-width: 720px;
+}
+
+.generation-skeleton-header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.generation-skeleton-row {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.generation-skeleton-row:last-child {
+    border-bottom: 0;
+}
+
+.skeleton-placeholder {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-heading {
+    width: 72px;
+    height: 12px;
+}
+
+.skeleton-line {
+    height: 13px;
+}
+
+.skeleton-line--name {
+    width: min(180px, 78%);
+}
+
+.skeleton-pill {
+    height: 26px;
+}
+
+.skeleton-pill--year {
+    width: 118px;
+}
+
+.skeleton-pill--department {
+    width: 138px;
+}
+
+.skeleton-description-lines {
+    display: grid;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.skeleton-line--description {
+    width: min(260px, 92%);
+}
+
+.skeleton-line--description-short {
+    width: min(180px, 68%);
+    height: 11px;
+}
+
+.skeleton-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.skeleton-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
 .text-description {
     display: -webkit-box;
     line-clamp: 2;
@@ -403,6 +522,31 @@ const handlePageChange = (page) => {
     .generations-header .btn,
     .generations-pagination :deep(.pagination-wrap) {
         width: 100%;
+    }
+
+    .generation-skeleton-card {
+        overflow-x: hidden;
+    }
+
+    .generation-skeleton-header {
+        display: none;
+    }
+
+    .generation-skeleton-row {
+        grid-template-columns: 1fr;
+        min-width: 0;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .skeleton-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-placeholder::after {
+        animation: none;
     }
 }
 </style>

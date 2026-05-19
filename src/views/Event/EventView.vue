@@ -24,6 +24,7 @@ const tableColumns = [
     { key: 'thumbnail', label: 'រូបភាពតំណាង' },
     { key: 'actions', label: 'សកម្មភាព' }
 ];
+const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
 
 const form = reactive({
     title: '',
@@ -185,11 +186,31 @@ const formatDateTime = (value) => {
             </div>
         </div>
 
-        <!-- ស្ថានភាពកំពុងផ្ទុក (Loading State) -->
-        <div v-if="store.isLoading" class="app-state">
-            <div>
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-3 mb-0">កំពុងទាញយកទិន្នន័យ...</p>
+        <div v-if="store.isLoading" class="event-skeleton-card bg-white rounded-4 shadow-sm border"
+            aria-busy="true" aria-live="polite" aria-label="កំពុងផ្ទុកទិន្នន័យព្រឹត្តិការណ៍">
+            <div class="event-skeleton-header">
+                <span v-for="column in tableColumns" :key="column.key"
+                    class="skeleton-placeholder skeleton-heading"></span>
+            </div>
+            <div class="event-table-skeleton">
+                <div v-for="row in skeletonRows" :key="row" class="event-skeleton-row">
+                    <span class="skeleton-title-lines">
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--title"></span>
+                        <span class="skeleton-placeholder skeleton-line skeleton-line--id"></span>
+                    </span>
+                    <span class="skeleton-placeholder skeleton-line skeleton-line--location"></span>
+                    <span class="skeleton-placeholder skeleton-pill skeleton-pill--date"></span>
+                    <span class="skeleton-placeholder skeleton-pill skeleton-pill--date"></span>
+                    <span class="skeleton-thumbnail-cell">
+                        <span class="skeleton-placeholder skeleton-thumbnail"></span>
+                        <span class="skeleton-placeholder skeleton-upload"></span>
+                    </span>
+                    <span class="skeleton-actions">
+                        <span class="skeleton-placeholder skeleton-action"></span>
+                        <span class="skeleton-placeholder skeleton-action"></span>
+                        <span class="skeleton-placeholder skeleton-action"></span>
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -197,12 +218,14 @@ const formatDateTime = (value) => {
         <div v-else>
             <BaseTable :columns="tableColumns" :data="store.events">
                 <template #cell-title="{ item }">
-                    <div class="fw-semibold">{{ item.title }}</div>
+                    <div class="fw-semibold ">{{ item.title }}</div>
                     <small class="text-muted">អត្តលេខ: {{ item.id }}</small>
                 </template>
 
                 <template #cell-location="{ item }">
-                    <span class="text-muted">{{ item.location || '-' }}</span>
+                    <span class="event-location-text text-muted text-truncate" :title="item.location || '-'">
+                        {{ item.location || '-' }}
+                    </span>
                 </template>
 
                 <template #cell-startDate="{ item }">
@@ -246,7 +269,7 @@ const formatDateTime = (value) => {
                 </template>
             </BaseTable>
 
-            <div class="event-pagination page-toolbar mt-4">
+            <div class="event-pagination page-toolbar border-top d-flex flex-column flex-md-row align-items-center justify-content-between py-3 px-4">
                 <p class="small text-muted mb-0">សរុប: {{ store.totalItems }} ព្រឹត្តិការណ៍</p>
                 <BasePage :currentPage="store.queryParams._page" :totalPages="store.totalPages"
                     @change-page="handlePageChange" />
@@ -348,6 +371,132 @@ const formatDateTime = (value) => {
     max-width: 100%;
 }
 
+.event-location-text {
+    display: inline-block;
+    max-width: clamp(140px, 18vw, 260px);
+    vertical-align: middle;
+}
+
+.event-skeleton-card {
+    overflow-x: auto;
+}
+
+.event-skeleton-header,
+.event-skeleton-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 1.25fr) minmax(150px, 0.8fr) minmax(140px, 0.75fr) minmax(140px, 0.75fr) minmax(150px, 0.9fr) minmax(130px, 0.65fr);
+    align-items: center;
+    gap: 1rem;
+    min-width: 920px;
+}
+
+.event-skeleton-header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.event-skeleton-row {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.event-skeleton-row:last-child {
+    border-bottom: 0;
+}
+
+.skeleton-placeholder {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-heading {
+    width: 72px;
+    height: 12px;
+}
+
+.skeleton-title-lines,
+.skeleton-thumbnail-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.skeleton-title-lines {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.skeleton-line {
+    height: 13px;
+}
+
+.skeleton-line--title {
+    width: min(180px, 82%);
+}
+
+.skeleton-line--id {
+    width: 82px;
+    height: 10px;
+}
+
+.skeleton-line--location {
+    width: min(130px, 78%);
+}
+
+.skeleton-pill {
+    height: 24px;
+}
+
+.skeleton-pill--date {
+    width: 118px;
+}
+
+.skeleton-thumbnail {
+    width: 80px;
+    height: 48px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+}
+
+.skeleton-upload {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+}
+
+.skeleton-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.skeleton-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
 .btn-white {
     background: white;
     border: none;
@@ -370,6 +519,31 @@ const formatDateTime = (value) => {
 
     .event-search {
         width: 100%;
+    }
+
+    .event-skeleton-card {
+        overflow-x: hidden;
+    }
+
+    .event-skeleton-header {
+        display: none;
+    }
+
+    .event-skeleton-row {
+        grid-template-columns: 1fr;
+        min-width: 0;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .skeleton-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-placeholder::after {
+        animation: none;
     }
 }
 </style>

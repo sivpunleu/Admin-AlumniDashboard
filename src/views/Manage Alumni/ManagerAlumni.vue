@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import BasePage from "../../components/UI/Base/BasePage.vue";
 import BaseButton from "../../components/UI/Base/BaseButton.vue";
 import BaseModal from "../../components/UI/Base/BaseModal.vue";
@@ -101,6 +101,11 @@ const departmentStore = useDepartmentStore();
 const showRegisterModal = store.showRegisterModal;
 const PRIMARY_COLOR = store.PRIMARY_COLOR;
 let searchDebounceTimer;
+const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
+const isInitialPageLoading = ref(true);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+const INITIAL_PLACEHOLDER_MIN_MS = 350;
 
 const stats = computed(() => {
   const result = {
@@ -113,12 +118,44 @@ const stats = computed(() => {
   return result;
 });
 
+const showStatsSkeleton = computed(
+  () =>
+    isInitialPageLoading.value ||
+    store.isLoading.value &&
+    store.users.value.length === 0 &&
+    store.totalItems.value === 0 &&
+    stats.value.total === 0,
+);
+
+const showTableSkeleton = computed(
+  () =>
+    isInitialPageLoading.value ||
+    (store.isLoading.value && store.users.value.length === 0),
+);
+
+const showRefreshPlaceholder = computed(
+  () =>
+    !isInitialPageLoading.value &&
+    store.isLoading.value &&
+    store.users.value.length > 0,
+);
+
 onMounted(async () => {
-  await Promise.all([
-    departmentStore.fetchDepartments(),
-    generationStore.fetchGenerations(),
-  ]);
-  store.fetchUsers();
+  isInitialPageLoading.value = true;
+  const minPlaceholderDelay = new Promise((resolve) => {
+    window.setTimeout(resolve, INITIAL_PLACEHOLDER_MIN_MS);
+  });
+
+  try {
+    await Promise.all([
+      departmentStore.fetchDepartments(),
+      generationStore.fetchGenerations(),
+      store.fetchUsers(),
+      minPlaceholderDelay,
+    ]);
+  } finally {
+    isInitialPageLoading.value = false;
+  }
 });
 
 watch([() => store.searchQuery.value, () => store.activeTab.value], ([, activeTab], [, previousActiveTab]) => {
@@ -219,6 +256,15 @@ watch(() => store.registerForm.value.generationId, () => {
   delete store.registerErrors.value.departmentId;
 });
 
+watch(showRegisterModal, (isOpen) => {
+  if (!isOpen) {
+    store.resetRegisterForm();
+    store.clearRegisterErrors();
+    showPassword.value = false;
+    showConfirmPassword.value = false;
+  }
+});
+
 const tableColumns = [
   { key: "alumni", label: "សមាជិកអតីតនិស្សិត" },
   { key: "id", label: "លេខសម្គាល់" },
@@ -252,7 +298,10 @@ const tableColumns = [
             <div class="icon-box me-3"><i class="bi bi-people fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">អតីតនិស្សិតសរុប</p>
-              <h3 class="fw-bold mb-0">{{ stats.total }}</h3>
+              <span v-if="showStatsSkeleton" class="placeholder-glow d-block" aria-hidden="true">
+                <span class="placeholder skeleton-placeholder skeleton-stat-value"></span>
+              </span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.total }}</h3>
             </div>
           </div>
         </div>
@@ -265,7 +314,10 @@ const tableColumns = [
             </div>
             <div>
               <p class="text-muted small mb-0">បានអនុម័ត</p>
-              <h3 class="fw-bold mb-0">{{ stats.approved }}</h3>
+              <span v-if="showStatsSkeleton" class="placeholder-glow d-block" aria-hidden="true">
+                <span class="placeholder skeleton-placeholder skeleton-stat-value"></span>
+              </span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.approved }}</h3>
             </div>
           </div>
         </div>
@@ -278,7 +330,10 @@ const tableColumns = [
                 class="bi bi-clock-history fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">កំពុងរង់ចាំពិនិត្យ</p>
-              <h3 class="fw-bold mb-0">{{ stats.pending }}</h3>
+              <span v-if="showStatsSkeleton" class="placeholder-glow d-block" aria-hidden="true">
+                <span class="placeholder skeleton-placeholder skeleton-stat-value"></span>
+              </span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.pending }}</h3>
             </div>
           </div>
         </div>
@@ -291,7 +346,10 @@ const tableColumns = [
                 class="bi bi-exclamation-octagon fs-4"></i></div>
             <div>
               <p class="text-muted small mb-0">បានផ្អាកដំណើរការ</p>
-              <h3 class="fw-bold mb-0">{{ stats.deactivated }}</h3>
+              <span v-if="showStatsSkeleton" class="placeholder-glow d-block" aria-hidden="true">
+                <span class="placeholder skeleton-placeholder skeleton-stat-value"></span>
+              </span>
+              <h3 v-else class="fw-bold mb-0">{{ stats.deactivated }}</h3>
             </div>
           </div>
         </div>
@@ -338,18 +396,38 @@ const tableColumns = [
           បង្ហាញ {{ pageSummary }} នៃ {{ store.totalItems.value }}
         </div>
       </div>
-      <div v-if="store.isLoading.value" class="app-state">
-        <div>
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-3 mb-0">កំពុងផ្ទុក...</p>
+      <div v-if="showRefreshPlaceholder" class="manager-refresh-placeholder" aria-live="polite"
+        aria-label="កំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យអតីតនិស្សិត">
+        <span class="placeholder-glow d-block" aria-hidden="true">
+          <span class="placeholder skeleton-placeholder skeleton-refresh-line"></span>
+        </span>
+      </div>
+      <div v-if="showTableSkeleton" class="manager-table-skeleton placeholder-glow" aria-busy="true" aria-live="polite"
+        aria-label="កំពុងផ្ទុកទិន្នន័យអតីតនិស្សិត">
+        <span class="visually-hidden">កំពុងផ្ទុក...</span>
+        <div v-for="row in skeletonRows" :key="row" class="skeleton-table-row">
+          <div class="skeleton-person-cell">
+            <span class="placeholder skeleton-placeholder skeleton-avatar" aria-hidden="true"></span>
+            <span class="skeleton-person-lines">
+              <span class="placeholder skeleton-placeholder skeleton-line skeleton-line--name" aria-hidden="true"></span>
+              <span class="placeholder skeleton-placeholder skeleton-line skeleton-line--email" aria-hidden="true"></span>
+            </span>
+          </div>
+          <span class="placeholder skeleton-placeholder skeleton-line skeleton-line--id" aria-hidden="true"></span>
+          <span class="placeholder skeleton-placeholder skeleton-pill" aria-hidden="true"></span>
+          <span class="placeholder skeleton-placeholder skeleton-pill skeleton-pill--status" aria-hidden="true"></span>
+          <div class="skeleton-actions-cell">
+            <span class="placeholder skeleton-placeholder skeleton-action" aria-hidden="true"></span>
+            <span class="placeholder skeleton-placeholder skeleton-action skeleton-action--icon" aria-hidden="true"></span>
+          </div>
         </div>
       </div>
 
       <div v-else-if="store.users.value.length === 0" class="app-state">
-        <div>
+        <!-- <div>
           <div class="app-state__icon"><i class="bi bi-people"></i></div>
           <p class="mb-0">មិនមានទិន្នន័យទេ</p>
-        </div>
+        </div> -->
       </div>
 
       <BaseTable v-else :columns="tableColumns" :data="store.users.value">
@@ -395,7 +473,8 @@ const tableColumns = [
         </template>
       </BaseTable>
 
-      <div class="card-footer bg-white border-0 py-4 px-4" v-if="store.totalPages.value > 1">
+      <div class="card-footer bg-white border-top d-flex flex-column flex-md-row align-items-center justify-content-between py-3 px-4" v-if="store.totalPages.value > 1">
+        <span class="text-muted small me-2">ទំព័រ {{ store.currentPage.value }} នៃ {{ store.totalPages.value }}</span>
         <BasePage :currentPage="store.currentPage.value" :totalPages="store.totalPages.value"
           @change-page="handlePageChange" />
       </div>
@@ -405,11 +484,12 @@ const tableColumns = [
 
   <!-- Register Modal using BaseModal -->
   <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" size="lg" hideDefaultFooter>
-    <form class="app-form register-modal-form" novalidate @submit.prevent="store.handleRegisterAlumni">
+    <form class="app-form register-modal-form" novalidate autocomplete="off" @submit.prevent="store.handleRegisterAlumni">
       <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
         <input v-model="store.registerForm.value.fullname" type="text" class="form-control"
-          :class="{ 'is-invalid': store.registerErrors.value.fullname }" required
+          autocomplete="off"
+          :class="{ 'is-invalid': store.registerErrors.value.fullname }" placeholder="បញ្ចូលឈ្មោះពេញលេញ" required
           @input="delete store.registerErrors.value.fullname" />
         <div v-if="store.registerErrors.value.fullname" class="invalid-feedback">
           {{ store.registerErrors.value.fullname }}
@@ -419,7 +499,8 @@ const tableColumns = [
       <div>
         <label class="form-label fw-bold small">អ៊ីមែល *</label>
         <input v-model="store.registerForm.value.email" type="email" class="form-control"
-          :class="{ 'is-invalid': store.registerErrors.value.email }" required
+          autocomplete="off"
+          :class="{ 'is-invalid': store.registerErrors.value.email }" placeholder="បញ្ចូលអ៊ីមែល" required
           @input="delete store.registerErrors.value.email" />
         <div v-if="store.registerErrors.value.email" class="invalid-feedback">
           {{ store.registerErrors.value.email }}
@@ -428,14 +509,23 @@ const tableColumns = [
 
       <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
-        <input v-model="store.registerForm.value.phone" type="tel" class="form-control" />
+        <input v-model="store.registerForm.value.phone" type="tel" class="form-control"
+          autocomplete="off"
+          placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
       </div>
 
       <div>
         <label class="form-label fw-bold small">ពាក្យសម្ងាត់ </label>
-        <input v-model="store.registerForm.value.password" type="password" class="form-control"
-          :class="{ 'is-invalid': store.registerErrors.value.password }" required
-          @input="delete store.registerErrors.value.password" />
+        <div class="password-field">
+          <input v-model="store.registerForm.value.password" :type="showPassword ? 'text' : 'password'"
+            class="form-control password-field__input" autocomplete="new-password"
+            :class="{ 'is-invalid': store.registerErrors.value.password }" placeholder="បញ្ចូលពាក្យសម្ងាត់" required
+            @input="delete store.registerErrors.value.password" />
+          <button type="button" class="password-field__toggle" :title="showPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword">
+            <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
         <div v-if="store.registerErrors.value.password" class="invalid-feedback">
           {{ store.registerErrors.value.password }}
         </div>
@@ -443,9 +533,19 @@ const tableColumns = [
 
       <div>
         <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ </label>
-        <input v-model="store.registerForm.value.confirmPassword" type="password" class="form-control"
-          :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }" required
-          @input="delete store.registerErrors.value.confirmPassword" />
+        <div class="password-field">
+          <input v-model="store.registerForm.value.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+            class="form-control password-field__input" autocomplete="new-password"
+            :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }"
+            placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
+            @input="delete store.registerErrors.value.confirmPassword" />
+          <button type="button" class="password-field__toggle"
+            :title="showConfirmPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            @click="showConfirmPassword = !showConfirmPassword">
+            <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+          </button>
+        </div>
         <div v-if="store.registerErrors.value.confirmPassword" class="invalid-feedback">
           {{ store.registerErrors.value.confirmPassword }}
         </div>
@@ -455,7 +555,7 @@ const tableColumns = [
         <select v-model="store.registerForm.value.generationId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
           @change="delete store.registerErrors.value.generationId">
-          <option value="">ជ្រើសរើស</option>
+          <option value="" disabled>ជ្រើសរើសជំនាន់</option>
           <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id">
             {{ generation.name }}
           </option>
@@ -469,7 +569,7 @@ const tableColumns = [
         <select v-model="store.registerForm.value.departmentId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
           @change="delete store.registerErrors.value.departmentId">
-          <option value="">ជ្រើសរើស</option>
+          <option value="" disabled>ជ្រើសរើសដេប៉ាតឺម៉ង់</option>
           <option v-for="department in filteredDepartments" :key="department.id" :value="department.id">
             {{ department.name }}
           </option>
@@ -493,16 +593,18 @@ const tableColumns = [
 
       <div class="form-field--full">
         <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
-        <input v-model="store.registerForm.value.currentJob" type="text" class="form-control" />
+        <input v-model="store.registerForm.value.currentJob" type="text" class="form-control"
+          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន" />
       </div>
 
       <div class="form-field--full">
         <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
-        <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"></textarea>
+        <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"
+          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"></textarea>
       </div>
 
       <div class="modal-actions">
-        <BaseButton variant="secondary" @click="store.showRegisterModal.value = false" class="flex-grow-1">
+        <BaseButton variant="secondary" @click="store.closeRegisterModal" class="flex-grow-1">
           បិទ
         </BaseButton>
         <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
@@ -574,7 +676,7 @@ const tableColumns = [
   gap: 0.75rem;
   padding: 0 1rem;
   min-width: 0;
-  width: 100%;
+  /* width: 100%; */
   box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
@@ -687,6 +789,126 @@ const tableColumns = [
   color: #64748b;
 }
 
+.skeleton-placeholder {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.skeleton-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-stat-value {
+  width: 58px;
+  height: 32px;
+  margin-top: 0.2rem;
+}
+
+.manager-refresh-placeholder {
+  padding: 0 1.5rem 0.75rem;
+}
+
+.skeleton-refresh-line {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.manager-table-skeleton {
+  display: grid;
+  min-width: 720px;
+}
+
+.skeleton-table-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.9fr) minmax(72px, 0.65fr) minmax(110px, 0.8fr) minmax(140px, 1fr) minmax(150px, 0.9fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #edf2f7;
+}
+
+.skeleton-table-row:first-child {
+  border-top: 0;
+}
+
+.skeleton-person-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.skeleton-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.skeleton-person-lines {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.skeleton-line {
+  height: 12px;
+}
+
+.skeleton-line--name {
+  width: min(190px, 72%);
+}
+
+.skeleton-line--email {
+  width: min(240px, 88%);
+  height: 10px;
+}
+
+.skeleton-line--id {
+  width: 56px;
+}
+
+.skeleton-pill {
+  width: 88px;
+  height: 24px;
+}
+
+.skeleton-pill--status {
+  width: 120px;
+}
+
+.skeleton-actions-cell {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.skeleton-action {
+  width: 88px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.skeleton-action--icon {
+  width: 34px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .smaller {
   font-size: 11px;
 }
@@ -729,6 +951,24 @@ const tableColumns = [
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .manager-refresh-placeholder {
+    padding: 0 1rem 0.75rem;
+  }
+
+  .manager-table-skeleton {
+    min-width: 0;
+  }
+
+  .skeleton-table-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .skeleton-actions-cell {
+    justify-content: flex-start;
+  }
+
   .tab-btn {
     width: 100%;
     min-height: 44px;
@@ -741,6 +981,47 @@ const tableColumns = [
   .register-modal-form {
     grid-template-columns: 1fr;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-placeholder::after {
+    animation: none;
+  }
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field__input {
+  padding-right: 42px;
+}
+
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.password-field__toggle:hover {
+  color: #216477;
+  background: #f3f4f6;
+}
+
+.password-field__toggle:focus-visible {
+  outline: 2px solid rgba(33, 100, 119, 0.35);
+  outline-offset: 2px;
 }
 
 .form-label {
@@ -756,6 +1037,10 @@ const tableColumns = [
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
 }
 
 .form-control:focus {
