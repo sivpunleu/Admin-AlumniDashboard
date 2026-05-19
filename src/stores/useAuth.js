@@ -40,6 +40,47 @@ const persistAuth = (userToken, userData, remember) => {
   storage.setItem("user", JSON.stringify(userData));
 };
 
+const readFirstError = (value) => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
+const createAuthError = (error, fallbackMessage) => {
+  const responseErrors = error.response?.data?.errors || {};
+  const fieldErrors = Object.fromEntries(
+    Object.entries(responseErrors).map(([field, value]) => [
+      field,
+      readFirstError(value),
+    ]),
+  );
+
+  return {
+    message:
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      fallbackMessage,
+    fieldErrors,
+    status: error.response?.status || error.status || null,
+    originalError: error,
+  };
+};
+
+const extractResetToken = (responseData) => {
+  const payload = responseData?.data || responseData || {};
+  return payload.token || payload.resetToken || payload.reset_token || "";
+};
+
+const isUnverifiedAccountError = (error) => {
+  const message = String(error.response?.data?.message || "").toLowerCase();
+  return (
+    error.response?.status === 401 &&
+    (message.includes("verify") ||
+      message.includes("verified") ||
+      message.includes("otp"))
+  );
+};
+
 export const useAuthStore = defineStore("auth", () => {
   const token = ref(getStoredToken() || null);
   const user = ref(getStoredUser());
@@ -49,7 +90,6 @@ export const useAuthStore = defineStore("auth", () => {
   const isLogined = computed(() => !!token.value);
   const getUser = computed(() => user.value);
 
-  // Function ជំនួយសម្រាប់ឆែកថាជា Admin ឬទេ
   const checkIsAdmin = (userData) => {
     if (!userData) return false;
     const roleName =
@@ -84,17 +124,18 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (!userToken) throw new Error("មិនអាចរកឃើញ Token ពីម៉ាស៊ីនមេឡើយ");
 
-      // --- លក្ខខណ្ឌសំខាន់: បើមិនមែន Admin មិនឱ្យចូល ---
+
       if (!checkIsAdmin(userData)) {
         swal.fire({
           icon: "error",
           title: "សិទ្ធិមិនគ្រប់គ្រាន់",
-          text: "គណនីនេះសម្រាប់តែ Admin ទេ។ អ្នកមិនអាចចូលប្រើប្រាស់បានឡើយ!",
+          text: "គណនីនេះសម្រាប់តែ Admin ទេ។ សូមប្រើគណនី Admin ដើម្បីចូល។",
+          timer: 1600,
         });
         throw new Error("Unauthorized: Not an admin");
       }
 
-      // បើផ្ទៀងផ្ទាត់ជោគជ័យ ទើបឱ្យ Save ទិន្នន័យ
+
       token.value = userToken;
       user.value = userData;
       persistAuth(userToken, userData, remember);
@@ -109,16 +150,87 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (error) {
       if (error.response?.status === 422) {
         errors.value = error.response.data.errors;
+      } else if (isUnverifiedAccountError(error)) {
+        const result = await swal.fire({
+          icon: "warning",
+          title: "គណនីមិនទាន់បានផ្ទៀងផ្ទាត់",
+          text: "គណនីរបស់អ្នកមិនទាន់បាន verify ទេ។ សូមបញ្ចូល OTP ដើម្បីផ្ទៀងផ្ទាត់គណនី។",
+          showCancelButton: true,
+          confirmButtonText: "ទៅ Verify គណនី",
+          cancelButtonText: "បិទ",
+          confirmButtonColor: "#216477",
+        });
+
+        if (result.isConfirmed) {
+          await router.push({
+            name: "verify-account",
+            query: { email: credentials.email || "" },
+          });
+        }
       } else if (error.response?.status === 401) {
-        swal.fire({
+        await swal.fire({
           icon: "error",
           title: "បរាជ័យ",
           text: "អ៊ីមែល ឬលេខសម្ងាត់មិនត្រឹមត្រូវ!",
         });
       }
-      throw error; // បោះ Error ទៅឱ្យ Component ចាប់បន្ត
+      throw error;
     } finally {
       loading.value = false;
+    }
+  };
+
+  const requestPasswordReset = async (email) => {
+    try {
+      const response = await api.post("auth/forget-password", { email });
+      return {
+        data: response?.data || {},
+        token: extractResetToken(response?.data),
+      };
+    } catch (error) {
+      throw createAuthError(
+        error,
+        "មិនអាចផ្ញើតំណកំណត់ពាក្យសម្ងាត់ឡើងវិញបានទេ។",
+      );
+    }
+  };
+
+  const resetPassword = async ({ token, newPassword }) => {
+    try {
+      const response = await api.post("auth/reset-password", {
+        token,
+        newPassword,
+      });
+
+      return response?.data || {};
+    } catch (error) {
+      throw createAuthError(error, "មិនអាចកំណត់ពាក្យសម្ងាត់ឡើងវិញបានទេ។");
+    }
+  };
+
+  const sendVerificationOtp = async (email) => {
+    try {
+      const response = await api.post("/otp/send", { email });
+      const responseData = response?.data || {};
+      if (responseData.result === false) {
+        throw new Error(responseData.message || "មិនអាចផ្ញើ OTP បានទេ។");
+      }
+      return responseData;
+    } catch (error) {
+      throw createAuthError(error, "មិនអាចផ្ញើ OTP បានទេ។");
+    }
+  };
+
+  const verifyAccount = async ({ email, code }) => {
+    try {
+      const response = await api.post("/otp/verify", { email, code });
+      const responseData = response?.data || {};
+      if (responseData.result === false) {
+        throw new Error(responseData.message || "មិនអាចផ្ទៀងផ្ទាត់គណនីបានទេ។");
+      }
+      return responseData;
+    } catch (error) {
+      throw createAuthError(error, "មិនអាចផ្ទៀងផ្ទាត់គណនីបានទេ។");
     }
   };
 
@@ -176,5 +288,9 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     checkAuth,
     setUser,
+    requestPasswordReset,
+    resetPassword,
+    sendVerificationOtp,
+    verifyAccount,
   };
 });

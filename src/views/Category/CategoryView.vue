@@ -148,7 +148,7 @@ const handleSubmit = async () => {
         </div>
 
 
-        <div class="category-pagination page-toolbar mt-5">
+        <div class="category-pagination page-toolbar p-4 d-flex flex-column flex-md-row align-items-center justify-content-between bg-white border-0 rounded-4 shadow-sm">
             <p class="small text-muted mb-0">
                 សរុប:
                 <span v-if="store.isLoading" class="skeleton-placeholder skeleton-total"></span>
