@@ -22,6 +22,33 @@ const getStatusLabel = (status) => {
   return status || 'Unknown';
 };
 
+const normalizeBooleanFlag = (value) => {
+  if (typeof value === 'string') {
+    return ['1', 'true', 'yes', 'verified'].includes(value.trim().toLowerCase());
+  }
+
+  return Boolean(value);
+};
+
+const isAccountVerified = (user) => normalizeBooleanFlag(
+  user?.isVerifyEmail ??
+  user?.isVerified ??
+  user?.emailVerified ??
+  user?.verified ??
+  user?.profile?.isVerifyEmail ??
+  user?.profile?.isVerified,
+);
+
+const getVerifyClass = (user) => (
+  isAccountVerified(user)
+    ? 'bg-success-subtle text-success border-success-subtle'
+    : 'bg-warning-subtle text-warning border-warning-subtle'
+);
+
+const getVerifyLabel = (user) => (
+  isAccountVerified(user) ? 'បានផ្ទៀងផ្ទាត់' : 'មិនទាន់ផ្ទៀងផ្ទាត់'
+);
+
 const normalizeStatus = (user) => {
   const status = String(
     user?.status ||
@@ -282,6 +309,7 @@ const tableColumns = [
   { key: "alumni", label: "សមាជិកអតីតនិស្សិត" },
   { key: "id", label: "លេខសម្គាល់" },
   { key: "role", label: "Role" },
+  { key: "verify", label: "ផ្ទៀងផ្ទាត់អ៊ីមែល" },
   { key: "status", label: "ស្ថានភាព" },
   { key: "actions", label: "ការគ្រប់គ្រង" },
 ];
@@ -468,6 +496,12 @@ const tableColumns = [
 
         <template #cell-role="{ item }">
           <div class="text-muted smaller fs-6">{{ item.role?.name || item.role || 'Alumni' }}</div>
+        </template>
+        <!-- Account email verification -->
+        <template #cell-verify="{ item }">
+          <span :class="['badge-status border', getVerifyClass(item)]">
+            <i class="bi bi-circle-fill dot-icon"></i> {{ getVerifyLabel(item) }}
+          </span>
         </template>
 
         <template #cell-status="{ item }">

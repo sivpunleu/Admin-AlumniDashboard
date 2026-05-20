@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
@@ -105,6 +105,7 @@ const notice = reactive({
 
 const sendingOtp = ref(false);
 const verifying = ref(false);
+const autoSentEmail = ref("");
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function setNotice(type, text) {
@@ -174,23 +175,38 @@ function validateVerifyForm() {
   return emailIsValid && codeIsValid;
 }
 
-async function handleSendOtp() {
-  if (!validateEmail()) return;
+async function sendOtpForCurrentEmail() {
+  if (!validateEmail() || sendingOtp.value) return false;
 
   sendingOtp.value = true;
 
   try {
     await authStore.sendVerificationOtp(form.email);
     setNotice("success", "OTP ត្រូវបានផ្ញើទៅអ៊ីមែលរបស់អ្នករួចហើយ។");
+    return true;
   } catch (error) {
     logger.error("Send verification OTP failed:", {
       status: error.status,
       message: error.message,
     });
     applyServerErrors(error, "មិនអាចផ្ញើ OTP បានទេ។");
+    return false;
   } finally {
     sendingOtp.value = false;
   }
+}
+
+async function handleSendOtp() {
+  await sendOtpForCurrentEmail();
+}
+
+async function autoSendOtpFromRouteEmail() {
+  const email = form.email.trim();
+
+  if (!email || autoSentEmail.value === email) return;
+
+  const sent = await sendOtpForCurrentEmail();
+  if (sent) autoSentEmail.value = email;
 }
 
 async function handleVerifyAccount() {
@@ -226,11 +242,16 @@ async function handleVerifyAccount() {
 
 watch(
   () => route.query.email,
-  () => {
+  async () => {
     const routeEmail = getRouteEmail();
     if (routeEmail) form.email = routeEmail;
+    await autoSendOtpFromRouteEmail();
   },
 );
+
+onMounted(() => {
+  autoSendOtpFromRouteEmail();
+});
 </script>
 
 <style scoped>

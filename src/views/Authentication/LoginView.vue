@@ -103,11 +103,12 @@
 import { ref } from "vue";
 import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import { useAuthStore } from "@/stores/useAuth";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import swal from "sweetalert2";
 import logger from "@/utils/logger";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const form = ref({
@@ -170,7 +171,11 @@ const handleLogin = async () => {
       showConfirmButton: false,
     });
 
-    router.push("/dashboard");
+    const redirectPath = typeof route.query.redirect === "string"
+      ? route.query.redirect
+      : "/dashboard";
+
+    router.push(redirectPath);
   } catch (error) {
     const status = error.response?.status;
     if (![401, 422].includes(status)) {

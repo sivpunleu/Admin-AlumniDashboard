@@ -8,8 +8,8 @@ export const useProfileStore = defineStore("profile", () => {
   const profile = ref(null);
   const loading = ref(false);
   const errors = ref({});
-  const profileEndpoints = ["auth/profile", "profile"];
-  const avatarEndpoints = ["auth/profile/avatar", "profile/avatar"];
+  const profileEndpoints = ["auth/profile"];
+  const avatarEndpoints = ["auth/profile/avatar"];
 
   const normalizePayload = (response) =>
     response?.data?.data || response?.data || null;
@@ -148,9 +148,10 @@ export const useProfileStore = defineStore("profile", () => {
     errors.value = {};
 
     try {
-      const response = await requestFirstSuccess(
-        profileEndpoints.map((endpoint) => () => api.put(endpoint, payload)),
+      const sanitizedPayload = Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => value !== null && value !== undefined && value !== ""),
       );
+      const response = await api.put("auth/profile", sanitizedPayload);
       const profileData = normalizePayload(response);
 
       if (profileData) {

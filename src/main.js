@@ -3,8 +3,10 @@ import { createPinia } from "pinia";
 
 import App from "./App.vue";
 import router from "./router";
+import api from "@/API/api";
 import { useAuthStore } from "@/stores/useAuth";
 import { useProfileStore } from "@/stores/useProfile";
+import Swal from "sweetalert2";
 
 const app = createApp(App);
 
@@ -13,6 +15,66 @@ app.use(router);
 
 // Restore auth state (set Authorization header) if token exists on startup
 const auth = useAuthStore();
+let isHandlingUnauthorized = false;
+
+const hasBearerToken = (headers = {}) => {
+  const authorization = typeof headers.get === "function"
+    ? headers.get("Authorization")
+    : headers.Authorization || headers.authorization;
+
+  return String(authorization || "").startsWith("Bearer ");
+};
+
+const isPublicAuthRequest = (url = "") => [
+  "auth/login",
+  "auth/forget-password",
+  "auth/reset-password",
+  "auth/change-password",
+  "auth/change-email",
+  "auth/verify-change-email",
+  "/otp/send",
+  "/otp/verify",
+].some((endpoint) => String(url).includes(endpoint));
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error.response?.status;
+    const config = error.config || {};
+
+    if (
+      status === 401 &&
+      hasBearerToken(config.headers) &&
+      !auth.sessionRefreshing &&
+      !isPublicAuthRequest(config.url)
+    ) {
+      error.isSessionExpired = true;
+
+      if (!isHandlingUnauthorized) {
+        isHandlingUnauthorized = true;
+        auth.clearAuth();
+
+        if (router.currentRoute.value.name !== "login") {
+          await router.replace({ name: "login" }).catch(() => {});
+        }
+
+        await Swal.fire({
+          icon: "warning",
+          title: "Session ផុតកំណត់",
+          text: "សូមចូលគណនីឡើងវិញ។",
+          confirmButtonColor: "#216477",
+        });
+
+        setTimeout(() => {
+          isHandlingUnauthorized = false;
+        }, 2500);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 auth.checkAuth();
 const profileStore = useProfileStore();
 if (auth.isLogined) {

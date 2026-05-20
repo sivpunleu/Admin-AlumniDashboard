@@ -5,6 +5,8 @@ const ForgotPasswordView = () =>
   import("../views/Authentication/forgotPassword.vue");
 const VerifyAccountView = () =>
   import("../views/Authentication/VerifyAccount.vue");
+const SettingView = () =>
+  import("../views/Authentication/SettingVeiw.vue");
 const DashboardLayout = () => import("../components/Layout/Dashboard.vue");
 const HomeView = () => import("@/views/HomeView.vue");
 const ProfileView = () => import("@/views/Profile/ProfileView.vue");
@@ -16,6 +18,29 @@ const ParticipantView = () => import("@/views/Event/EventParticipantView.vue");
 const ManagerAlumniView = () =>
   import("@/views/Manage Alumni/ManagerAlumni.vue");
 const DepartmentView = () => import("@/views/Department/DepartmentView.vue");
+
+const readFirstValue = (value) => Array.isArray(value) ? value[0] : value;
+
+const redirectToEmailChangeVerification = (to) => {
+  const token = readFirstValue(to.params.token) ||
+    readFirstValue(to.query.token) ||
+    readFirstValue(to.query.verificationToken) ||
+    readFirstValue(to.query.emailChangeToken) ||
+    readFirstValue(to.query.changeEmailToken);
+  const query = { ...to.query };
+
+  delete query.verificationToken;
+  delete query.emailChangeToken;
+  delete query.changeEmailToken;
+
+  if (token) query.token = token;
+  query.verifyEmailChange = "1";
+
+  return {
+    name: "settings",
+    query,
+  };
+};
 
 const routes = [
   {
@@ -43,6 +68,26 @@ const routes = [
     meta: { requiresAuth: false, title: "កំណត់ពាក្យសម្ងាត់ឡើងវិញ" },
   },
   {
+    path: "/verify-change-email/:token?",
+    name: "verify-change-email",
+    redirect: redirectToEmailChangeVerification,
+  },
+  {
+    path: "/confirm-email-change/:token?",
+    name: "confirm-email-change",
+    redirect: redirectToEmailChangeVerification,
+  },
+  {
+    path: "/auth/verify-change-email/:token?",
+    name: "auth-verify-change-email",
+    redirect: redirectToEmailChangeVerification,
+  },
+  {
+    path: "/api/v1/auth/verify-change-email/:token?",
+    name: "api-verify-change-email",
+    redirect: redirectToEmailChangeVerification,
+  },
+  {
     path: "/",
     component: DashboardLayout,
     redirect: "/dashboard",
@@ -62,6 +107,12 @@ const routes = [
         name: "profile",
         component: ProfileView,
         meta: { title: "ប្រវត្តិរូប" },
+      },
+      {
+        path: "settings",
+        name: "settings",
+        component: SettingView,
+        meta: { title: "ការកំណត់" },
       },
       {
         path: "generations",
@@ -127,7 +178,10 @@ router.beforeEach((to) => {
 
   // 1. If route requires auth and user is NOT logged in -> Go to Login
   if (requiresAuth && !isAuthenticated) {
-    return { name: "login" };
+    return {
+      name: "login",
+      query: { redirect: to.fullPath },
+    };
   }
 
   // 2. If route requires admin and logged-in user is NOT admin -> Clear session and Go to Login

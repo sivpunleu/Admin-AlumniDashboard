@@ -94,6 +94,13 @@
                         </li>
 
                         <li>
+                            <router-link class="dropdown-item py-2" to="/settings">
+                                <i class="bi bi-gear me-2"></i>
+                                ការកំណត់
+                            </router-link>
+                        </li>
+
+                        <li>
                             <hr class="dropdown-divider">
                         </li>
 
