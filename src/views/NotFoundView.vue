@@ -6,7 +6,7 @@
                     <h1 class="not-found-code">404</h1>
                 </div>
                 <div class="ghost-icon">
-                    <i class="bi bi-robot"></i>
+                    <i class="bi bi-robot" aria-hidden="true"></i>
                 </div>
             </div>
 
@@ -18,8 +18,8 @@
                 </p>
 
                 <div class="action-buttons">
-                    <RouterLink class="btn-back-home" to="/dashboard">
-                        <i class="bi bi-house-door me-2"></i> ត្រឡប់ទៅ Dashboard
+                    <RouterLink class="btn-back-home" :to="{ name: 'home' }">
+                        <i class="bi bi-house-door me-2" aria-hidden="true"></i> ត្រឡប់ទៅ Dashboard
                     </RouterLink>
                 </div>
             </div>
@@ -62,7 +62,7 @@ import { RouterLink } from "vue-router";
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: -5px;
+    letter-spacing: 0;
     filter: drop-shadow(0 10px 15px rgba(99, 102, 241, 0.2));
 }
 
@@ -70,7 +70,7 @@ import { RouterLink } from "vue-router";
 .not-found-card {
     background: white;
     padding: 3rem 2rem;
-    border-radius: 1.5rem;
+    border-radius: 8px;
     border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
@@ -97,7 +97,7 @@ import { RouterLink } from "vue-router";
     color: white;
     text-decoration: none;
     font-weight: 600;
-    border-radius: 0.75rem;
+    border-radius: 8px;
     transition: all 0.3s ease;
     box-shadow: 0 10px 15px -3px rgba(30, 41, 59, 0.2);
 }

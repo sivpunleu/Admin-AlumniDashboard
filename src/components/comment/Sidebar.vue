@@ -60,6 +60,13 @@
           </router-link>
         </li>
 
+        <li class="nav-item">
+          <router-link to="/settings" class="nav-link" exact-active-class="active" @click="emit('close')">
+            <i class="bi bi-gear-fill me-3"></i>
+            ការកំណត់
+          </router-link>
+        </li>
+
         <!-- Logout -->
         <li class="nav-item mt-4 pt-3 border-top">
           <button type="button" class="nav-link text-danger w-100 btn-logout" @click="handleLogout">

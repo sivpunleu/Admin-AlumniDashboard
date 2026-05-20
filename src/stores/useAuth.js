@@ -5,8 +5,15 @@ import swal from "sweetalert2";
 import router from "@/router";
 import { useProfileStore } from "@/stores/useProfile";
 
+const normalizeToken = (value) => {
+  const token = String(value || "").trim();
+  const invalidTokens = ["undefined", "null", "false"];
+  return token && !invalidTokens.includes(token.toLowerCase()) ? token : null;
+};
+
 const getStoredToken = () =>
-  localStorage.getItem("token") || sessionStorage.getItem("token");
+  normalizeToken(localStorage.getItem("token")) ||
+  normalizeToken(sessionStorage.getItem("token"));
 
 const getActiveStorage = () =>
   localStorage.getItem("token") ? localStorage : sessionStorage;
@@ -40,12 +47,23 @@ const persistAuth = (userToken, userData, remember) => {
   storage.setItem("user", JSON.stringify(userData));
 };
 
+const persistCurrentAuth = (userToken, userData) => {
+  const storage = getActiveStorage();
+  const otherStorage = storage === localStorage ? sessionStorage : localStorage;
+
+  otherStorage.removeItem("token");
+  otherStorage.removeItem("user");
+  storage.setItem("token", userToken);
+  if (userData) storage.setItem("user", JSON.stringify(userData));
+};
+
 const readFirstError = (value) => {
   if (Array.isArray(value)) return value[0];
   return value;
 };
 
 const createAuthError = (error, fallbackMessage) => {
+  const responseDetails = readFirstError(error.response?.data?.details);
   const responseErrors = error.response?.data?.errors || {};
   const fieldErrors = Object.fromEntries(
     Object.entries(responseErrors).map(([field, value]) => [
@@ -60,15 +78,43 @@ const createAuthError = (error, fallbackMessage) => {
       error.response?.data?.error ||
       error.message ||
       fallbackMessage,
+    details: responseDetails,
     fieldErrors,
     status: error.response?.status || error.status || null,
+    isSessionExpired: error.isSessionExpired || false,
     originalError: error,
   };
+};
+
+const isEmailAlreadyInUseError = (authError) => {
+  const detail = String(authError.details || authError.message || "").toLowerCase();
+  return detail.includes("email") && detail.includes("already") && detail.includes("use");
 };
 
 const extractResetToken = (responseData) => {
   const payload = responseData?.data || responseData || {};
   return payload.token || payload.resetToken || payload.reset_token || "";
+};
+
+const extractAuthToken = (responseData) => {
+  const payload = responseData?.data || responseData || {};
+
+  return normalizeToken(
+    payload.token ||
+    payload.access_token ||
+    payload.accessToken ||
+    payload.auth?.token ||
+    payload.auth?.access_token ||
+    payload.auth?.accessToken ||
+    responseData?.token ||
+    responseData?.access_token ||
+    responseData?.accessToken,
+  );
+};
+
+const extractUserData = (responseData) => {
+  const payload = responseData?.data || responseData || {};
+  return payload.user || responseData?.user || (payload.email ? payload : null);
 };
 
 const isUnverifiedAccountError = (error) => {
@@ -85,6 +131,7 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref(getStoredToken() || null);
   const user = ref(getStoredUser());
   const loading = ref(false);
+  const sessionRefreshing = ref(false);
   const errors = ref({});
 
   const isLogined = computed(() => !!token.value);
@@ -103,9 +150,56 @@ export const useAuthStore = defineStore("auth", () => {
     const profileStore = useProfileStore();
     token.value = null;
     user.value = null;
+    sessionRefreshing.value = false;
     if (profileStore) profileStore.profile = null;
     clearStoredAuth();
     delete api.defaults.headers.common["Authorization"];
+  };
+
+  const setAuthSession = (userToken, userData) => {
+    token.value = userToken;
+    user.value = userData;
+    persistCurrentAuth(userToken, userData);
+    api.defaults.headers.common["Authorization"] = `Bearer ${userToken}`;
+  };
+
+  const getCurrentEmail = () => {
+    const profileStore = useProfileStore();
+    const sources = [
+      user.value,
+      user.value?.profile,
+      profileStore.profile,
+      profileStore.profile?.profile,
+    ];
+
+    return sources.find((source) => source?.email)?.email || "";
+  };
+
+  const refreshSessionWithPassword = async (newPassword) => {
+    const email = getCurrentEmail();
+    if (!email) return false;
+
+    try {
+      const response = await api.post(
+        "auth/login",
+        { email, password: newPassword },
+        { skipAuth: true },
+      );
+      const responseData = response?.data || {};
+      const nextToken = extractAuthToken(responseData);
+      const nextUser = extractUserData(responseData) || user.value;
+
+      if (!nextToken || !checkIsAdmin(nextUser)) return false;
+
+      setAuthSession(nextToken, nextUser);
+
+      const profileStore = useProfileStore();
+      await profileStore.fetchProfile().catch(() => {});
+
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const login = async (credentials, { remember = false } = {}) => {
@@ -114,13 +208,10 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const response = await api.post("auth/login", credentials);
       const responseData = response?.data || {};
-      const payload = responseData.data || responseData || {};
 
       // ទាញយក Token និង User Data
-      const userToken =
-        payload.token || payload.access_token || responseData.token || null;
-      const userData =
-        payload.user || responseData.user || (payload.email ? payload : null);
+      const userToken = extractAuthToken(responseData);
+      const userData = extractUserData(responseData);
 
       if (!userToken) throw new Error("មិនអាចរកឃើញ Token ពីម៉ាស៊ីនមេឡើយ");
 
@@ -208,6 +299,68 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  const changePassword = async ({ currentPassword, newPassword }) => {
+    sessionRefreshing.value = true;
+
+    try {
+      const response = await api.put("auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+      const responseData = response?.data || {};
+      const nextToken = extractAuthToken(responseData);
+      const nextUser = extractUserData(responseData) || user.value;
+
+      if (nextToken) {
+        setAuthSession(nextToken, nextUser);
+      } else {
+        await refreshSessionWithPassword(newPassword);
+      }
+
+      return responseData;
+    } catch (error) {
+      throw createAuthError(error, "មិនអាចផ្លាស់ប្តូរពាក្យសម្ងាត់បានទេ។");
+    } finally {
+      sessionRefreshing.value = false;
+    }
+  };
+
+  const requestEmailChange = async ({ newEmail, password }) => {
+    try {
+      const response = await api.post("auth/change-email", {
+        newEmail,
+        password,
+      });
+
+      return response?.data || {};
+    } catch (error) {
+      const authError = createAuthError(error, "មិនអាចផ្ញើសំណើផ្លាស់ប្តូរអ៊ីមែលបានទេ។");
+
+      if (isEmailAlreadyInUseError(authError)) {
+        const message = "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
+        authError.message = message;
+        authError.fieldErrors.newEmail = message;
+      }
+
+      throw authError;
+    }
+  };
+
+  const verifyEmailChange = async ({ token: verificationToken }) => {
+    try {
+      const response = await api.post("auth/verify-change-email", {
+        token: verificationToken,
+      });
+
+      const profileStore = useProfileStore();
+      await profileStore.fetchProfile().catch(() => {});
+
+      return response?.data || {};
+    } catch (error) {
+      throw createAuthError(error, "មិនអាចផ្ទៀងផ្ទាត់អ៊ីមែលថ្មីបានទេ។");
+    }
+  };
+
   const sendVerificationOtp = async (email) => {
     try {
       const response = await api.post("/otp/send", { email });
@@ -279,6 +432,7 @@ export const useAuthStore = defineStore("auth", () => {
     user,
     getUser,
     loading,
+    sessionRefreshing,
     errors,
     isLogined,
     isAdmin,
@@ -290,6 +444,9 @@ export const useAuthStore = defineStore("auth", () => {
     setUser,
     requestPasswordReset,
     resetPassword,
+    changePassword,
+    requestEmailChange,
+    verifyEmailChange,
     sendVerificationOtp,
     verifyAccount,
   };

@@ -150,21 +150,21 @@ onMounted(() => {
 <template>
   <div class="dashboard-container">
     <!-- ផ្នែកក្បាល (Header Section) -->
-    <div class="dashboard-page-header d-flex justify-content-between align-items-center mb-4">
+    <div class="dashboard-page-header d-flex justify-content-between align-items-center">
       <div>
-        <h2 class="fw-bold mb-1">ទិដ្ឋភាពទូទៅ</h2>
-        <p class="text-muted small">សូមស្វាគមន៍ការត្រឡប់មកវិញ។
+        <h2 class="dashboard-title fw-bold mb-1">ទិដ្ឋភាពទូទៅ</h2>
+        <p class="dashboard-subtitle text-muted small mb-0">សូមស្វាគមន៍ការត្រឡប់មកវិញ។
           នេះគឺជាអ្វីដែលកំពុងកើតឡើងនៅក្នុងសហគមន៍អតីតនិស្សិតរបស់អ្នក។</p>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm" @click="fetchDashboardData">
+        <button class="btn dashboard-refresh-btn btn-sm" @click="fetchDashboardData">
           <i class="bi bi-arrow-clockwise me-1"></i>ធ្វើបច្ចុប្បន្នភាព
         </button>
       </div>
     </div>
 
     <!-- ផ្នែកកាតស្ថិតិ (Stats Cards Section) -->
-    <div class="row g-3 mb-4">
+    <div class="quick-actions-grid row g-3">
       <div v-for="action in quickActions" :key="action.path" class="col-12 col-sm-6 col-xl-3">
         <button type="button" class="quick-action w-100" :class="`quick-action--${action.tone}`"
           @click="router.push(action.path)">
@@ -177,11 +177,10 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="row g-3 mb-5">
+    <div class="stats-grid row g-3">
       <!-- អតីតនិស្សិតសរុប -->
-      <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4"
-          :style="{ borderColor: PRIMARY_COLOR + ' !important' }">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card metric-card metric-card--primary h-100">
           <div class="d-flex align-items-center">
             <div class="icon-box me-3"><i class="bi bi-people fs-4"></i></div>
             <div>
@@ -193,8 +192,8 @@ onMounted(() => {
         </div>
       </div>
       <!-- បានអនុម័ត -->
-      <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-success">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card metric-card metric-card--success h-100">
           <div class="d-flex align-items-center">
             <div class="icon-box text-success me-3" style="background: #e6f4ea;"><i class="bi bi-person-check fs-4"></i>
             </div>
@@ -207,8 +206,8 @@ onMounted(() => {
         </div>
       </div>
       <!-- កំពុងរង់ចាំពិនិត្យ -->
-      <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-warning">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card metric-card metric-card--warning h-100">
           <div class="d-flex align-items-center">
             <div class="icon-box text-warning me-3" style="background: #fff4e5;"><i
                 class="bi bi-clock-history fs-4"></i></div>
@@ -221,8 +220,8 @@ onMounted(() => {
         </div>
       </div>
       <!-- បានផ្អាកដំណើរការ -->
-      <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-danger">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card metric-card metric-card--danger h-100">
           <div class="d-flex align-items-center">
             <div class="icon-box text-danger me-3" style="background: #fdf2f2;"><i
                 class="bi bi-exclamation-octagon fs-4"></i></div>
@@ -238,12 +237,12 @@ onMounted(() => {
 
     <div class="row g-4">
       <!-- តារាងការចុះឈ្មោះថ្មីៗ -->
-      <div class="col-lg-12">
-        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+      <div class="col-12 col-xl-8">
+        <div class="card dashboard-panel h-100">
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0">ការចុះឈ្មោះថ្មីៗ</h5>
             <button @click="router.push('/manager-alumni')"
-              class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">មើលទាំងអស់</button>
+              class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
           </div>
 
           <div v-if="isLoading" class="dashboard-table-skeleton" aria-busy="true" aria-live="polite"
@@ -305,11 +304,14 @@ onMounted(() => {
                   </td>
                   <td class="text-center">
                     <span :class="['badge-status', getStatusClass(getUserStatus(user))]">
-                      • {{ getStatusLabel(getUserStatus(user)) }}
+                      <span class="badge-status__dot"></span>{{ getStatusLabel(getUserStatus(user)) }}
                     </span>
                   </td>
-                  <td class="text-end text-muted">
-                    <i class="bi bi-three-dots cursor-pointer"></i>
+                  <td class="text-end">
+                    <button type="button" class="table-action-btn" aria-label="មើលព័ត៌មានលម្អិត"
+                      @click="router.push('/manager-alumni')">
+                      <i class="bi bi-three-dots"></i>
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -319,8 +321,8 @@ onMounted(() => {
       </div>
 
       <!-- ផ្នែកព័ត៌មានសហគមន៍ -->
-      <div class="col-lg-12">
-        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+      <div class="col-12 col-xl-4">
+        <div class="card dashboard-panel h-100">
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <div>
               <h5 class="fw-bold mb-1">សង្ខេបព្រឹត្តិការណ៍</h5>
@@ -333,7 +335,7 @@ onMounted(() => {
                 </template>
               </p>
             </div>
-            <button @click="router.push('/event')" class="btn btn-light btn-sm rounded-pill px-3 border shadow-sm">
+            <button @click="router.push('/event')" class="btn dashboard-link-btn btn-sm">
               មើលព្រឹត្តិការណ៍
             </button>
           </div>
@@ -791,6 +793,303 @@ onMounted(() => {
 
   .skeleton-event-date-lines {
     justify-items: start;
+  }
+}
+
+/* Dashboard visual refresh */
+.dashboard-container {
+  --dashboard-primary: #216477;
+  --dashboard-ink: #0f172a;
+  --dashboard-muted: #64748b;
+  --dashboard-border: #e2e8f0;
+  --dashboard-soft-border: #f1f5f9;
+  --dashboard-surface: #ffffff;
+  --dashboard-soft: #f8fafc;
+  --dashboard-ring: rgba(33, 100, 119, 0.12);
+
+  display: grid;
+  gap: 1rem;
+  padding: clamp(0rem, 1vw, 0.5rem);
+  color: var(--dashboard-ink);
+}
+
+.dashboard-page-header {
+  margin-bottom: 0;
+  padding: 22px 24px;
+  border: 1px solid var(--dashboard-border);
+  border-left: 4px solid var(--dashboard-primary);
+  border-radius: 8px;
+  background: var(--dashboard-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dashboard-title {
+  color: var(--dashboard-ink);
+  font-size: clamp(1.4rem, 2vw, 1.75rem);
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.dashboard-subtitle {
+  max-width: 760px;
+  color: var(--dashboard-muted) !important;
+  line-height: 1.7;
+}
+
+.dashboard-refresh-btn,
+.dashboard-link-btn {
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 8px;
+  background: var(--dashboard-surface);
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-refresh-btn:hover,
+.dashboard-link-btn:hover,
+.dashboard-refresh-btn:focus-visible,
+.dashboard-link-btn:focus-visible {
+  border-color: var(--dashboard-primary);
+  background: #f0f7f9;
+  color: var(--dashboard-primary);
+  box-shadow: 0 0 0 4px var(--dashboard-ring);
+}
+
+.quick-actions-grid,
+.stats-grid {
+  margin-bottom: 0;
+}
+
+.quick-action {
+  min-height: 72px;
+  padding: 14px;
+  border-color: var(--dashboard-border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.quick-action:hover,
+.quick-action:focus-visible {
+  border-color: var(--dashboard-primary);
+  box-shadow: 0 0 0 4px var(--dashboard-ring);
+  outline: 0;
+  transform: translateY(-1px);
+}
+
+.quick-action__icon {
+  border-radius: 8px;
+}
+
+.quick-action__label {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.metric-card.card {
+  padding: 18px;
+  border: 1px solid var(--dashboard-border) !important;
+  border-left-width: 4px !important;
+  border-radius: 8px !important;
+  background: var(--dashboard-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.metric-card.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.metric-card--primary {
+  border-left-color: var(--dashboard-primary) !important;
+}
+
+.metric-card--success {
+  border-left-color: #16a34a !important;
+}
+
+.metric-card--warning {
+  border-left-color: #d97706 !important;
+}
+
+.metric-card--danger {
+  border-left-color: #dc2626 !important;
+}
+
+.metric-card .icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.metric-card--primary .icon-box {
+  background: #eaf5f7;
+  color: var(--dashboard-primary);
+}
+
+.metric-card h3 {
+  color: var(--dashboard-ink);
+  font-size: 1.55rem;
+  line-height: 1.1;
+}
+
+.dashboard-panel.card {
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+  border: 1px solid var(--dashboard-border) !important;
+  border-radius: 8px !important;
+  background: var(--dashboard-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.2s ease;
+}
+
+.dashboard-panel.card:hover {
+  border-color: #cbd5e1;
+  transform: none;
+}
+
+.dashboard-card-header {
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--dashboard-soft-border);
+}
+
+.dashboard-card-header h5 {
+  color: var(--dashboard-ink);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.table-responsive {
+  margin: 0 -0.25rem;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  padding: 12px 14px;
+  background-color: var(--dashboard-soft);
+  color: var(--dashboard-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 14px;
+  vertical-align: middle;
+}
+
+.table-hover>tbody>tr:hover>* {
+  background-color: var(--dashboard-soft);
+}
+
+.avatar-sq {
+  border-radius: 8px;
+}
+
+.badge-status {
+  min-width: 86px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.badge-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.table-action-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--dashboard-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.table-action-btn:hover,
+.table-action-btn:focus-visible {
+  background: #eaf5f7;
+  color: var(--dashboard-primary);
+  outline: 0;
+}
+
+.upcoming-list {
+  gap: 0.75rem;
+}
+
+.upcoming-event {
+  min-height: 76px;
+  padding: 14px;
+  border-color: var(--dashboard-border);
+  border-radius: 8px;
+}
+
+.upcoming-event:hover,
+.upcoming-event:focus-visible {
+  border-color: var(--dashboard-primary);
+  background: var(--dashboard-soft);
+  outline: 0;
+}
+
+.event-date {
+  font-size: 0.78rem;
+}
+
+.dashboard-empty {
+  min-height: 170px;
+  border-radius: 8px;
+  background: var(--dashboard-soft);
+}
+
+.dashboard-empty__icon {
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    gap: 0.85rem;
+    padding: 0;
+  }
+
+  .dashboard-page-header {
+    padding: 18px;
+  }
+
+  .dashboard-refresh-btn,
+  .dashboard-link-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard-card-header {
+    gap: 0.75rem;
   }
 }
 

@@ -6,6 +6,17 @@ function normalizeBaseUrl(url) {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+function normalizeToken(value) {
+  const token = String(value || "").trim();
+  const invalidTokens = ["undefined", "null", "false"];
+  return token && !invalidTokens.includes(token.toLowerCase()) ? token : null;
+}
+
+function getStoredToken() {
+  return normalizeToken(localStorage.getItem("token")) ||
+    normalizeToken(sessionStorage.getItem("token"));
+}
+
 const defaultBase = "https://ant-g2-ams.tt.linkpc.net/api/v1";
 const envBase =
   typeof import.meta !== "undefined"
@@ -41,12 +52,16 @@ api.interceptors.request.use(
       token = null;
     }
 
-    if (!token) {
-      token =
-        localStorage.getItem("token") || sessionStorage.getItem("token");
-    }
+    token = normalizeToken(token) || getStoredToken();
 
-    if (token) {
+    if (config.skipAuth) {
+      if (typeof config.headers?.delete === "function") {
+        config.headers.delete("Authorization");
+      } else if (config.headers) {
+        delete config.headers.Authorization;
+        delete config.headers.authorization;
+      }
+    } else if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;

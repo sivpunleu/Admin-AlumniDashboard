@@ -120,17 +120,6 @@
                                             class="form-control custom-input" :class="{ 'input-active': isEditing }">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label label-custom">ដេប៉ាតឺម៉ង</label>
-                                        <select v-model="form.departmentId" :disabled="!isEditing"
-                                            class="form-select custom-input" :class="{ 'input-active': isEditing }">
-                                            <option value="">ជ្រើសរើសដេប៉ាតឺម៉ង</option>
-                                            <option v-for="department in departmentOptions" :key="department.id"
-                                                :value="department.id">
-                                                {{ department.name }}
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
                                         <label class="form-label label-custom">ជំនាន់</label>
                                         <select v-model="form.generationId" :disabled="!isEditing"
                                             class="form-select custom-input" :class="{ 'input-active': isEditing }">
@@ -141,6 +130,20 @@
                                             </option>
                                         </select>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label label-custom">ដេប៉ាតឺម៉ង</label>
+                                        <select v-model="form.departmentId" :disabled="!isEditing || !form.generationId"
+                                            class="form-select custom-input" :class="{ 'input-active': isEditing && form.generationId }">
+                                            <option value="">
+                                                {{ form.generationId ? 'ជ្រើសរើសដេប៉ាតឺម៉ង' : 'ជ្រើសរើសជំនាន់ជាមុន' }}
+                                            </option>
+                                            <option v-for="department in filteredDepartments" :key="department.id"
+                                                :value="department.id">
+                                                {{ department.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+
                                     <div class="col-12">
                                         <label class="form-label label-custom">ជីវប្រវត្តិ</label>
                                         <textarea v-model="form.bio" :disabled="!isEditing"
@@ -179,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { useDepartmentStore } from '@/stores/departmentStore';
 import * as generationStore from '@/stores/generationStore';
 import { useProfileStore } from '@/stores/useProfile';
@@ -206,8 +209,68 @@ const form = reactive({
     generationId: '',
 });
 
-const departmentOptions = computed(() => departmentStore.departments || []);
 const generationOptions = computed(() => generationStore.generations.value || []);
+
+const normalizeId = (value) => {
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const getGenerationDepartmentId = (generation) => normalizeId(
+    generation?.departmentId ??
+    generation?.department_id ??
+    generation?.department?.id,
+);
+
+const filteredDepartments = computed(() => {
+    const selectedGenerationId = normalizeId(form.generationId);
+
+    if (!selectedGenerationId) {
+        return [];
+    }
+
+    const generation = generationOptions.value.find(
+        (item) => normalizeId(item.id) === selectedGenerationId,
+    );
+
+    const departmentId = getGenerationDepartmentId(generation);
+
+    if (!departmentId) {
+        return departmentStore.departments || [];
+    }
+
+    const matchedDepartments = (departmentStore.departments || []).filter(
+        (department) => normalizeId(department.id) === departmentId,
+    );
+
+    if (matchedDepartments.length) {
+        return matchedDepartments;
+    }
+
+    return generation?.department ? [generation.department] : [];
+});
+
+const syncDepartmentWithGeneration = () => {
+    const departments = filteredDepartments.value;
+
+    if (!form.generationId) {
+        form.departmentId = "";
+        return;
+    }
+
+    const selectedDepartmentId = normalizeId(form.departmentId);
+    const selectedDepartmentExists = departments.some(
+        (department) => normalizeId(department.id) === selectedDepartmentId,
+    );
+
+    if (!selectedDepartmentExists) {
+        form.departmentId = departments.length === 1 ? departments[0].id : "";
+    }
+};
 
 // Cropper State
 const showCropperModal = ref(false);
@@ -238,11 +301,22 @@ onMounted(async () => {
             departmentId: sourceProfile.department?.id || sourceProfile.departmentId || "",
             generationId: sourceProfile.generation?.id || sourceProfile.generationId || "",
         });
+        syncDepartmentWithGeneration();
     } finally {
         isInitialLoading.value = false;
     }
 });
 
+watch(
+    () => form.generationId,
+    () => {
+        syncDepartmentWithGeneration();
+    },
+);
+
+watch(filteredDepartments, () => {
+    syncDepartmentWithGeneration();
+});
 
 const toggleEdit = (val) => isEditing.value = val;
 const triggerAvatarPicker = () => avatarInput.value.click();
@@ -324,15 +398,19 @@ const handleAvatarError = () => { };
 const handleAvatarLoad = () => { };
 
 const handleUpdateProfile = async () => {
-    await profileStore.updateProfile({
-        fullname: form.fullname,
-        phone: form.phone,
-        bio: form.bio,
-        currentJob: form.currentJob,
-        departmentId: form.departmentId ? Number(form.departmentId) : null,
-        generationId: form.generationId ? Number(form.generationId) : null,
-    });
-    isEditing.value = false;
+    try {
+        await profileStore.updateProfile({
+            fullname: form.fullname,
+            phone: form.phone,
+            bio: form.bio,
+            currentJob: form.currentJob,
+            departmentId: form.departmentId ? Number(form.departmentId) : null,
+            generationId: form.generationId ? Number(form.generationId) : null,
+        });
+        isEditing.value = false;
+    } catch (error) {
+        logger.error("Profile update failed:", error);
+    }
 };
 
 
