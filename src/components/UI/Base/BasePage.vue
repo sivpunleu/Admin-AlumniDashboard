@@ -1,5 +1,5 @@
 <template>
-    <nav aria-label="Article pagination" class="pagination-wrap d-flex justify-content-center mt-2">
+    <nav aria-label="ការបែងចែកទំព័រ" class="pagination-wrap d-flex justify-content-center mt-2">
         <ul class="pagination mb-0">
             <li class="page-item" :class="{ disabled: currentPage <= 1 }">
                 <BaseButton type="button" variant="light" shape="sharp" class="page-link page-link--control"
@@ -111,7 +111,6 @@ const goToNext = () => {
     line-height: 1;
     white-space: nowrap;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 1px rgba(15, 23, 42, 0.06);
 }
 
 .page-link--control {
@@ -122,14 +121,13 @@ const goToNext = () => {
     background-color: var(--page-hover-bg);
     border-color: var(--page-hover-border);
     color: #111827;
-    transform: translateY(-1px);
 }
 
 .page-item.active .page-link {
     background-color: var(--page-active-bg);
     border-color: var(--page-active-border);
     color: var(--page-active-text);
-    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.24);
+    box-shadow: 0 0 0 3px rgba(33, 100, 119, 0.14);
 }
 
 .page-item.disabled .page-link {

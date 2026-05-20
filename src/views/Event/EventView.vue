@@ -243,7 +243,8 @@ const formatDateTime = (value) => {
                         <label :for="'file-' + item.id" class="btn btn-sm btn-white shadow-sm" title="ផ្ទុកឡើងរូបភាព">
                             <i class="bi bi-camera"></i>
                         </label>
-                        <input type="file" :id="'file-' + item.id" hidden @change="handleFileChange($event, item.id)">
+                        <input type="file" :id="'file-' + item.id" accept="image/*" hidden
+                            @change="handleFileChange($event, item.id)">
                         <button v-if="item.thumbnail" @click="store.deleteThumbnail(item.id)"
                             class="btn btn-sm btn-outline-danger" title="លុបរូបភាព">
                             <i class="bi bi-x-lg"></i>

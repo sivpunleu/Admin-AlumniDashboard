@@ -95,7 +95,9 @@ const handleSubmit = async () => {
                 <h3 class="fw-bold text-dark mb-1">ដេប៉ាតឺម៉ង់សិក្សា</h3>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="#" class="text-decoration-none">ផ្ទាំងគ្រប់គ្រង</a></li>
+                        <li class="breadcrumb-item">
+                            <router-link to="/dashboard" class="text-decoration-none">ផ្ទាំងគ្រប់គ្រង</router-link>
+                        </li>
                         <li class="breadcrumb-item active">ដេប៉ាតឺម៉ង់</li>
                     </ol>
                 </nav>
@@ -171,11 +173,11 @@ const handleSubmit = async () => {
                     <template #cell-actions="{ item }">
                         <div class="action-btns text-end pe-4">
                             <BaseButton @click="openEditModal(item)" variant="light" size="sm" shape="sharp"
-                                title="កែប្រែ" aria-label="Edit department">
+                                title="កែប្រែ" aria-label="កែប្រែដេប៉ាតឺម៉ង់">
                                 <i class="bi bi-pencil-square fs-6 text-info"></i>
                             </BaseButton>
                             <BaseButton @click="handleDeleteDepartment(item)" variant="danger" size="sm" shape="sharp"
-                                title="លុប" aria-label="Delete department">
+                                title="លុប" aria-label="លុបដេប៉ាតឺម៉ង់">
                                 <i class="bi bi-trash3 fs-6 text-light"></i>
                             </BaseButton>
                         </div>
