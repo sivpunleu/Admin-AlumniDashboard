@@ -6,7 +6,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, useAttrs } from 'vue';
+
+const attrs = useAttrs();
 
 const props = defineProps({
     variant: {
@@ -40,7 +42,10 @@ const props = defineProps({
 });
 
 const buttonClass = computed(() => {
-    const baseClasses = ['btn', 'fw-bold', 'shadow-sm', 'transition-all'];
+    const isCompactControl = props.size === 'sm' ||
+        hasClass(attrs.class, 'page-link') ||
+        hasClass(attrs.class, 'base-modal__close');
+    const baseClasses = ['btn', 'fw-bold', 'transition-all', !isCompactControl && 'btn-elevated'];
     const variantMap = {
         primary: 'btn-primary',
         secondary: 'btn-secondary',
@@ -67,14 +72,32 @@ const buttonClass = computed(() => {
         props.disabled && 'opacity-75',
     ].filter(Boolean);
 });
+
+const hasClass = (value, className) => {
+    if (!value) return false;
+    if (typeof value === 'string') {
+        return value.split(/\s+/).includes(className);
+    }
+    if (Array.isArray(value)) {
+        return value.some((entry) => hasClass(entry, className));
+    }
+    if (typeof value === 'object') {
+        return Boolean(value[className]);
+    }
+
+    return false;
+};
 </script>
 
 <style scoped>
 .btn {
     border: none;
-    transition: all 0.3s ease;
     cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.btn-elevated {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .btn-shape-pill {
@@ -89,9 +112,9 @@ const buttonClass = computed(() => {
     border-radius: 8px;
 }
 
-.btn:hover:not(:disabled) {
+.btn-elevated:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.1), 0 12px 24px rgba(15, 23, 42, 0.1);
 }
 
 .btn:active:not(:disabled) {
