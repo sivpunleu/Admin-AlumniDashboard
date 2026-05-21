@@ -7,8 +7,8 @@
                 <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100 overflow-hidden">
                         <div class="card-body">
-                            <template v-if="isInitialLoading">
-                                <div class="profile-summary-skeleton" aria-busy="true" aria-live="polite"
+                            <Transition name="profile-content-swap" mode="out-in">
+                                <div v-if="isInitialLoading" key="summary-loading" class="profile-summary-skeleton" aria-busy="true" aria-live="polite"
                                     aria-label="កំពុងផ្ទុកព័ត៌មានគណនី">
                                     <span class="skeleton-placeholder skeleton-profile-avatar"></span>
                                     <span class="skeleton-placeholder skeleton-line skeleton-line--profile-name"></span>
@@ -24,9 +24,9 @@
                                         </div>
                                     </div>
                                 </div>
-                            </template>
 
-                            <template v-else>
+
+                                <div v-else key="summary-content" class="profile-summary-content">
                                 <div class="avatar-edit-container mb-4">
                                     <div class="position-relative d-inline-block">
                                         <div class="avatar-ring">
@@ -53,17 +53,18 @@
 
                                 <div class="row g-2 text-center border-top pt-4">
                                     <div class="col-6 border-end">
+                                        <small class="text-muted extra-small">ជំនាន់</small>
                                         <h6 class="fw-bold mb-0 text-primary">{{ currentUser?.profile?.generation?.name ||
                                             'N/A' }}</h6>
-                                        <small class="text-muted extra-small">ជំនាន់</small>
                                     </div>
                                     <div class="col-6">
+                                        <small class="text-muted extra-small">ដេប៉ាតឺម៉ង</small>
                                         <h6 class="fw-bold mb-0 text-primary  px-2">{{
                                             currentUser?.profile?.department?.name || 'N/A' }}</h6>
-                                        <small class="text-muted extra-small">ដេប៉ាតឺម៉ង</small>
                                     </div>
                                 </div>
-                            </template>
+                                </div>
+                            </Transition>
                         </div>
                         <input ref="avatarInput" type="file" accept="image/*" class="d-none"
                             @change="onAvatarSelected" />
@@ -84,7 +85,8 @@
                         </div>
 
                         <div class="card-body p-4 p-md-5">
-                            <div v-if="isInitialLoading" class="profile-form-skeleton" aria-busy="true"
+                            <Transition name="profile-content-swap" mode="out-in">
+                            <div v-if="isInitialLoading" key="form-loading" class="profile-form-skeleton" aria-busy="true"
                                 aria-live="polite" aria-label="កំពុងផ្ទុកទម្រង់ព័ត៌មានផ្ទាល់ខ្លួន">
                                 <div class="row g-4">
                                     <div v-for="item in formSkeletonItems" :key="item" class="col-md-6">
@@ -102,17 +104,23 @@
                                 </div>
                             </div>
 
-                            <form v-else @submit.prevent="handleUpdateProfile">
+                            <form v-else key="profile-form" @submit.prevent="handleUpdateProfile">
                                 <div class="row g-4">
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">នាមខ្លួនពេញ</label>
                                         <input v-model="form.fullname" type="text" :disabled="!isEditing"
-                                            class="form-control custom-input" :class="{ 'input-active': isEditing }">
+                                            class="form-control custom-input"
+                                            :class="{ 'input-active': isEditing, 'is-invalid': errors.fullname }"
+                                            @input="errors.fullname = ''">
+                                        <div v-if="errors.fullname" class="invalid-feedback">{{ errors.fullname }}</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">លេខទូរស័ព្ទ</label>
                                         <input v-model="form.phone" type="tel" :disabled="!isEditing"
-                                            class="form-control custom-input" :class="{ 'input-active': isEditing }">
+                                            class="form-control custom-input"
+                                            :class="{ 'input-active': isEditing, 'is-invalid': errors.phone }"
+                                            @input="errors.phone = ''">
+                                        <div v-if="errors.phone" class="invalid-feedback">{{ errors.phone }}</div>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label label-custom">ការងារបច្ចុប្បន្ន</label>
@@ -122,18 +130,23 @@
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">ជំនាន់</label>
                                         <select v-model="form.generationId" :disabled="!isEditing"
-                                            class="form-select custom-input" :class="{ 'input-active': isEditing }">
+                                            class="form-select custom-input"
+                                            :class="{ 'input-active': isEditing, 'is-invalid': errors.generationId }"
+                                            @change="errors.generationId = ''; errors.departmentId = ''">
                                             <option value="">ជ្រើសរើសជំនាន់</option>
                                             <option v-for="generation in generationOptions" :key="generation.id"
                                                 :value="generation.id">
                                                 {{ generation.name }}
                                             </option>
                                         </select>
+                                        <div v-if="errors.generationId" class="invalid-feedback">{{ errors.generationId }}</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">ដេប៉ាតឺម៉ង</label>
                                         <select v-model="form.departmentId" :disabled="!isEditing || !form.generationId"
-                                            class="form-select custom-input" :class="{ 'input-active': isEditing && form.generationId }">
+                                            class="form-select custom-input"
+                                            :class="{ 'input-active': isEditing && form.generationId, 'is-invalid': errors.departmentId }"
+                                            @change="errors.departmentId = ''">
                                             <option value="">
                                                 {{ form.generationId ? 'ជ្រើសរើសដេប៉ាតឺម៉ង' : 'ជ្រើសរើសជំនាន់ជាមុន' }}
                                             </option>
@@ -142,6 +155,7 @@
                                                 {{ department.name }}
                                             </option>
                                         </select>
+                                        <div v-if="errors.departmentId" class="invalid-feedback">{{ errors.departmentId }}</div>
                                     </div>
 
                                     <div class="col-12">
@@ -159,25 +173,28 @@
                                     </BaseButton>
                                 </div>
                             </form>
+                            </Transition>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="showCropperModal" class="cropper-overlay" @click.self="closeCropperModal">
-            <div class="cropper-card bg-white rounded-4 shadow-lg p-4">
-                <h5 class="fw-bold mb-3">កាត់តម្រូវរូបភាព</h5>
-                <div class="cropper-wrapper mb-xl-3 mb-4">
-                    <img ref="cropperImgRef" :src="rawImageSrc" class="mw-100 d-block" />
-                </div>
-                <div class="d-flex justify-content-end gap-2">
-                    <BaseButton variant="light" @click="closeCropperModal">បោះបង់</BaseButton>
-                    <BaseButton variant="primary" @click="confirmCrop" :loading="cropUploading">រក្សាទុករូបភាព
-                    </BaseButton>
+        <Transition name="profile-modal-fade">
+            <div v-if="showCropperModal" class="cropper-overlay" @click.self="closeCropperModal">
+                <div class="cropper-card bg-white rounded-4 shadow-lg p-4">
+                    <h5 class="fw-bold mb-3">កាត់តម្រូវរូបភាព</h5>
+                    <div class="cropper-wrapper mb-xl-3 mb-4">
+                        <img ref="cropperImgRef" :src="rawImageSrc" class="mw-100 d-block" />
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <BaseButton variant="light" @click="closeCropperModal">បោះបង់</BaseButton>
+                        <BaseButton variant="primary" @click="confirmCrop" :loading="cropUploading">រក្សាទុករូបភាព
+                        </BaseButton>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Transition>
     </div>
 </template>
 
@@ -209,7 +226,15 @@ const form = reactive({
     generationId: '',
 });
 
+const errors = reactive({
+    fullname: '',
+    phone: '',
+    generationId: '',
+    departmentId: '',
+});
+
 const generationOptions = computed(() => generationStore.generations.value || []);
+const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
 
 const normalizeId = (value) => {
     if (value === undefined || value === null || value === "") {
@@ -218,6 +243,20 @@ const normalizeId = (value) => {
 
     const numberValue = Number(value);
     return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const isValidPhone = (value) => {
+    const phone = String(value || "").trim();
+    if (!phone) return true;
+
+    const digitCount = phone.replace(/\D/g, "").length;
+    return PHONE_PATTERN.test(phone) && digitCount >= 7 && digitCount <= 15;
+};
+
+const clearErrors = () => {
+    Object.keys(errors).forEach((key) => {
+        errors[key] = '';
+    });
 };
 
 const getGenerationDepartmentId = (generation) => normalizeId(
@@ -280,6 +319,20 @@ const cropperInstance = ref(null);
 const cropUploading = ref(false);
 
 const currentUser = computed(() => profileStore.profile || {});
+const profileRole = computed(() => String(
+    currentUser.value?.role?.name ||
+    currentUser.value?.role ||
+    currentUser.value?.profile?.role?.name ||
+    currentUser.value?.profile?.role ||
+    '',
+).toLowerCase());
+const requiresAcademicInfo = computed(() => {
+    if (profileRole.value.includes('admin')) return false;
+
+    return profileRole.value.includes('alumni') ||
+        profileRole.value.includes('user') ||
+        Boolean(currentUser.value?.profile?.generation || currentUser.value?.profile?.department);
+});
 const displayName = computed(() => currentUser.value?.profile?.fullname || 'User');
 const avatarUrl = computed(() => currentUser.value?.profile?.avatar || 'https://ui-avatars.com/api/?name=' + displayName.value);
 
@@ -310,6 +363,8 @@ onMounted(async () => {
 watch(
     () => form.generationId,
     () => {
+        errors.generationId = '';
+        errors.departmentId = '';
         syncDepartmentWithGeneration();
     },
 );
@@ -318,7 +373,10 @@ watch(filteredDepartments, () => {
     syncDepartmentWithGeneration();
 });
 
-const toggleEdit = (val) => isEditing.value = val;
+const toggleEdit = (val) => {
+    isEditing.value = val;
+    if (!val) clearErrors();
+};
 const triggerAvatarPicker = () => avatarInput.value.click();
 
 const onAvatarSelected = (e) => {
@@ -397,7 +455,49 @@ const handleAvatarError = () => { };
 
 const handleAvatarLoad = () => { };
 
+const validateProfileForm = () => {
+    clearErrors();
+
+    form.fullname = form.fullname?.trim() || '';
+    form.phone = form.phone?.trim() || '';
+    form.currentJob = form.currentJob?.trim() || '';
+    form.bio = form.bio?.trim() || '';
+
+    const generationId = normalizeId(form.generationId);
+    const departmentId = normalizeId(form.departmentId);
+    const generationExists = generationOptions.value.some(
+        (generation) => normalizeId(generation.id) === generationId,
+    );
+    const departmentExists = filteredDepartments.value.some(
+        (department) => normalizeId(department.id) === departmentId,
+    );
+
+    if (!form.fullname) {
+        errors.fullname = 'សូមបញ្ចូលឈ្មោះពេញលេញ';
+    }
+
+    if (form.phone && !isValidPhone(form.phone)) {
+        errors.phone = 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
+    }
+
+    if (requiresAcademicInfo.value && !generationId) {
+        errors.generationId = 'សូមជ្រើសរើសជំនាន់';
+    } else if (generationId && generationOptions.value.length > 0 && !generationExists) {
+        errors.generationId = 'ជំនាន់ដែលបានជ្រើសរើសមិនត្រឹមត្រូវ';
+    }
+
+    if (requiresAcademicInfo.value && !departmentId) {
+        errors.departmentId = 'សូមជ្រើសរើសដេប៉ាតឺម៉ង់';
+    } else if (departmentId && filteredDepartments.value.length > 0 && !departmentExists) {
+        errors.departmentId = 'ដេប៉ាតឺម៉ង់ដែលបានជ្រើសរើសមិនត្រឹមត្រូវ';
+    }
+
+    return !Object.values(errors).some(Boolean);
+};
+
 const handleUpdateProfile = async () => {
+    if (!validateProfileForm()) return;
+
     try {
         await profileStore.updateProfile({
             fullname: form.fullname,
@@ -419,27 +519,134 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 
 <style scoped>
 .profile-page {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.profile-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(115deg, transparent 0%, rgba(33, 100, 119, 0.08) 42%, transparent 58%),
+        repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.035) 0 1px, transparent 1px 68px);
+    opacity: 0;
+    transform: translateX(-72%);
+    animation: profilePageSweep 9s ease-in-out infinite;
+}
+
+.profile-page > * {
+    position: relative;
+    z-index: 1;
 }
 
 .profile-banner {
+    position: relative;
+    overflow: hidden;
     height: 130px;
     background: linear-gradient(135deg, #216477 0%, #154552 100%);
+}
+
+.profile-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 46px 46px;
+    opacity: 0.2;
+    animation: profileGridDrift 22s linear infinite;
+}
+
+.profile-banner::after {
+    content: "";
+    position: absolute;
+    left: -12%;
+    right: -12%;
+    bottom: 22px;
+    height: 84px;
+    background: linear-gradient(100deg, transparent 0%, rgba(245, 158, 11, 0.14) 38%, rgba(255, 255, 255, 0.1) 56%, transparent 100%);
+    transform: rotate(-4deg);
+    animation: profileRibbonGlow 6.5s ease-in-out infinite alternate;
 }
 
 .mt-n5 {
     margin-top: -90px !important;
 }
 
+.profile-page .container > .row > [class*="col-"] {
+    animation: profileCardIn 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.profile-page .container > .row > [class*="col-"]:nth-child(2) {
+    animation-delay: 0.08s;
+}
+
+.profile-page .card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.profile-page .card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1.25rem;
+    right: 1.25rem;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.42), transparent);
+    opacity: 0;
+    transform: translateX(-35%);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.profile-page .card:hover {
+    border-color: #c6d8de !important;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09) !important;
+    transform: translateY(-2px);
+}
+
+.profile-page .card:hover::before {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 .avatar-ring {
+    position: relative;
     padding: 6px;
     background: white;
     border-radius: 50%;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     display: inline-block;
+    animation: profileAvatarFloat 5.8s ease-in-out infinite;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.avatar-ring::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border: 1px solid rgba(33, 100, 119, 0.2);
+    border-radius: 50%;
+    animation: profileAvatarRingPulse 4.8s ease-in-out infinite;
+}
+
+.avatar-ring:hover {
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+    transform: translateY(-3px) scale(1.02);
 }
 
 .profile-img-lg {
+    position: relative;
+    z-index: 1;
     width: 150px;
     height: 150px;
     border-radius: 50%;
@@ -450,6 +657,24 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     display: grid;
     justify-items: center;
     gap: 0.75rem;
+}
+
+.profile-summary-content {
+    animation: profileFadeRise 0.46s ease both;
+}
+
+.profile-summary-content h4,
+.profile-summary-content p,
+.profile-summary-content .row {
+    animation: profileFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.profile-summary-content p {
+    animation-delay: 0.06s;
+}
+
+.profile-summary-content .row {
+    animation-delay: 0.12s;
 }
 
 .skeleton-placeholder {
@@ -549,6 +774,8 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     display: flex;
     flex-direction: column;
     gap: 5px;
+    z-index: 2;
+    animation: profileFieldIn 0.4s ease both 0.16s;
 }
 
 .btn-action-avatar {
@@ -560,7 +787,7 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-action-avatar.upload {
@@ -573,6 +800,7 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
 
 .btn-action-avatar:hover {
     transform: scale(1.1);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
 }
 
 .icon-box-primary {
@@ -585,6 +813,12 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
+    animation: profileIconPulse 3.8s ease-in-out infinite;
+    transition: transform 0.2s ease;
+}
+
+.card:hover .icon-box-primary {
+    transform: scale(1.04) rotate(-2deg);
 }
 
 .label-custom {
@@ -600,11 +834,51 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     padding: 12px;
     border: 1.5px solid #edf2f7;
     background: #f8fafc;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.custom-input:hover:not(:disabled) {
+    border-color: #b9c9d2;
+    transform: translateY(-1px);
+}
+
+.custom-input:focus {
+    border-color: #216477;
+    box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
+    transform: translateY(-1px);
 }
 
 .input-active {
     background: white !important;
     border-color: #216477 !important;
+}
+
+form .row > * {
+    animation: profileFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+form .row > *:nth-child(2) {
+    animation-delay: 0.05s;
+}
+
+form .row > *:nth-child(3) {
+    animation-delay: 0.1s;
+}
+
+form .row > *:nth-child(4) {
+    animation-delay: 0.15s;
+}
+
+form .row > *:nth-child(5) {
+    animation-delay: 0.2s;
+}
+
+form .row > *:nth-child(6) {
+    animation-delay: 0.25s;
+}
+
+form .border-top {
+    animation: profileFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both 0.28s;
 }
 
 .btn-save {
@@ -631,11 +905,13 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     justify-content: center;
     align-items: center;
     z-index: 9999;
+    backdrop-filter: blur(4px);
 }
 
 .cropper-card {
     width: 100%;
     max-width: 500px;
+    animation: profileModalCardIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .cropper-card img {
@@ -763,9 +1039,162 @@ const handleDeleteAvatar = () => profileStore.deleteAvatar();
     font-size: 10px;
 }
 
+.profile-content-swap-enter-active,
+.profile-content-swap-leave-active {
+    transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.profile-content-swap-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.profile-content-swap-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.profile-modal-fade-enter-active,
+.profile-modal-fade-leave-active {
+    transition: opacity 0.22s ease;
+}
+
+.profile-modal-fade-enter-from,
+.profile-modal-fade-leave-to {
+    opacity: 0;
+}
+
+@keyframes profilePageSweep {
+    0%,
+    24% {
+        opacity: 0;
+        transform: translateX(-72%);
+    }
+
+    45% {
+        opacity: 0.8;
+    }
+
+    72%,
+    100% {
+        opacity: 0;
+        transform: translateX(72%);
+    }
+}
+
+@keyframes profileGridDrift {
+    from {
+        background-position: 0 0, 0 0;
+    }
+
+    to {
+        background-position: 46px 23px, -23px 46px;
+    }
+}
+
+@keyframes profileRibbonGlow {
+    from {
+        opacity: 0.72;
+        transform: translateX(-8px) rotate(-4deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(8px) rotate(-4deg);
+    }
+}
+
+@keyframes profileCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes profileFadeRise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes profileFieldIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes profileAvatarFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-7px);
+    }
+}
+
+@keyframes profileAvatarRingPulse {
+    0%,
+    100% {
+        opacity: 0.42;
+        transform: scale(0.98);
+    }
+
+    50% {
+        opacity: 0.9;
+        transform: scale(1.04);
+    }
+}
+
+@keyframes profileIconPulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgba(33, 100, 119, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 7px rgba(33, 100, 119, 0.12);
+    }
+}
+
+@keyframes profileModalCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .skeleton-placeholder::after {
-        animation: none;
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
     }
 }
 </style>

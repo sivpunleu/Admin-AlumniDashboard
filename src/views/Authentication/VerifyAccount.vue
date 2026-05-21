@@ -27,11 +27,13 @@
             <p>បន្ទាប់ពីផ្ទៀងផ្ទាត់បានជោគជ័យ អ្នកអាចចូលគណនីវិញបានភ្លាម។</p>
           </header>
 
-          <div v-if="notice.text" :class="['verify-alert', `verify-alert--${notice.type}`]" role="status">
-            <i :class="['bi', notice.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle']"
-              aria-hidden="true"></i>
-            <span>{{ notice.text }}</span>
-          </div>
+          <Transition name="verify-alert-slide">
+            <div v-if="notice.text" :class="['verify-alert', `verify-alert--${notice.type}`]" role="status">
+              <i :class="['bi', notice.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle']"
+                aria-hidden="true"></i>
+              <span>{{ notice.text }}</span>
+            </div>
+          </Transition>
 
           <form class="verify-form__stack" novalidate @submit.prevent="handleVerifyAccount">
             <div class="verify-field">
@@ -43,7 +45,9 @@
                   :aria-invalid="!!errors.email" aria-describedby="email-error" @blur="validateEmail"
                   @input="clearError('email')" />
               </div>
-              <p v-if="errors.email" id="email-error" class="verify-error">{{ errors.email }}</p>
+              <Transition name="verify-error-slide">
+                <p v-if="errors.email" id="email-error" class="verify-error">{{ errors.email }}</p>
+              </Transition>
             </div>
 
             <div class="verify-field">
@@ -55,7 +59,9 @@
                   :aria-invalid="!!errors.code" aria-describedby="code-error" @blur="validateCode"
                   @input="clearError('code')" />
               </div>
-              <p v-if="errors.code" id="code-error" class="verify-error">{{ errors.code }}</p>
+              <Transition name="verify-error-slide">
+                <p v-if="errors.code" id="code-error" class="verify-error">{{ errors.code }}</p>
+              </Transition>
             </div>
 
             <BaseButton type="submit" variant="primary" shape="rounded" class="w-100 verify-submit"
@@ -256,17 +262,36 @@ onMounted(() => {
 
 <style scoped>
 .verify-page {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   width: 100%;
   display: grid;
   place-items: center;
+  overflow: hidden;
   padding: clamp(1rem, 3vw, 2.5rem);
   background:
-    linear-gradient(135deg, rgba(33, 100, 119, 0.12), rgba(15, 118, 110, 0.08)),
+    linear-gradient(135deg, rgba(33, 100, 119, 0.12), rgba(245, 158, 11, 0.08), rgba(15, 118, 110, 0.1)),
+    repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.05) 0 1px, transparent 1px 68px),
+    repeating-linear-gradient(0deg, rgba(33, 100, 119, 0.04) 0 1px, transparent 1px 68px),
     #f6faf9;
+  animation: verifyBackdropShift 18s ease-in-out infinite alternate;
+}
+
+.verify-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.38) 44%, transparent 58%);
+  transform: translateX(-72%);
+  animation: verifyPageSweep 9s ease-in-out infinite;
 }
 
 .verify-card {
+  position: relative;
+  z-index: 1;
   width: min(100%, 980px);
   min-height: 590px;
   display: grid;
@@ -276,9 +301,11 @@ onMounted(() => {
   border-radius: 28px;
   background: #ffffff;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.15);
+  animation: verifyCardEnter 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .verify-brand {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -288,9 +315,36 @@ onMounted(() => {
   background: linear-gradient(155deg, #154f5b 0%, #216477 52%, #2f7d74 100%);
   text-align: center;
   color: #ffffff;
+  overflow: hidden;
+}
+
+.verify-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.18;
+  animation: verifyGridDrift 22s linear infinite;
+}
+
+.verify-brand::after {
+  content: "";
+  position: absolute;
+  left: -16%;
+  right: -16%;
+  bottom: 14%;
+  height: 140px;
+  background: linear-gradient(100deg, transparent 0%, rgba(245, 158, 11, 0.16) 38%, rgba(255, 255, 255, 0.11) 56%, transparent 100%);
+  transform: rotate(-8deg);
+  animation: verifyRibbonGlow 6.5s ease-in-out infinite alternate;
 }
 
 .verify-brand__logo {
+  position: relative;
+  z-index: 1;
   width: 136px;
   height: 136px;
   display: grid;
@@ -299,9 +353,24 @@ onMounted(() => {
   border-radius: 26px;
   background: #ffffff;
   box-shadow: 0 20px 45px rgba(7, 47, 54, 0.32);
+  animation: verifyLogoFloat 5.8s ease-in-out infinite;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  will-change: transform;
+}
+
+.verify-brand__logo::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 34px;
+  opacity: 0.8;
+  animation: verifyLogoFrame 4.8s ease-in-out infinite;
 }
 
 .verify-brand__logo img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -309,6 +378,8 @@ onMounted(() => {
 }
 
 .verify-brand__copy {
+  position: relative;
+  z-index: 1;
   max-width: 360px;
 }
 
@@ -317,12 +388,14 @@ onMounted(() => {
   color: #ffffff;
   font-size: clamp(1.9rem, 3vw, 2.35rem);
   font-weight: 800;
+  animation: verifyFadeRise 0.64s ease both 0.22s;
 }
 
 .verify-brand__copy p {
   margin: 0;
   color: rgba(255, 255, 255, 0.86);
   line-height: 1.8;
+  animation: verifyFadeRise 0.64s ease both 0.32s;
 }
 
 .verify-panel {
@@ -330,11 +403,13 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: clamp(2.2rem, 5vw, 4rem);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfd 100%);
 }
 
 .verify-form {
   width: 100%;
   max-width: 430px;
+  animation: verifyFadeRise 0.68s ease both 0.18s;
 }
 
 .verify-back,
@@ -345,6 +420,7 @@ onMounted(() => {
   color: #216477;
   font-weight: 800;
   text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .verify-back {
@@ -355,6 +431,7 @@ onMounted(() => {
 .verify-back:hover {
   color: #1a4f5d;
   text-decoration: underline;
+  transform: translateX(-3px);
 }
 
 .verify-header {
@@ -364,6 +441,11 @@ onMounted(() => {
 .verify-kicker {
   margin-bottom: 0.75rem;
   font-size: 0.8rem;
+  animation: verifyFadeRise 0.58s ease both 0.24s;
+}
+
+.verify-kicker i {
+  animation: verifyKickerPulse 3.8s ease-in-out infinite;
 }
 
 .verify-header h2 {
@@ -371,12 +453,14 @@ onMounted(() => {
   color: #0f172a;
   font-size: clamp(1.75rem, 3vw, 2.2rem);
   font-weight: 800;
+  animation: verifyFadeRise 0.58s ease both 0.32s;
 }
 
 .verify-header p {
   margin: 0;
   color: #64748b;
   line-height: 1.7;
+  animation: verifyFadeRise 0.58s ease both 0.4s;
 }
 
 .verify-alert {
@@ -390,6 +474,7 @@ onMounted(() => {
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.5;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 .verify-alert--success {
@@ -409,6 +494,26 @@ onMounted(() => {
   gap: 1rem;
 }
 
+.verify-form__stack > * {
+  animation: verifyFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.verify-form__stack > *:nth-child(1) {
+  animation-delay: 0.06s;
+}
+
+.verify-form__stack > *:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.verify-form__stack > *:nth-child(3) {
+  animation-delay: 0.18s;
+}
+
+.verify-form__stack > *:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
 .verify-label {
   display: block;
   margin-bottom: 0.55rem;
@@ -426,16 +531,28 @@ onMounted(() => {
   border: 1px solid #dbe3ea;
   border-radius: 15px;
   background: #ffffff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.verify-input:hover {
+  border-color: #b9c9d2;
+  transform: translateY(-1px);
 }
 
 .verify-input:focus-within {
   border-color: #216477;
   box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
+  transform: translateY(-1px);
 }
 
 .verify-input i {
   color: #94a3b8;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.verify-input:focus-within i {
+  color: #216477;
+  transform: scale(1.08);
 }
 
 .verify-input input {
@@ -473,10 +590,201 @@ onMounted(() => {
   background: transparent;
   color: #216477;
   font-weight: 800;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.verify-secondary:hover:not(:disabled),
+.verify-secondary:focus-visible:not(:disabled) {
+  color: #1a4f5d;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.verify-secondary i {
+  transition: transform 0.2s ease;
+}
+
+.verify-secondary:hover:not(:disabled) i,
+.verify-secondary:focus-visible:not(:disabled) i {
+  transform: translateX(2px);
 }
 
 .verify-secondary:disabled {
   opacity: 0.7;
+}
+
+.verify-alert-slide-enter-active,
+.verify-alert-slide-leave-active {
+  overflow: hidden;
+  transition: opacity 0.24s ease, transform 0.24s ease, max-height 0.24s ease, margin-bottom 0.24s ease;
+}
+
+.verify-alert-slide-enter-from,
+.verify-alert-slide-leave-to {
+  max-height: 0;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.verify-alert-slide-enter-to,
+.verify-alert-slide-leave-from {
+  max-height: 160px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.verify-error-slide-enter-active,
+.verify-error-slide-leave-active {
+  overflow: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease, max-height 0.22s ease, margin-top 0.22s ease;
+}
+
+.verify-error-slide-enter-from,
+.verify-error-slide-leave-to {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.verify-error-slide-enter-to,
+.verify-error-slide-leave-from {
+  max-height: 64px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes verifyBackdropShift {
+  from {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+
+  to {
+    background-position: 0 0, 34px 0, 0 34px, 0 0;
+  }
+}
+
+@keyframes verifyPageSweep {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  45% {
+    opacity: 0.72;
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes verifyCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes verifyGridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 44px 22px, -22px 44px;
+  }
+}
+
+@keyframes verifyRibbonGlow {
+  from {
+    opacity: 0.74;
+    transform: translateX(-8px) rotate(-8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(8px) rotate(-8deg);
+  }
+}
+
+@keyframes verifyLogoFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes verifyLogoFrame {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes verifyFadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes verifyKickerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes verifyFieldIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 850px) {

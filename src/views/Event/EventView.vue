@@ -32,7 +32,7 @@ const form = reactive({
     startDate: '',
     endDate: '',
     location: '',
-    categoryId: 1
+    categoryId: 0
 });
 const errors = reactive({
     title: '',
@@ -60,7 +60,7 @@ const handlePageChange = (page) => {
 const openAddModal = () => {
     isEditing.value = false;
     currentId.value = null;
-    Object.assign(form, { title: '', description: '', startDate: '', endDate: '', location: '', categoryId: 1 });
+    Object.assign(form, { title: '', description: '', startDate: '', endDate: '', location: '', categoryId: 0 });
     clearErrors();
     isModalOpen.value = true;
 };
@@ -91,7 +91,7 @@ const openEditModal = (event) => {
         startDate: toDatetimeLocalInput(event.startDate),
         endDate: toDatetimeLocalInput(event.endDate),
         location: event.location,
-        categoryId: event.categoryId ?? event.category?.id ?? 1
+        categoryId: event.categoryId ?? event.category?.id ?? 0
     });
     clearErrors();
     isModalOpen.value = true;
@@ -110,10 +110,15 @@ const clearErrors = () => {
 const validateForm = () => {
     clearErrors();
     form.title = form.title.trim();
+    form.description = form.description.trim();
     form.location = form.location.trim();
 
     const start = form.startDate ? new Date(form.startDate) : null;
     const end = form.endDate ? new Date(form.endDate) : null;
+    const categoryId = Number(form.categoryId);
+    const categoryExists = (categoryStore.categories || []).some(
+        (category) => Number(category.id) === categoryId,
+    );
 
     if (!form.title) {
         errors.title = 'សូមបញ្ចូលចំណងជើង';
@@ -133,8 +138,10 @@ const validateForm = () => {
         errors.location = 'សូមបញ្ចូលទីតាំង';
     }
 
-    if (!Number(form.categoryId) || Number(form.categoryId) <= 0) {
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
         errors.categoryId = 'សូមបញ្ចូល Category ID ត្រឹមត្រូវ';
+    } else if ((categoryStore.categories || []).length > 0 && !categoryExists) {
+        errors.categoryId = 'សូមជ្រើសរើសប្រភេទដែលមានក្នុងបញ្ជី';
     }
 
     return !Object.values(errors).some(Boolean);
@@ -313,7 +320,7 @@ const formatDateTime = (value) => {
                     <div class="col-md-4">
                         <label class="small fw-bold">លេខសម្គាល់ប្រភេទ (Category ID)</label>
                         <select v-model.number="form.categoryId" class="form-control"
-                            :class="{ 'is-invalid': errors.categoryId }" required @input="errors.categoryId = ''"
+                            :class="{ 'is-invalid': errors.categoryId }" required @change="errors.categoryId = ''"
                             @blur="validateForm">
                             <option :value="0">សូមជ្រើសរើសប្រភេទ</option>
                             <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}

@@ -75,8 +75,8 @@ const buildGenerationPayload = (includeDepartment = true) => {
     const payload = {
         name: form.name,
         description: form.description,
-        startYear: parseInt(form.startYear),
-        endYear: parseInt(form.endYear),
+        startYear: Number(form.startYear),
+        endYear: Number(form.endYear),
     };
 
     // include departmentId only when provided. Omit if empty to avoid sending null which may be rejected.
@@ -89,6 +89,7 @@ const buildGenerationPayload = (includeDepartment = true) => {
 
 const modalTitle = computed(() => (modalMode.value === "create" ? "បង្កើតជំនាន់ថ្មី" : "កែប្រែព័ត៌មានជំនាន់"));
 const modalConfirmText = computed(() => (modalMode.value === "create" ? "បង្កើត" : "រក្សាទុក"));
+const maxGenerationYear = computed(() => new Date().getFullYear() + 10);
 
 const columns = [
     { key: "name", label: "ឈ្មោះជំនាន់" },
@@ -132,9 +133,11 @@ const clearErrors = () => {
 const validateForm = () => {
     clearErrors();
     form.name = form.name.trim();
+    form.description = form.description.trim();
 
     const startYear = Number(form.startYear);
     const endYear = Number(form.endYear);
+    const departmentId = Number(form.departmentId);
     const currentYear = new Date().getFullYear();
 
     if (!form.name) {
@@ -143,19 +146,21 @@ const validateForm = () => {
 
     if (!startYear) {
         errors.startYear = "សូមបញ្ចូលឆ្នាំចាប់ផ្តើម";
-    } else if (startYear < 1900 || startYear > currentYear + 10) {
+    } else if (!Number.isInteger(startYear) || startYear < 1900 || startYear > currentYear + 10) {
         errors.startYear = "ឆ្នាំចាប់ផ្តើមមិនត្រឹមត្រូវ";
     }
 
     if (!endYear) {
         errors.endYear = "សូមបញ្ចូលឆ្នាំបញ្ចប់";
-    } else if (endYear < startYear) {
+    } else if (!Number.isInteger(endYear) || endYear < 1900 || endYear > currentYear + 10) {
+        errors.endYear = "ឆ្នាំបញ្ចប់មិនត្រឹមត្រូវ";
+    } else if (Number.isInteger(startYear) && endYear < startYear) {
         errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាង ឬស្មើឆ្នាំចាប់ផ្តើម";
     }
 
     if (modalMode.value === "create" && !form.departmentId) {
         errors.departmentId = "សូមជ្រើសរើសដេប៉ាតឺម៉ង់";
-    } else if (form.departmentId && Number(form.departmentId) <= 0) {
+    } else if (form.departmentId && (!Number.isInteger(departmentId) || departmentId <= 0)) {
         errors.departmentId = "លេខសម្គាល់ដេប៉ាតឺម៉ង់មិនត្រឹមត្រូវ";
     }
 
@@ -318,14 +323,16 @@ const handlePageChange = (page) => {
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="small fw-bold">ឆ្នាំចាប់ផ្តើម</label>
-                        <input v-model="form.startYear" type="number" class="form-control"
+                        <input v-model="form.startYear" type="number" class="form-control" min="1900"
+                            :max="maxGenerationYear" step="1"
                             :class="{ 'is-invalid': errors.startYear }" @input="errors.startYear = ''"
                             @blur="validateForm">
                         <div v-if="errors.startYear" class="invalid-feedback">{{ errors.startYear }}</div>
                     </div>
                     <div class="col-6">
                         <label class="small fw-bold">ឆ្នាំបញ្ចប់</label>
-                        <input v-model="form.endYear" type="number" class="form-control"
+                        <input v-model="form.endYear" type="number" class="form-control" min="1900"
+                            :max="maxGenerationYear" step="1"
                             :class="{ 'is-invalid': errors.endYear }" @input="errors.endYear = ''" @blur="validateForm">
                         <div v-if="errors.endYear" class="invalid-feedback">{{ errors.endYear }}</div>
                     </div>

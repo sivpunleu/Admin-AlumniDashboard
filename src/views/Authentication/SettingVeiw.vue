@@ -10,7 +10,8 @@
       </div>
     </header>
 
-    <section v-if="isInitialLoading" class="account-strip account-strip--skeleton" aria-busy="true"
+    <Transition name="settings-strip-swap" mode="out-in">
+    <section v-if="isInitialLoading" key="loading" class="account-strip account-strip--skeleton" aria-busy="true"
       aria-live="polite" aria-label="កំពុងផ្ទុកព័ត៌មានគណនី">
       <div v-for="item in accountSkeletonItems" :key="item" class="account-item">
         <span class="skeleton-placeholder skeleton-account-icon"></span>
@@ -21,7 +22,7 @@
       </div>
     </section>
 
-    <section v-else class="account-strip" aria-label="Account summary">
+    <section v-else key="summary" class="account-strip" aria-label="Account summary">
       <div class="account-item">
         <span class="account-icon">
           <i class="bi bi-person-badge"></i>
@@ -52,6 +53,7 @@
         </span>
       </div>
     </section>
+    </Transition>
 
     <div class="settings-grid">
       <form class="setting-card" novalidate @submit.prevent="handleChangePassword">
@@ -85,7 +87,9 @@
                 <i :class="['bi', passwordVisible.currentPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
-            <p class="field-error">{{ passwordErrors.currentPassword || "" }}</p>
+            <Transition name="settings-error-slide">
+              <p v-if="passwordErrors.currentPassword" class="field-error">{{ passwordErrors.currentPassword }}</p>
+            </Transition>
           </div>
 
           <div class="setting-field">
@@ -108,7 +112,9 @@
                 <i :class="['bi', passwordVisible.newPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
-            <p class="field-error">{{ passwordErrors.newPassword || "" }}</p>
+            <Transition name="settings-error-slide">
+              <p v-if="passwordErrors.newPassword" class="field-error">{{ passwordErrors.newPassword }}</p>
+            </Transition>
           </div>
 
           <div class="setting-field">
@@ -131,7 +137,9 @@
                 <i :class="['bi', passwordVisible.confirmPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
-            <p class="field-error">{{ passwordErrors.confirmPassword || "" }}</p>
+            <Transition name="settings-error-slide">
+              <p v-if="passwordErrors.confirmPassword" class="field-error">{{ passwordErrors.confirmPassword }}</p>
+            </Transition>
           </div>
         </div>
 
@@ -173,7 +181,9 @@
                 @input="clearFieldError(emailErrors, 'newEmail')"
               />
             </div>
-            <p class="field-error">{{ emailErrors.newEmail || "" }}</p>
+            <Transition name="settings-error-slide">
+              <p v-if="emailErrors.newEmail" class="field-error">{{ emailErrors.newEmail }}</p>
+            </Transition>
           </div>
 
           <div class="setting-field">
@@ -202,7 +212,9 @@
                 <i :class="['bi', passwordVisible.emailPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
-            <p class="field-error">{{ emailErrors.password || "" }}</p>
+            <Transition name="settings-error-slide">
+              <p v-if="emailErrors.password" class="field-error">{{ emailErrors.password }}</p>
+            </Transition>
           </div>
         </div>
 
@@ -401,11 +413,15 @@ const validatePasswordForm = () => {
 const validateEmailForm = () => {
   clearErrors(emailErrors);
 
-  if (!emailForm.newEmail) {
+  const newEmail = emailForm.newEmail.trim();
+  const currentEmail = String(displayEmail.value || "").trim().toLowerCase();
+  emailForm.newEmail = newEmail;
+
+  if (!newEmail) {
     emailErrors.newEmail = "សូមបញ្ចូលអ៊ីមែលថ្មី។";
-  } else if (!emailPattern.test(emailForm.newEmail)) {
+  } else if (!emailPattern.test(newEmail)) {
     emailErrors.newEmail = "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ។";
-  } else if (emailForm.newEmail === displayEmail.value) {
+  } else if (newEmail.toLowerCase() === currentEmail) {
     emailErrors.newEmail = "អ៊ីមែលថ្មីត្រូវខុសពីអ៊ីមែលបច្ចុប្បន្ន។";
   }
 
@@ -616,10 +632,33 @@ watch(
 
 <style scoped>
 .settings-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   color: #0f172a;
 }
 
+.settings-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0%, rgba(33, 100, 119, 0.08) 42%, transparent 58%),
+    repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.035) 0 1px, transparent 1px 62px);
+  opacity: 0.8;
+  transform: translateX(-72%);
+  animation: settingsPageSweep 9s ease-in-out infinite;
+}
+
+.settings-page > * {
+  position: relative;
+  z-index: 1;
+}
+
 .settings-header {
+  position: relative;
   min-height: 104px;
   margin-bottom: 1rem;
   padding: 1.25rem;
@@ -630,6 +669,22 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  overflow: hidden;
+  animation: settingsFadeRise 0.58s ease both;
+}
+
+.settings-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.08), transparent);
+  transform: translateX(-100%);
+  animation: settingsHeaderSweep 5.8s ease-in-out infinite;
+}
+
+.settings-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .settings-kicker {
@@ -661,6 +716,13 @@ watch(
   background: #216477;
   color: #ffffff;
   font-size: 1.35rem;
+  animation: settingsIconPulse 3.8s ease-in-out infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-header:hover .settings-header-icon {
+  box-shadow: 0 12px 26px rgba(33, 100, 119, 0.18);
+  transform: translateY(-1px);
 }
 
 .account-strip {
@@ -671,6 +733,7 @@ watch(
 }
 
 .account-item {
+  position: relative;
   min-width: 0;
   padding: 1rem;
   border: 1px solid #e2e8f0;
@@ -679,6 +742,23 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  overflow: hidden;
+  animation: settingsCardIn 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.account-item:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.account-item:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.account-item:hover {
+  border-color: #c6d8de;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  transform: translateY(-2px);
 }
 
 .account-item strong,
@@ -709,6 +789,13 @@ watch(
   background: #eef6f8;
   color: #216477;
   font-size: 1.1rem;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.account-item:hover .account-icon {
+  background: #216477;
+  color: #ffffff;
+  transform: scale(1.04);
 }
 
 .skeleton-placeholder {
@@ -770,12 +857,44 @@ watch(
 }
 
 .setting-card {
+  position: relative;
   min-width: 0;
   padding: 1.25rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  animation: settingsCardIn 0.54s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.setting-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.setting-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.42), transparent);
+  opacity: 0;
+  transform: translateX(-35%);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.setting-card:hover {
+  border-color: #c6d8de;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.setting-card:hover::before {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .setting-card-wide {
@@ -803,11 +922,33 @@ watch(
   background: #216477;
   color: #ffffff;
   font-size: 1.15rem;
+  animation: settingsIconPulse 4.2s ease-in-out infinite;
+  transition: transform 0.2s ease;
+}
+
+.setting-card:hover .setting-card-icon {
+  transform: scale(1.04) rotate(-2deg);
 }
 
 .field-stack {
   display: grid;
   gap: 0.85rem;
+}
+
+.field-stack > * {
+  animation: settingsFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.field-stack > *:nth-child(1) {
+  animation-delay: 0.08s;
+}
+
+.field-stack > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.field-stack > *:nth-child(3) {
+  animation-delay: 0.2s;
 }
 
 .setting-field {
@@ -831,13 +972,19 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.input-shell:hover {
+  border-color: #b9c9d2;
+  transform: translateY(-1px);
 }
 
 .input-shell:focus-within {
   border-color: #216477;
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
+  transform: translateY(-1px);
 }
 
 .input-shell.is-invalid {
@@ -848,6 +995,12 @@ watch(
 .input-shell > i {
   color: #94a3b8;
   flex: 0 0 auto;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.input-shell:focus-within > i {
+  color: #216477;
+  transform: scale(1.08);
 }
 
 .input-shell input {
@@ -875,11 +1028,13 @@ watch(
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .icon-button:hover,
 .icon-button:focus-visible {
   background: #e8f1f4;
+  transform: rotate(-6deg) scale(1.04);
   outline: 0;
 }
 
@@ -895,6 +1050,7 @@ watch(
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
+  animation: settingsFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both 0.26s;
 }
 
 .verify-row {
@@ -907,6 +1063,121 @@ watch(
 .setting-actions-inline {
   margin-top: 0;
   padding-bottom: 1rem;
+}
+
+.settings-strip-swap-enter-active,
+.settings-strip-swap-leave-active {
+  transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.settings-strip-swap-enter-from,
+.settings-strip-swap-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.settings-error-slide-enter-active,
+.settings-error-slide-leave-active {
+  overflow: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease, max-height 0.22s ease, margin-top 0.22s ease;
+}
+
+.settings-error-slide-enter-from,
+.settings-error-slide-leave-to {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.settings-error-slide-enter-to,
+.settings-error-slide-leave-from {
+  max-height: 64px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes settingsPageSweep {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  45% {
+    opacity: 0.8;
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes settingsFadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes settingsHeaderSweep {
+  0%,
+  28% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  48% {
+    opacity: 1;
+  }
+
+  76%,
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes settingsIconPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(33, 100, 119, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(33, 100, 119, 0.12);
+  }
+}
+
+@keyframes settingsCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes settingsFieldIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 991.98px) {
@@ -941,8 +1212,13 @@ watch(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-placeholder::after {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 </style>

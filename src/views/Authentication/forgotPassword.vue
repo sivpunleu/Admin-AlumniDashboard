@@ -74,13 +74,16 @@
                         </button>
                     </div>
 
-                    <div v-if="notice.text" :class="['auth-alert', `auth-alert--${notice.type}`]" role="status">
+                    <Transition name="auth-alert-slide">
+                        <div v-if="notice.text" :class="['auth-alert', `auth-alert--${notice.type}`]" role="status">
                         <i :class="['bi', notice.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle']"
                             aria-hidden="true"></i>
-                        <span>{{ notice.text }}</span>
-                    </div>
+                            <span>{{ notice.text }}</span>
+                        </div>
+                    </Transition>
 
-                    <form v-if="!isResetMode" class="auth-form-stack" novalidate @submit.prevent="handleForgotPassword">
+                    <Transition name="auth-form-swap" mode="out-in">
+                    <form v-if="!isResetMode" key="forgot" class="auth-form-stack" novalidate @submit.prevent="handleForgotPassword">
                         <div class="auth-field">
                             <label for="email" class="auth-label">អាសយដ្ឋានអ៊ីមែល</label>
                             <div class="auth-input">
@@ -104,7 +107,7 @@
                         </button>
                     </form>
 
-                    <form v-else class="auth-form-stack" novalidate @submit.prevent="handleResetPassword">
+                    <form v-else key="reset" class="auth-form-stack" novalidate @submit.prevent="handleResetPassword">
                         <div v-if="!hasRouteToken" class="auth-field">
                             <label for="token" class="auth-label">លេខកូដកំណត់ឡើងវិញ</label>
                             <div class="auth-input">
@@ -170,6 +173,7 @@
                             <span>ស្នើសុំតំណកំណត់ឡើងវិញថ្មី</span>
                         </button>
                     </form>
+                    </Transition>
                 </div>
             </section>
         </section>
@@ -343,7 +347,7 @@ async function handleForgotPassword() {
             showResetForm(token);
             setNotice("success", "បានទទួលលេខកូដកំណត់ឡើងវិញ។ សូមបង្កើតពាក្យសម្ងាត់ថ្មីដើម្បីបន្ត។");
         } else {
-            setNotice("success", "ប្រសិនបើអ៊ីមែលនេះមានក្នុងប្រព័ន្ធ តំណកំណត់ពាក្យសម្ងាត់ឡើងវិញត្រូវបានផ្ញើរួចហើយ។");
+            setNotice("success", "ប្រសិនបើអ៊ីមែលនេះមានក្នុងប្រព័ន្ធ តំណកំណត់ពាក្យសម្ងាត់ឡើងវិញត្រូវបានផ្ញើរួចហើយ សូមឆែតមើលក្នុង Gmail។");
         }
     } catch (error) {
         logger.error("Forgot password request failed:", {
@@ -405,10 +409,13 @@ onMounted(() => {
 
 <style scoped>
 .auth-recovery-page {
+    position: relative;
+    isolation: isolate;
     min-height: 100vh;
     width: 100%;
     display: grid;
     place-items: center;
+    overflow: hidden;
     padding: clamp(1rem, 3vw, 2.5rem);
     color: #0f172a;
     background:
@@ -416,9 +423,23 @@ onMounted(() => {
         repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.05) 0 1px, transparent 1px 64px),
         repeating-linear-gradient(0deg, rgba(33, 100, 119, 0.04) 0 1px, transparent 1px 64px),
         #f6faf9;
+    animation: authBackdropShift 18s ease-in-out infinite alternate;
+}
+
+.auth-recovery-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.38) 44%, transparent 58%);
+    transform: translateX(-70%);
+    animation: authPageSweep 9s ease-in-out infinite;
 }
 
 .auth-recovery-card {
+    position: relative;
+    z-index: 1;
     width: min(100%, 1060px);
     min-height: 640px;
     display: grid;
@@ -428,6 +449,7 @@ onMounted(() => {
     border-radius: 30px;
     background: #ffffff;
     box-shadow: 0 30px 80px rgba(15, 23, 42, 0.16);
+    animation: authCardEnter 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .auth-recovery-brand {
@@ -447,6 +469,7 @@ onMounted(() => {
         linear-gradient(0deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
     background-size: 44px 44px;
     opacity: 0.18;
+    animation: authGridDrift 22s linear infinite;
 }
 
 .auth-recovery-brand::after {
@@ -458,6 +481,7 @@ onMounted(() => {
     height: 150px;
     background: linear-gradient(100deg, transparent 0%, rgba(245, 158, 11, 0.16) 38%, rgba(255, 255, 255, 0.11) 56%, transparent 100%);
     transform: rotate(-8deg);
+    animation: authRibbonGlow 6.5s ease-in-out infinite alternate;
 }
 
 .auth-recovery-brand-inner {
@@ -484,6 +508,14 @@ onMounted(() => {
     border-radius: 26px;
     background: #ffffff;
     box-shadow: 0 20px 45px rgba(7, 47, 54, 0.32);
+    animation: authLogoFloat 5.8s ease-in-out infinite;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    will-change: transform;
+}
+
+.auth-recovery-logo:hover {
+    box-shadow: 0 24px 54px rgba(7, 47, 54, 0.38);
+    transform: translateY(-3px) scale(1.02);
 }
 
 .auth-recovery-logo img {
@@ -503,6 +535,7 @@ onMounted(() => {
     font-size: clamp(1.95rem, 3vw, 2.4rem);
     line-height: 1.25;
     font-weight: 800;
+    animation: authFadeRise 0.64s ease both 0.2s;
 }
 
 .auth-recovery-brand-copy p {
@@ -510,6 +543,7 @@ onMounted(() => {
     color: rgba(255, 255, 255, 0.85);
     line-height: 1.8;
     font-size: 0.98rem;
+    animation: authFadeRise 0.64s ease both 0.3s;
 }
 
 .auth-security-visual {
@@ -517,6 +551,7 @@ onMounted(() => {
     width: min(100%, 310px);
     min-height: 172px;
     margin-top: 0.2rem;
+    animation: authFadeRise 0.7s ease both 0.42s;
 }
 
 .auth-security-panel {
@@ -535,6 +570,21 @@ onMounted(() => {
     box-shadow: 0 24px 55px rgba(7, 47, 54, 0.3);
     transform: translateX(-50%);
     backdrop-filter: blur(10px);
+    overflow: hidden;
+    animation: authPanelFloat 6s ease-in-out infinite;
+    will-change: transform;
+}
+
+.auth-security-panel::after {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    top: 0.75rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.82), transparent);
+    opacity: 0.72;
+    animation: authScanLine 3.2s ease-in-out infinite;
 }
 
 .auth-security-icon {
@@ -546,14 +596,26 @@ onMounted(() => {
     background: #fff7ed;
     color: #b45309;
     font-size: 1.25rem;
+    animation: authIconGlow 3.4s ease-in-out infinite;
 }
 
 .auth-security-line {
+    position: relative;
+    overflow: hidden;
     display: block;
     width: 76%;
     height: 8px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.32);
+}
+
+.auth-security-line::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.54), transparent);
+    transform: translateX(-110%);
+    animation: authLineShimmer 2.9s ease-in-out infinite;
 }
 
 .auth-security-line--wide {
@@ -585,12 +647,14 @@ onMounted(() => {
 .auth-security-chip--mail {
     top: 0;
     right: 10px;
+    animation: authChipMail 5.2s ease-in-out infinite;
 }
 
 .auth-security-chip--key {
     left: 12px;
     bottom: 8px;
     background: rgba(245, 158, 11, 0.88);
+    animation: authChipKey 5.6s ease-in-out infinite;
 }
 
 .auth-security-check {
@@ -601,6 +665,7 @@ onMounted(() => {
     border-radius: 12px;
     background: #16a34a;
     font-size: 1.1rem;
+    animation: authCheckPulse 2.4s ease-in-out infinite;
 }
 
 .auth-recovery-panel {
@@ -614,6 +679,7 @@ onMounted(() => {
 .auth-recovery-form {
     width: 100%;
     max-width: 438px;
+    animation: authFadeRise 0.68s ease both 0.18s;
 }
 
 .auth-back-link {
@@ -625,11 +691,13 @@ onMounted(() => {
     font-size: 0.9rem;
     font-weight: 700;
     text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .auth-back-link:hover {
     color: #1a4f5d;
     text-decoration: underline;
+    transform: translateX(-3px);
 }
 
 .auth-recovery-header {
@@ -652,6 +720,7 @@ onMounted(() => {
     background: #e8f1f4;
     color: #216477;
     font-size: 0.95rem;
+    animation: authTitleIconPulse 3.8s ease-in-out infinite;
 }
 
 .auth-recovery-step {
@@ -676,6 +745,7 @@ onMounted(() => {
 }
 
 .auth-mode-tabs {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.25rem;
@@ -684,6 +754,7 @@ onMounted(() => {
     border: 1px solid #dbeafe;
     border-radius: 16px;
     background: #eef6f8;
+    animation: authFadeRise 0.62s ease both 0.28s;
 }
 
 .auth-mode-tabs button {
@@ -700,7 +771,7 @@ onMounted(() => {
     font-size: 0.9rem;
     font-weight: 800;
     line-height: 1.35;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .auth-mode-tabs button span {
@@ -711,6 +782,7 @@ onMounted(() => {
 .auth-mode-tabs button:hover,
 .auth-mode-tabs button:focus-visible {
     color: #216477;
+    transform: translateY(-1px);
     outline: none;
 }
 
@@ -718,6 +790,7 @@ onMounted(() => {
     background: #ffffff;
     color: #216477;
     box-shadow: 0 8px 20px rgba(33, 100, 119, 0.14);
+    animation: authTabPop 0.26s ease both;
 }
 
 .auth-alert {
@@ -731,6 +804,7 @@ onMounted(() => {
     font-size: 0.9rem;
     font-weight: 600;
     line-height: 1.5;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 .auth-alert--success {
@@ -748,6 +822,30 @@ onMounted(() => {
 .auth-form-stack {
     display: grid;
     gap: 1rem;
+}
+
+.auth-form-stack > * {
+    animation: authFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.auth-form-stack > *:nth-child(1) {
+    animation-delay: 0.04s;
+}
+
+.auth-form-stack > *:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.auth-form-stack > *:nth-child(3) {
+    animation-delay: 0.16s;
+}
+
+.auth-form-stack > *:nth-child(4) {
+    animation-delay: 0.22s;
+}
+
+.auth-form-stack > *:nth-child(5) {
+    animation-delay: 0.28s;
 }
 
 .auth-field {
@@ -772,17 +870,29 @@ onMounted(() => {
     border: 1px solid #dbe3ea;
     background: #ffffff;
     box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-input:hover {
+    border-color: #b9c9d2;
+    transform: translateY(-1px);
 }
 
 .auth-input:focus-within {
     background: #ffffff;
     border-color: #216477;
     box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
+    transform: translateY(-1px);
 }
 
 .auth-input i {
     color: #94a3b8;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-input:focus-within i {
+    color: #216477;
+    transform: scale(1.08);
 }
 
 .auth-input:has(input.is-invalid) {
@@ -821,12 +931,13 @@ onMounted(() => {
     background: transparent;
     color: #216477;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .auth-toggle:hover,
 .auth-toggle:focus-visible {
     background: #e8f1f4;
+    transform: rotate(-6deg) scale(1.04);
     outline: none;
 }
 
@@ -849,12 +960,276 @@ onMounted(() => {
     font-weight: 700;
     text-decoration: none;
     line-height: 1.45;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-text-button i {
+    transition: transform 0.2s ease;
 }
 
 .auth-text-button:hover,
 .auth-text-button:focus-visible {
     color: #1a4f5d;
     text-decoration: underline;
+    transform: translateY(-1px);
+}
+
+.auth-text-button:hover i,
+.auth-text-button:focus-visible i {
+    transform: translateX(2px);
+}
+
+.auth-alert-slide-enter-active,
+.auth-alert-slide-leave-active {
+    overflow: hidden;
+    transition: opacity 0.24s ease, transform 0.24s ease, max-height 0.24s ease, margin-bottom 0.24s ease;
+}
+
+.auth-alert-slide-enter-from,
+.auth-alert-slide-leave-to {
+    max-height: 0;
+    margin-bottom: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.auth-alert-slide-enter-to,
+.auth-alert-slide-leave-from {
+    max-height: 160px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.auth-form-swap-enter-active,
+.auth-form-swap-leave-active {
+    transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.auth-form-swap-enter-from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+}
+
+.auth-form-swap-leave-to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+}
+
+@keyframes authBackdropShift {
+    from {
+        background-position: 0 0, 0 0, 0 0, 0 0;
+    }
+
+    to {
+        background-position: 0 0, 32px 0, 0 32px, 0 0;
+    }
+}
+
+@keyframes authPageSweep {
+    0%,
+    24% {
+        transform: translateX(-72%);
+        opacity: 0;
+    }
+
+    45% {
+        opacity: 0.72;
+    }
+
+    72%,
+    100% {
+        transform: translateX(72%);
+        opacity: 0;
+    }
+}
+
+@keyframes authCardEnter {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes authGridDrift {
+    from {
+        background-position: 0 0, 0 0;
+    }
+
+    to {
+        background-position: 44px 22px, -22px 44px;
+    }
+}
+
+@keyframes authRibbonGlow {
+    from {
+        opacity: 0.74;
+        transform: translateX(-8px) rotate(-8deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(8px) rotate(-8deg);
+    }
+}
+
+@keyframes authLogoFloat {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes authFadeRise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes authPanelFloat {
+    0%,
+    100% {
+        transform: translateX(-50%) translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateX(-50%) translateY(-7px) rotate(-1deg);
+    }
+}
+
+@keyframes authScanLine {
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+
+    42% {
+        opacity: 0.8;
+    }
+
+    70% {
+        transform: translateY(104px);
+        opacity: 0;
+    }
+}
+
+@keyframes authIconGlow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgba(245, 158, 11, 0);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.14);
+        transform: scale(1.04);
+    }
+}
+
+@keyframes authLineShimmer {
+    0%,
+    30% {
+        transform: translateX(-110%);
+    }
+
+    70%,
+    100% {
+        transform: translateX(110%);
+    }
+}
+
+@keyframes authChipMail {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(8px) rotate(4deg);
+    }
+}
+
+@keyframes authChipKey {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-7px) rotate(-5deg);
+    }
+}
+
+@keyframes authCheckPulse {
+    0%,
+    100% {
+        box-shadow: 0 16px 30px rgba(7, 47, 54, 0.26), 0 0 0 rgba(22, 163, 74, 0);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 16px 30px rgba(7, 47, 54, 0.26), 0 0 0 9px rgba(22, 163, 74, 0.18);
+        transform: scale(1.06);
+    }
+}
+
+@keyframes authTitleIconPulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgba(33, 100, 119, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 7px rgba(33, 100, 119, 0.1);
+    }
+}
+
+@keyframes authTabPop {
+    from {
+        transform: scale(0.98);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes authFieldIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 @media (max-width: 900px) {
