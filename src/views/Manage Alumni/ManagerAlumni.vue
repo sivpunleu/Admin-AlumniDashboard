@@ -7,6 +7,7 @@ import BaseTable from "../../components/UI/Base/BaseTable.vue";
 import * as store from "../../stores/managerAlumni";
 import { useDepartmentStore } from "@/stores/departmentStore";
 import * as generationStore from "@/stores/generationStore";
+import { resolveApiAssetUrl } from "@/config/apiBaseUrl";
 
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'bg-success-subtle text-success border-success-subtle';
@@ -66,16 +67,6 @@ const normalizeStatus = (user) => {
   return status || (user?.isVerifyEmail ? 'APPROVE' : 'PENDING');
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://ant-g2-ams.tt.linkpc.net/api/v1").replace(/\/+$/, "");
-const getApiOrigin = () => {
-  try {
-    return new URL(API_BASE_URL).origin;
-  } catch {
-    return API_BASE_URL.replace(/\/api\/.*$/i, '');
-  }
-};
-const API_ORIGIN = getApiOrigin();
-
 const getAlumniName = (user) => (
   user?.profile?.fullname ||
   user?.profile?.fullName ||
@@ -103,15 +94,7 @@ const getAlumniAvatar = (user) => {
     user?.photo;
 
   if (!rawAvatar) return '';
-  if (/^(https?:|data:|blob:)/i.test(rawAvatar)) return rawAvatar;
-
-  const cleanAvatar = String(rawAvatar).replace(/\\/g, '/').replace(/^\/+/, '');
-
-  if (/^(api|storage|uploads|images)\//i.test(cleanAvatar)) {
-    return `${API_ORIGIN}/${cleanAvatar}`;
-  }
-
-  return `${API_BASE_URL}/${cleanAvatar}`;
+  return resolveApiAssetUrl(rawAvatar);
 };
 
 const getAlumniInitial = (user) => getAlumniName(user).trim().charAt(0).toUpperCase() || 'U';

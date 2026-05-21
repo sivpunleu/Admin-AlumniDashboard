@@ -1,10 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/useAuth";
-
-function normalizeBaseUrl(url) {
-  if (!url) return url;
-  return url.endsWith("/") ? url.slice(0, -1) : url;
-}
+import { API_BASE_URL } from "@/config/apiBaseUrl";
 
 function normalizeToken(value) {
   const token = String(value || "").trim();
@@ -17,15 +13,8 @@ function getStoredToken() {
     normalizeToken(sessionStorage.getItem("token"));
 }
 
-const defaultBase = "https://ant-g2-ams.tt.linkpc.net/api/v1";
-const envBase =
-  typeof import.meta !== "undefined"
-    ? import.meta.env.VITE_API_BASE_URL
-    : undefined;
-const baseURL = normalizeBaseUrl(envBase) || defaultBase;
-
 let api = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     Accept: "application/json",
   },

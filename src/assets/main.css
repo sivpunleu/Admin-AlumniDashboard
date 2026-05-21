@@ -30,6 +30,10 @@ body {
   background-color: var(--app-page-bg);
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 .line-clamp-2 {
   overflow: hidden;
   display: -webkit-box;
@@ -167,6 +171,12 @@ body {
 .btn-icon:hover {
   background: #e2e8f0;
   transform: translateY(-1px);
+}
+
+.btn-icon:focus-visible,
+.btn-primary-custom:focus-visible {
+  outline: 3px solid rgba(33, 100, 119, 0.22);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {

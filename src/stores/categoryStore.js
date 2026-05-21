@@ -4,6 +4,10 @@ import api from "@/API/api";
 import Swal from "sweetalert2";
 import logger from "@/utils/logger";
 import { confirmDelete } from "@/utils/confirmDialog";
+import {
+  getCollectionItems,
+  getPaginationMeta,
+} from "@/utils/paginatedCollection";
 
 export const useCategoryStore = defineStore("category", () => {
   const categories = ref([]);
@@ -28,10 +32,13 @@ export const useCategoryStore = defineStore("category", () => {
       const res = await api.get("/categories", { params: queryParams.value });
 
       // រៀបចំទិន្នន័យតាម Response របស់ Backend
-      const payload = res.data.data || res.data;
-      categories.value = payload.items || payload;
-      totalItems.value = payload.total || categories.value.length;
-      totalPages.value = payload.last_page || 1;
+      const root = res.data ?? {};
+      const payload = root.data ?? root;
+      const meta = getPaginationMeta(root, payload);
+
+      categories.value = getCollectionItems(root, payload);
+      totalItems.value = Number(meta.total ?? categories.value.length);
+      totalPages.value = Number(meta.pages ?? 1);
     } catch (err) {
       logger.error("Fetch Error:", err);
     } finally {

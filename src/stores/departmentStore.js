@@ -3,6 +3,10 @@ import { defineStore } from "pinia";
 import api from "@/API/api";
 import Swal from "sweetalert2";
 import logger from "@/utils/logger";
+import {
+  getCollectionItems,
+  getPaginationMeta,
+} from "@/utils/paginatedCollection";
 
 export const useDepartmentStore = defineStore("department", () => {
   const departments = ref([]);
@@ -45,10 +49,13 @@ export const useDepartmentStore = defineStore("department", () => {
     try {
       isLoading.value = true;
       const res = await api.get("/departments", { params: queryParams.value });
-      const payload = res.data.data || res.data;
-      departments.value = payload.items || payload;
-      totalItems.value = payload.total || departments.value.length;
-      totalPages.value = payload.last_page || 1;
+      const root = res.data ?? {};
+      const payload = root.data ?? root;
+      const meta = getPaginationMeta(root, payload);
+
+      departments.value = getCollectionItems(root, payload);
+      totalItems.value = Number(meta.total ?? departments.value.length);
+      totalPages.value = Number(meta.pages ?? 1);
     } catch (err) {
       logger.error("Fetch Error:", err);
     } finally {

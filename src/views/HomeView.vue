@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/API/api';
 import logger from '@/utils/logger';
+import { fetchPaginatedCollection } from '@/utils/paginatedCollection';
 
 const router = useRouter();
 
@@ -104,13 +105,6 @@ const getTimestamp = (value) => {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
-const normalizeCollection = (response) => {
-  const payload = response.data?.data || response.data || {};
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload)) return payload;
-  return [];
-};
-
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'approved';
   if (status === 'DEACTIVATED') return 'deactivated';
@@ -189,14 +183,10 @@ const buildActivityLog = (users = [], events = []) => {
 const fetchDashboardData = async () => {
   try {
     isLoading.value = true;
-    const [usersResponse, eventsResponse] = await Promise.all([
-      api.get('/users' + '?_page=1&_per_page=100'),
-      api.get('/events' + '?_page=1&_per_page=100')
+    const [allUsers, allEvents] = await Promise.all([
+      fetchPaginatedCollection(api, '/users'),
+      fetchPaginatedCollection(api, '/events'),
     ]);
-
-    // ទាញយកទិន្នន័យពី API តាមរូបភាព [image_ccffa6.png]
-    const allUsers = normalizeCollection(usersResponse);
-    const allEvents = normalizeCollection(eventsResponse);
 
     if (Array.isArray(allUsers)) {
       stats.value.total = allUsers.length;
