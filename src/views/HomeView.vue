@@ -17,6 +17,8 @@ const stats = ref({
 });
 const recentRegistrations = ref([]);
 const upcomingEvents = ref([]);
+const pendingApprovals = ref([]);
+const activityLog = ref([]);
 const isLoading = ref(true);
 
 const PRIMARY_COLOR = '#216477';
@@ -29,6 +31,8 @@ const quickActions = [
 ];
 const recentSkeletonRows = Array.from({ length: 5 }, (_, index) => index);
 const upcomingSkeletonRows = Array.from({ length: 3 }, (_, index) => index);
+const approvalSkeletonRows = Array.from({ length: 3 }, (_, index) => index);
+const activitySkeletonRows = Array.from({ length: 4 }, (_, index) => index);
 
 const normalizeStatus = (value) => String(value || 'PENDING').toUpperCase();
 
@@ -48,8 +52,18 @@ const getUserDisplayName = (user) => {
 
 const getUserInitial = (user) => getUserDisplayName(user).charAt(0).toUpperCase();
 
+const getUserDateValue = (user) => (
+  user?.registeredAt ||
+  user?.createdAt ||
+  user?.created_at ||
+  user?.profile?.registeredAt ||
+  user?.profile?.createdAt ||
+  user?.profile?.created_at ||
+  user?.updatedAt
+);
+
 const formatRegistrationDate = (user) => {
-  const value = user?.registeredAt || user?.createdAt || user?.created_at || user?.profile?.registeredAt || user?.profile?.createdAt || user?.profile?.created_at || user?.updatedAt;
+  const value = getUserDateValue(user);
   if (!value) return '-';
 
   const date = new Date(value);
@@ -60,6 +74,34 @@ const formatEventDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('km-KH');
+};
+
+const formatActivityDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return date.toLocaleString('km-KH', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const getEventDateValue = (event) => (
+  event?.updatedAt ||
+  event?.updated_at ||
+  event?.createdAt ||
+  event?.created_at ||
+  event?.startDate ||
+  event?.start_date ||
+  event?.date
+);
+
+const getTimestamp = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
 const normalizeCollection = (response) => {
@@ -95,6 +137,55 @@ const getUserStatus = (user) => {
   return status;
 };
 
+const buildActivityLog = (users = [], events = []) => {
+  const userActivities = users.map((user, index) => {
+    const status = getUserStatus(user);
+    const dateValue = getUserDateValue(user);
+    const tone = status === 'APPROVE'
+      ? 'success'
+      : status === 'DEACTIVATED'
+        ? 'danger'
+        : 'warning';
+    const icon = status === 'APPROVE'
+      ? 'bi-person-check'
+      : status === 'DEACTIVATED'
+        ? 'bi-person-x'
+        : 'bi-hourglass-split';
+
+    return {
+      id: `user-${user?.id || getUserEmail(user) || index}`,
+      title: getUserDisplayName(user),
+      description: status === 'PENDING'
+        ? 'កំពុងរង់ចាំការអនុម័តគណនី'
+        : `ស្ថានភាពគណនី: ${getStatusLabel(status)}`,
+      date: dateValue,
+      icon,
+      tone,
+      to: '/manager-alumni',
+      timestamp: getTimestamp(dateValue),
+    };
+  });
+
+  const eventActivities = events.map((event, index) => {
+    const dateValue = getEventDateValue(event);
+
+    return {
+      id: `event-${event?.id || index}`,
+      title: event?.title || 'ព្រឹត្តិការណ៍',
+      description: event?.location || 'បានបន្ថែមព្រឹត្តិការណ៍ថ្មី',
+      date: dateValue,
+      icon: 'bi-calendar-event',
+      tone: 'primary',
+      to: event?.id ? { name: 'participant', params: { id: event.id } } : '/event',
+      timestamp: getTimestamp(dateValue),
+    };
+  });
+
+  return [...userActivities, ...eventActivities]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5);
+};
+
 const fetchDashboardData = async () => {
   try {
     isLoading.value = true;
@@ -119,6 +210,10 @@ const fetchDashboardData = async () => {
         )
       ).length;
 
+      pendingApprovals.value = allUsers
+        .filter(u => getUserStatus(u) === 'PENDING')
+        .sort((a, b) => getTimestamp(getUserDateValue(b)) - getTimestamp(getUserDateValue(a)))
+        .slice(0, 4);
       recentRegistrations.value = allUsers.slice(0, 5);
     }
 
@@ -135,6 +230,8 @@ const fetchDashboardData = async () => {
       stats.value.upcomingEvents = upcoming.length;
       upcomingEvents.value = upcoming.slice(0, 3);
     }
+
+    activityLog.value = buildActivityLog(allUsers, allEvents);
   } catch (error) {
     logger.error('Error loading dashboard data:', error);
   } finally {
@@ -231,6 +328,120 @@ onMounted(() => {
               <h3 v-else class="fw-bold mb-0">{{ stats.deactivated }}</h3>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 dashboard-workflow-row">
+      <div class="col-12 col-xl-5">
+        <div class="card dashboard-panel h-100">
+          <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h5 class="fw-bold mb-1">គណនីរង់ចាំការអនុម័ត</h5>
+              <p class="text-muted small mb-0">
+                <template v-if="isLoading">
+                  <span class="skeleton-placeholder skeleton-summary-line"></span>
+                </template>
+                <template v-else>
+                  មាន {{ stats.pending }} គណនីត្រូវពិនិត្យ
+                </template>
+              </p>
+            </div>
+            <button @click="router.push('/manager-alumni')" class="btn dashboard-link-btn btn-sm">
+              ពិនិត្យទាំងអស់
+            </button>
+          </div>
+
+          <Transition name="dashboard-content-swap" mode="out-in">
+            <div v-if="isLoading" key="approval-loading" class="approval-list" aria-busy="true" aria-live="polite"
+              aria-label="កំពុងផ្ទុកគណនីរង់ចាំការអនុម័ត">
+              <div v-for="row in approvalSkeletonRows" :key="row" class="approval-item approval-item--skeleton">
+                <span class="skeleton-placeholder skeleton-avatar"></span>
+                <span class="approval-copy">
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--approval-name"></span>
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--approval-email"></span>
+                </span>
+                <span class="skeleton-placeholder skeleton-action-pill"></span>
+              </div>
+            </div>
+
+            <div v-else-if="!pendingApprovals.length" key="approval-empty" class="dashboard-empty dashboard-empty--compact">
+              <div class="dashboard-empty__icon">
+                <i class="bi bi-check2-circle"></i>
+              </div>
+              <h6 class="fw-bold mb-1">គ្មានគណនីត្រូវពិនិត្យទេ</h6>
+              <p class="text-muted small mb-0">គណនីដែលរង់ចាំការអនុម័តនឹងបង្ហាញនៅទីនេះ។</p>
+            </div>
+
+            <div v-else key="approval-list" class="approval-list">
+              <button v-for="user in pendingApprovals" :key="user.id || getUserEmail(user)" type="button"
+                class="approval-item" @click="router.push('/manager-alumni')">
+                <span class="approval-avatar" :style="{ backgroundColor: PRIMARY_COLOR }">
+                  {{ getUserInitial(user) }}
+                </span>
+                <span class="approval-copy">
+                  <span class="approval-title">{{ getUserDisplayName(user) }}</span>
+                  <span class="approval-meta">
+                    <span>{{ getUserEmail(user) }}</span>
+                    <span>{{ formatRegistrationDate(user) }}</span>
+                  </span>
+                </span>
+                <span class="approval-action">
+                  <i class="bi bi-chevron-right"></i>
+                </span>
+              </button>
+            </div>
+          </Transition>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-7">
+        <div class="card dashboard-panel h-100">
+          <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h5 class="fw-bold mb-1">សកម្មភាពថ្មីៗ</h5>
+              <p class="text-muted small mb-0">សង្ខេបការផ្លាស់ប្តូរចុងក្រោយពីគណនី និងព្រឹត្តិការណ៍</p>
+            </div>
+            <button class="btn dashboard-link-btn btn-sm" @click="fetchDashboardData">
+              <i class="bi bi-arrow-clockwise"></i> ធ្វើបច្ចុប្បន្នភាព
+            </button>
+          </div>
+
+          <Transition name="dashboard-content-swap" mode="out-in">
+            <div v-if="isLoading" key="activity-loading" class="activity-list" aria-busy="true" aria-live="polite"
+              aria-label="កំពុងផ្ទុកសកម្មភាពថ្មីៗ">
+              <div v-for="row in activitySkeletonRows" :key="row" class="activity-item activity-item--skeleton">
+                <span class="skeleton-placeholder skeleton-activity-icon"></span>
+                <span class="activity-copy">
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--activity-title"></span>
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--activity-copy"></span>
+                </span>
+                <span class="skeleton-placeholder skeleton-line skeleton-line--activity-time"></span>
+              </div>
+            </div>
+
+            <div v-else-if="!activityLog.length" key="activity-empty" class="dashboard-empty dashboard-empty--compact">
+              <div class="dashboard-empty__icon">
+                <i class="bi bi-activity"></i>
+              </div>
+              <h6 class="fw-bold mb-1">មិនទាន់មានសកម្មភាពថ្មីៗទេ</h6>
+              <p class="text-muted small mb-0">សកម្មភាពពីគណនី និងព្រឹត្តិការណ៍នឹងបង្ហាញនៅទីនេះ។</p>
+            </div>
+
+            <div v-else key="activity-list" class="activity-list">
+              <button v-for="activity in activityLog" :key="activity.id" type="button" class="activity-item"
+                @click="router.push(activity.to)">
+                <span :class="['activity-icon', `activity-icon--${activity.tone}`]">
+                  <i :class="['bi', activity.icon]"></i>
+                </span>
+                <span class="activity-copy">
+                  <span class="activity-title">{{ activity.title }}</span>
+                  <span class="activity-description">{{ activity.description }}</span>
+                </span>
+                <span class="activity-time">{{ formatActivityDate(activity.date) }}</span>
+              </button>
+            </div>
+          </Transition>
         </div>
       </div>
     </div>
@@ -1114,6 +1325,187 @@ onMounted(() => {
   letter-spacing: 0;
 }
 
+.dashboard-workflow-row {
+  margin-bottom: 0;
+}
+
+.approval-list,
+.activity-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.approval-item,
+.activity-item {
+  width: 100%;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 8px;
+  background: var(--dashboard-surface);
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+button.approval-item:hover,
+button.approval-item:focus-visible,
+button.activity-item:hover,
+button.activity-item:focus-visible {
+  border-color: var(--dashboard-primary);
+  background: var(--dashboard-soft);
+  box-shadow: 0 0 0 4px var(--dashboard-ring);
+  transform: translateY(-1px);
+  outline: 0;
+}
+
+.approval-avatar,
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+
+.approval-copy,
+.activity-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.approval-title,
+.activity-title {
+  color: var(--dashboard-ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-meta,
+.activity-description {
+  color: var(--dashboard-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.approval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+}
+
+.approval-meta span:first-child,
+.activity-description {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--dashboard-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+button.approval-item:hover .approval-action,
+button.approval-item:focus-visible .approval-action {
+  background: #eaf5f7;
+  color: var(--dashboard-primary);
+  transform: translateX(2px);
+}
+
+.activity-icon {
+  background: #eaf5f7;
+  color: var(--dashboard-primary);
+  font-size: 1rem;
+}
+
+.activity-icon--success {
+  background: #e6f4ea;
+  color: #15803d;
+}
+
+.activity-icon--warning {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+.activity-icon--danger {
+  background: #fdf2f2;
+  color: #b42318;
+}
+
+.activity-time {
+  color: var(--dashboard-muted);
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dashboard-empty--compact {
+  min-height: 240px;
+}
+
+.skeleton-line--approval-name {
+  width: min(170px, 72%);
+}
+
+.skeleton-line--approval-email {
+  width: min(230px, 88%);
+  height: 10px;
+}
+
+.skeleton-action-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.skeleton-activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.skeleton-line--activity-title {
+  width: min(220px, 70%);
+}
+
+.skeleton-line--activity-copy {
+  width: min(320px, 88%);
+  height: 10px;
+}
+
+.skeleton-line--activity-time {
+  width: 92px;
+  height: 11px;
+  flex: 0 0 auto;
+}
+
 .table-responsive {
   margin: 0 -0.25rem;
 }
@@ -1409,6 +1801,25 @@ onMounted(() => {
 
   .dashboard-card-header {
     gap: 0.75rem;
+  }
+
+  .approval-item,
+  .activity-item {
+    align-items: flex-start;
+  }
+
+  .activity-item {
+    flex-wrap: wrap;
+  }
+
+  .activity-time {
+    margin-left: 52px;
+    width: calc(100% - 52px);
+  }
+
+  .approval-meta span:first-child,
+  .activity-description {
+    max-width: 100%;
   }
 }
 
