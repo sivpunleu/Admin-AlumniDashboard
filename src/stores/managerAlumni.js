@@ -446,24 +446,54 @@ export const requireAdmin = (callback) => {
   }
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
+const MIN_PASSWORD_LENGTH = 8;
+const ALLOWED_STATUSES = ["PENDING", "APPROVE", "REJECT"];
+
+const isValidPhone = (value) => {
+  const phone = String(value || "").trim();
+  if (!phone) return true;
+
+  const digitCount = phone.replace(/\D/g, "").length;
+  return PHONE_PATTERN.test(phone) && digitCount >= 7 && digitCount <= 15;
+};
+
+const isPositiveInteger = (value) => {
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0;
+};
+
 const validateRegisterForm = () => {
   clearRegisterErrors();
 
   const form = registerForm.value;
   const email = form.email?.trim() || "";
+  const phone = form.phone?.trim() || "";
+  const status = normalizeStatus(form.status);
 
-  if (!form.fullname?.trim()) {
+  form.fullname = form.fullname?.trim() || "";
+  form.email = email;
+  form.phone = phone;
+  form.status = status || "PENDING";
+
+  if (!form.fullname) {
     registerErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
   }
 
   if (!email) {
     registerErrors.value.email = "សូមបញ្ចូលអ៊ីម៉ែល";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  } else if (!EMAIL_PATTERN.test(email)) {
     registerErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
   }
 
-  if (!form.password || form.password.length < 6) {
-    registerErrors.value.password = "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ";
+  if (phone && !isValidPhone(phone)) {
+    registerErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
+  }
+
+  if (!form.password || form.password.length < MIN_PASSWORD_LENGTH) {
+    registerErrors.value.password =
+      `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`;
   }
 
   if (!form.confirmPassword) {
@@ -472,12 +502,16 @@ const validateRegisterForm = () => {
     registerErrors.value.confirmPassword = "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
   }
 
-  if (!form.departmentId) {
+  if (!isPositiveInteger(form.departmentId)) {
     registerErrors.value.departmentId = "សូមជ្រើសរើសដេប៉ាតមេន";
   }
 
-  if (!form.generationId) {
+  if (!isPositiveInteger(form.generationId)) {
     registerErrors.value.generationId = "សូមជ្រើសរើសជំនាន់";
+  }
+
+  if (!ALLOWED_STATUSES.includes(form.status)) {
+    registerErrors.value.status = "សូមជ្រើសរើសស្ថានភាពត្រឹមត្រូវ";
   }
 
   return Object.keys(registerErrors.value).length === 0;
@@ -488,20 +522,31 @@ const validateAdminRegisterForm = () => {
 
   const form = adminRegisterForm.value;
   const email = form.email?.trim() || "";
+  const phone = form.phone?.trim() || "";
+  const status = normalizeStatus(form.status);
 
-  if (!form.fullname?.trim()) {
+  form.fullname = form.fullname?.trim() || "";
+  form.email = email;
+  form.phone = phone;
+  form.status = status || "APPROVE";
+
+  if (!form.fullname) {
     adminRegisterErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
   }
 
   if (!email) {
     adminRegisterErrors.value.email = "សូមបញ្ចូលអ៊ីម៉ែល";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  } else if (!EMAIL_PATTERN.test(email)) {
     adminRegisterErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
   }
 
-  if (!form.password || form.password.length < 6) {
+  if (phone && !isValidPhone(phone)) {
+    adminRegisterErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
+  }
+
+  if (!form.password || form.password.length < MIN_PASSWORD_LENGTH) {
     adminRegisterErrors.value.password =
-      "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 តួអក្សរ";
+      `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`;
   }
 
   if (!form.confirmPassword) {
@@ -512,8 +557,8 @@ const validateAdminRegisterForm = () => {
       "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
   }
 
-  if (!form.status) {
-    adminRegisterErrors.value.status = "សូមជ្រើសរើសស្ថានភាព";
+  if (!ALLOWED_STATUSES.includes(form.status)) {
+    adminRegisterErrors.value.status = "សូមជ្រើសរើសស្ថានភាពត្រឹមត្រូវ";
   }
 
   return Object.keys(adminRegisterErrors.value).length === 0;
@@ -536,11 +581,11 @@ export const handleRegisterAlumni = async () => {
     }
     if (
       !registerForm.value.password ||
-      registerForm.value.password.length < 6
+      registerForm.value.password.length < MIN_PASSWORD_LENGTH
     ) {
       Swal.fire(
         "ការរឹងមាំ",
-        "ពាក្យសម្ងាត់ត្រូវមានយអក្រ 6 តួអក្សរឡើងទៅ",
+        `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`,
         "warning",
       );
       return;
@@ -564,9 +609,9 @@ export const handleRegisterAlumni = async () => {
       email: registerForm.value.email.trim(),
       password: registerForm.value.password,
       confirmPassword: registerForm.value.confirmPassword,
-      phone: registerForm.value.phone || "",
-      bio: registerForm.value.bio || "N/A",
-      currentJob: registerForm.value.currentJob || "DARA",
+      phone: registerForm.value.phone?.trim() || "",
+      bio: registerForm.value.bio?.trim() || "N/A",
+      currentJob: registerForm.value.currentJob?.trim() || "DARA",
       departmentId: Number(registerForm.value.departmentId),
       generationId: Number(registerForm.value.generationId),
       status: registerForm.value.status || "PENDING",
@@ -605,11 +650,11 @@ export const handleRegisterAdmin = async () => {
     const payload = {
       fullname: adminRegisterForm.value.fullname.trim(),
       email: adminRegisterForm.value.email.trim(),
-      phone: adminRegisterForm.value.phone || "",
+      phone: adminRegisterForm.value.phone?.trim() || "",
       password: adminRegisterForm.value.password,
       confirmPassword: adminRegisterForm.value.confirmPassword,
-      bio: adminRegisterForm.value.bio || "N/A",
-      currentJob: adminRegisterForm.value.currentJob || "DARA",
+      bio: adminRegisterForm.value.bio?.trim() || "N/A",
+      currentJob: adminRegisterForm.value.currentJob?.trim() || "DARA",
       status: adminRegisterForm.value.status || "APPROVE",
     };
 

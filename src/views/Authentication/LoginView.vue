@@ -43,9 +43,11 @@
                   @input="validateEmail" />
               </div>
 
-              <p v-if="authStore.errors.email" id="email-error" class="admin-login-error">
-                {{ authStore.errors.email[0] }}
-              </p>
+              <Transition name="admin-login-error-slide">
+                <p v-if="authStore.errors.email" id="email-error" class="admin-login-error">
+                  {{ authStore.errors.email[0] }}
+                </p>
+              </Transition>
             </div>
 
             <!-- PASSWORD -->
@@ -71,9 +73,11 @@
                 </button>
               </div>
 
-              <p v-if="authStore.errors.password" id="password-error" class="admin-login-error">
-                {{ authStore.errors.password[0] }}
-              </p>
+              <Transition name="admin-login-error-slide">
+                <p v-if="authStore.errors.password" id="password-error" class="admin-login-error">
+                  {{ authStore.errors.password[0] }}
+                </p>
+              </Transition>
             </div>
             <div class="admin-login-options d-flex justify-content-between align-items-center mb-4">
               <!-- REMEMBER -->
@@ -189,25 +193,51 @@ const handleLogin = async () => {
 
 <style scoped>
 .admin-login-page {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   width: 100%;
   display: grid;
   place-items: center;
+  overflow: hidden;
   padding: 2rem;
-  background: linear-gradient(135deg, #e8f1f4 0%, #f4f7f9 100%);
+  background:
+    linear-gradient(135deg, rgba(33, 100, 119, 0.14) 0%, rgba(245, 158, 11, 0.08) 45%, rgba(47, 125, 116, 0.12) 100%),
+    repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.05) 0 1px, transparent 1px 68px),
+    repeating-linear-gradient(0deg, rgba(33, 100, 119, 0.04) 0 1px, transparent 1px 68px),
+    #f6faf9;
+  animation: adminLoginBackdrop 18s ease-in-out infinite alternate;
 }
+
+.admin-login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.4) 44%, transparent 58%);
+  transform: translateX(-72%);
+  animation: adminLoginSweep 9s ease-in-out infinite;
+}
+
 .admin-login-forgot a {
+  display: inline-flex;
   font-size: 0.9rem;
   color: #216477;
   text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 .admin-login-forgot a:hover {
+  color: #1a4f5d;
   text-decoration: underline;
+  transform: translateX(2px);
 }
 
 /* CARD */
 
 .admin-login-card {
+  position: relative;
+  z-index: 1;
   width: min(100%, 950px);
   min-height: 580px;
   display: grid;
@@ -216,6 +246,7 @@ const handleLogin = async () => {
   border-radius: 28px;
   background: #ffffff;
   box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
+  animation: adminLoginCardIn 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* LEFT */
@@ -229,7 +260,7 @@ const handleLogin = async () => {
   gap: 2rem;
   padding: 3rem;
   overflow: hidden;
-  background: linear-gradient(180deg, #216477 0%, #1a4f5d 100%);
+  background: linear-gradient(155deg, #154f5b 0%, #216477 52%, #2f7d74 100%);
   text-align: center;
   color: white;
 }
@@ -239,23 +270,25 @@ const handleLogin = async () => {
 .admin-login-brand::before {
   content: "";
   position: absolute;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  /* background: rgba(255, 255, 255, 0.06); */
-  top: -120px;
-  right: -120px;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.18;
+  animation: adminLoginGridDrift 22s linear infinite;
 }
 
 .admin-login-brand::after {
   content: "";
   position: absolute;
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  /* background: rgba(255, 255, 255, 0.05); */
-  bottom: -100px;
-  left: -80px;
+  left: -16%;
+  right: -16%;
+  bottom: 14%;
+  height: 140px;
+  background: linear-gradient(100deg, transparent 0%, rgba(245, 158, 11, 0.16) 38%, rgba(255, 255, 255, 0.11) 56%, transparent 100%);
+  transform: rotate(-8deg);
+  animation: adminLoginRibbon 6.5s ease-in-out infinite alternate;
 }
 
 /* LOGO */
@@ -263,9 +296,21 @@ const handleLogin = async () => {
 .admin-login-logo-wrapper {
   position: relative;
   z-index: 2;
+  animation: adminLoginFadeRise 0.64s ease both 0.16s;
+}
+
+.admin-login-logo-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 34px;
+  opacity: 0.8;
+  animation: adminLoginLogoFrame 4.8s ease-in-out infinite;
 }
 
 .admin-login-logo {
+  position: relative;
   width: 160px;
   height: 160px;
   display: flex;
@@ -274,7 +319,10 @@ const handleLogin = async () => {
   padding: 14px;
   border-radius: 28px;
   background: #ffff;
-  transition: 0.35s ease;
+  box-shadow: 0 22px 48px rgba(7, 47, 54, 0.28);
+  animation: adminLoginLogoFloat 5.8s ease-in-out infinite;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  will-change: transform;
 }
 
 
@@ -298,6 +346,7 @@ const handleLogin = async () => {
   font-size: 2.3rem;
   font-weight: 800;
   color: white;
+  animation: adminLoginFadeRise 0.64s ease both 0.28s;
 }
 
 .admin-login-brand-copy p {
@@ -305,6 +354,7 @@ const handleLogin = async () => {
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.9;
   font-size: 0.96rem;
+  animation: adminLoginFadeRise 0.64s ease both 0.38s;
 }
 
 /* RIGHT */
@@ -314,11 +364,13 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   padding: 3rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfd 100%);
 }
 
 .admin-login-form {
   width: 100%;
   max-width: 400px;
+  animation: adminLoginFadeRise 0.68s ease both 0.2s;
 }
 
 .admin-login-header {
@@ -331,10 +383,32 @@ const handleLogin = async () => {
   color: #0f172a;
   font-size: 2rem;
   font-weight: 800;
+  animation: adminLoginFadeRise 0.58s ease both 0.28s;
 }
 
 .admin-login-header p {
   color: #64748b;
+  animation: adminLoginFadeRise 0.58s ease both 0.36s;
+}
+
+.admin-login-form form > * {
+  animation: adminLoginFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.admin-login-form form > *:nth-child(1) {
+  animation-delay: 0.08s;
+}
+
+.admin-login-form form > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.admin-login-form form > *:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.admin-login-form form > *:nth-child(4) {
+  animation-delay: 0.26s;
 }
 
 .admin-login-field {
@@ -363,17 +437,29 @@ const handleLogin = async () => {
   border-radius: 16px;
   border: 1px solid #dbe3ea;
   background: #f8fafc;
-  transition: 0.25s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-login-input:hover {
+  border-color: #b9c9d2;
+  transform: translateY(-1px);
 }
 
 .admin-login-input:focus-within {
   background: white;
   border-color: #216477;
   box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
+  transform: translateY(-1px);
 }
 
 .admin-login-input i {
   color: #94a3b8;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-login-input:focus-within i {
+  color: #216477;
+  transform: scale(1.08);
 }
 
 .admin-login-input input {
@@ -401,12 +487,13 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .admin-login-toggle:hover,
 .admin-login-toggle:focus-visible {
   background: #e8f1f4;
+  transform: rotate(-6deg) scale(1.04);
   outline: none;
 }
 
@@ -424,10 +511,158 @@ const handleLogin = async () => {
   /* margin-bottom: 2rem; */
   font-size: 0.9rem;
   color: #475569;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-login-remember:hover {
+  color: #216477;
+  transform: translateY(-1px);
 }
 
 .admin-login-remember input {
   accent-color: #216477;
+}
+
+.admin-login-error-slide-enter-active,
+.admin-login-error-slide-leave-active {
+  overflow: hidden;
+  transition: opacity 0.22s ease, transform 0.22s ease, max-height 0.22s ease, margin-top 0.22s ease;
+}
+
+.admin-login-error-slide-enter-from,
+.admin-login-error-slide-leave-to {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.admin-login-error-slide-enter-to,
+.admin-login-error-slide-leave-from {
+  max-height: 64px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes adminLoginBackdrop {
+  from {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+
+  to {
+    background-position: 0 0, 34px 0, 0 34px, 0 0;
+  }
+}
+
+@keyframes adminLoginSweep {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  45% {
+    opacity: 0.72;
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes adminLoginCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes adminLoginGridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 44px 22px, -22px 44px;
+  }
+}
+
+@keyframes adminLoginRibbon {
+  from {
+    opacity: 0.74;
+    transform: translateX(-8px) rotate(-8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(8px) rotate(-8deg);
+  }
+}
+
+@keyframes adminLoginFadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes adminLoginLogoFrame {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes adminLoginLogoFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes adminLoginFieldIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 850px) {

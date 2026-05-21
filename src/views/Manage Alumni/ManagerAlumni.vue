@@ -585,15 +585,19 @@ const tableColumns = [
       <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
         <input v-model="store.registerForm.value.phone" type="tel" class="form-control"
-          autocomplete="off"
+          autocomplete="off" :class="{ 'is-invalid': store.registerErrors.value.phone }"
+          @input="delete store.registerErrors.value.phone"
           placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
+        <div v-if="store.registerErrors.value.phone" class="invalid-feedback">
+          {{ store.registerErrors.value.phone }}
+        </div>
       </div>
 
       <div>
         <label class="form-label fw-bold small">ពាក្យសម្ងាត់ </label>
         <div class="password-field">
           <input v-model="store.registerForm.value.password" :type="showPassword ? 'text' : 'password'"
-            class="form-control password-field__input" autocomplete="new-password"
+            class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.registerErrors.value.password }" placeholder="បញ្ចូលពាក្យសម្ងាត់" required
             @input="delete store.registerErrors.value.password" />
           <button type="button" class="password-field__toggle" :title="showPassword ? 'Hide password' : 'Show password'"
@@ -610,7 +614,7 @@ const tableColumns = [
         <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ </label>
         <div class="password-field">
           <input v-model="store.registerForm.value.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
-            class="form-control password-field__input" autocomplete="new-password"
+            class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
             @input="delete store.registerErrors.value.confirmPassword" />
@@ -659,11 +663,16 @@ const tableColumns = [
 
       <div>
         <label class="form-label fw-bold small">ស្ថានភាព *</label>
-        <select v-model="store.registerForm.value.status" class="form-control" required>
+        <select v-model="store.registerForm.value.status" class="form-control"
+          :class="{ 'is-invalid': store.registerErrors.value.status }" required
+          @change="delete store.registerErrors.value.status">
           <option value="PENDING">កំពុងរង់ចាំ</option>
           <option value="APPROVE">យល់ព្រម</option>
           <option value="REJECT">បានផ្អាកដំណើរការ</option>
         </select>
+        <div v-if="store.registerErrors.value.status" class="invalid-feedback">
+          {{ store.registerErrors.value.status }}
+        </div>
       </div>
 
       <div class="form-field--full">
@@ -717,14 +726,18 @@ const tableColumns = [
       <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
         <input v-model="store.adminRegisterForm.value.phone" type="tel" class="form-control"
-          autocomplete="off" placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
+          autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.phone }"
+          placeholder="បញ្ចូលលេខទូរស័ព្ទ" @input="delete store.adminRegisterErrors.value.phone" />
+        <div v-if="store.adminRegisterErrors.value.phone" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.phone }}
+        </div>
       </div>
 
       <div>
         <label class="form-label fw-bold small">ពាក្យសម្ងាត់ *</label>
         <div class="password-field">
           <input v-model="store.adminRegisterForm.value.password" :type="showAdminPassword ? 'text' : 'password'"
-            class="form-control password-field__input" autocomplete="new-password"
+            class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.adminRegisterErrors.value.password }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់" required
             @input="delete store.adminRegisterErrors.value.password" />
@@ -745,7 +758,7 @@ const tableColumns = [
         <div class="password-field">
           <input v-model="store.adminRegisterForm.value.confirmPassword"
             :type="showAdminConfirmPassword ? 'text' : 'password'" class="form-control password-field__input"
-            autocomplete="new-password" :class="{ 'is-invalid': store.adminRegisterErrors.value.confirmPassword }"
+            autocomplete="new-password" minlength="8" :class="{ 'is-invalid': store.adminRegisterErrors.value.confirmPassword }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
             @input="delete store.adminRegisterErrors.value.confirmPassword" />
           <button type="button" class="password-field__toggle"

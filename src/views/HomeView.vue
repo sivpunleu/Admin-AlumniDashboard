@@ -245,78 +245,80 @@ onMounted(() => {
               class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
           </div>
 
-          <div v-if="isLoading" class="dashboard-table-skeleton" aria-busy="true" aria-live="polite"
-            aria-label="កំពុងផ្ទុកការចុះឈ្មោះថ្មីៗ">
-            <div class="skeleton-table-header">
-              <span class="skeleton-placeholder skeleton-heading"></span>
-              <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
-              <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
-              <span class="skeleton-placeholder skeleton-heading skeleton-heading--end"></span>
-            </div>
-            <div v-for="row in recentSkeletonRows" :key="row" class="skeleton-table-row">
-              <span class="skeleton-person-cell">
-                <span class="skeleton-placeholder skeleton-avatar"></span>
-                <span class="skeleton-person-lines">
-                  <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
-                  <span class="skeleton-placeholder skeleton-line skeleton-line--email"></span>
-                </span>
-              </span>
-              <span class="skeleton-placeholder skeleton-line skeleton-line--date"></span>
-              <span class="skeleton-placeholder skeleton-pill skeleton-pill--status"></span>
-              <span class="skeleton-placeholder skeleton-dot-action"></span>
-            </div>
-          </div>
-
-          <div v-else class="table-responsive">
-            <div v-if="!recentRegistrations.length" class="dashboard-empty">
-              <div class="dashboard-empty__icon">
-                <i class="bi bi-person-plus"></i>
+          <Transition name="dashboard-content-swap" mode="out-in">
+            <div v-if="isLoading" key="recent-loading" class="dashboard-table-skeleton" aria-busy="true" aria-live="polite"
+              aria-label="កំពុងផ្ទុកការចុះឈ្មោះថ្មីៗ">
+              <div class="skeleton-table-header">
+                <span class="skeleton-placeholder skeleton-heading"></span>
+                <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
+                <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
+                <span class="skeleton-placeholder skeleton-heading skeleton-heading--end"></span>
               </div>
-              <h6 class="fw-bold mb-1">មិនទាន់មានការចុះឈ្មោះថ្មីទេ</h6>
-              <p class="text-muted small mb-0">បេក្ខជនថ្មីនឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីមានការចុះឈ្មោះ។</p>
+              <div v-for="row in recentSkeletonRows" :key="row" class="skeleton-table-row">
+                <span class="skeleton-person-cell">
+                  <span class="skeleton-placeholder skeleton-avatar"></span>
+                  <span class="skeleton-person-lines">
+                    <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
+                    <span class="skeleton-placeholder skeleton-line skeleton-line--email"></span>
+                  </span>
+                </span>
+                <span class="skeleton-placeholder skeleton-line skeleton-line--date"></span>
+                <span class="skeleton-placeholder skeleton-pill skeleton-pill--status"></span>
+                <span class="skeleton-placeholder skeleton-dot-action"></span>
+              </div>
             </div>
 
-            <table v-else class="table align-middle table-hover">
-              <thead class="text-muted small uppercase">
-                <tr>
-                  <th class="border-0">បេក្ខជន</th>
-                  <th class="border-0 text-center">កាលបរិច្ឆេទចុះឈ្មោះ</th>
-                  <th class="border-0 text-center">ស្ថានភាព</th>
-                  <th class="border-0 text-end">សកម្មភាព</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in recentRegistrations" :key="user.id">
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
-                        :style="{ backgroundColor: PRIMARY_COLOR }">
-                        {{ getUserInitial(user) }}
+            <div v-else key="recent-data" class="table-responsive">
+              <div v-if="!recentRegistrations.length" class="dashboard-empty">
+                <div class="dashboard-empty__icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <h6 class="fw-bold mb-1">មិនទាន់មានការចុះឈ្មោះថ្មីទេ</h6>
+                <p class="text-muted small mb-0">បេក្ខជនថ្មីនឹងបង្ហាញនៅទីនេះ បន្ទាប់ពីមានការចុះឈ្មោះ។</p>
+              </div>
+
+              <table v-else class="table align-middle table-hover">
+                <thead class="text-muted small uppercase">
+                  <tr>
+                    <th class="border-0">បេក្ខជន</th>
+                    <th class="border-0 text-center">កាលបរិច្ឆេទចុះឈ្មោះ</th>
+                    <th class="border-0 text-center">ស្ថានភាព</th>
+                    <th class="border-0 text-end">សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="user in recentRegistrations" :key="user.id">
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
+                          :style="{ backgroundColor: PRIMARY_COLOR }">
+                          {{ getUserInitial(user) }}
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark small">{{ getUserDisplayName(user) }}</div>
+                          <div class="text-muted extra-small">{{ getUserEmail(user) }}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div class="fw-bold text-dark small">{{ getUserDisplayName(user) }}</div>
-                        <div class="text-muted extra-small">{{ getUserEmail(user) }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="small text-center text-muted">
-                    {{ formatRegistrationDate(user) }}
-                  </td>
-                  <td class="text-center">
-                    <span :class="['badge-status', getStatusClass(getUserStatus(user))]">
-                      <span class="badge-status__dot"></span>{{ getStatusLabel(getUserStatus(user)) }}
-                    </span>
-                  </td>
-                  <td class="text-end">
-                    <button type="button" class="table-action-btn" aria-label="មើលព័ត៌មានលម្អិត"
-                      @click="router.push('/manager-alumni')">
-                      <i class="bi bi-three-dots"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    </td>
+                    <td class="small text-center text-muted">
+                      {{ formatRegistrationDate(user) }}
+                    </td>
+                    <td class="text-center">
+                      <span :class="['badge-status', getStatusClass(getUserStatus(user))]">
+                        <span class="badge-status__dot"></span>{{ getStatusLabel(getUserStatus(user)) }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      <button type="button" class="table-action-btn" aria-label="មើលព័ត៌មានលម្អិត"
+                        @click="router.push('/manager-alumni')">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Transition>
         </div>
       </div>
 
@@ -340,41 +342,43 @@ onMounted(() => {
             </button>
           </div>
 
-          <div v-if="isLoading" class="upcoming-skeleton-list" aria-busy="true" aria-live="polite"
-            aria-label="កំពុងផ្ទុកព្រឹត្តិការណ៍ជិតមកដល់">
-            <div v-for="row in upcomingSkeletonRows" :key="row" class="upcoming-event skeleton-upcoming-event">
-              <span class="skeleton-event-lines">
-                <span class="skeleton-placeholder skeleton-line skeleton-line--event-title"></span>
-                <span class="skeleton-placeholder skeleton-line skeleton-line--event-location"></span>
-              </span>
-              <span class="skeleton-event-date-lines">
-                <span class="skeleton-placeholder skeleton-line skeleton-line--event-date"></span>
-                <span class="skeleton-placeholder skeleton-line skeleton-line--event-link"></span>
-              </span>
-            </div>
-          </div>
-
-          <div v-else-if="!upcomingEvents.length" class="dashboard-empty">
-            <div class="dashboard-empty__icon">
-              <i class="bi bi-calendar2-plus"></i>
-            </div>
-            <h6 class="fw-bold mb-1">មិនទាន់មានព្រឹត្តិការណ៍ជិតមកដល់ទេ</h6>
-            <p class="text-muted small mb-0">ព្រឹត្តិការណ៍ដែលមានថ្ងៃចាប់ផ្តើមខាងមុខនឹងបង្ហាញនៅទីនេះ។</p>
-          </div>
-
-          <div v-else class="upcoming-list">
-            <button v-for="event in upcomingEvents" :key="event.id" type="button" class="upcoming-event"
-              @click="router.push({ name: 'participant', params: { id: event.id } })">
-              <div>
-                <div class="fw-bold text-dark">{{ event.title || '-' }}</div>
-                <div class="text-muted small">{{ event.location || '-' }}</div>
+          <Transition name="dashboard-content-swap" mode="out-in">
+            <div v-if="isLoading" key="upcoming-loading" class="upcoming-skeleton-list" aria-busy="true" aria-live="polite"
+              aria-label="កំពុងផ្ទុកព្រឹត្តិការណ៍ជិតមកដល់">
+              <div v-for="row in upcomingSkeletonRows" :key="row" class="upcoming-event skeleton-upcoming-event">
+                <span class="skeleton-event-lines">
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--event-title"></span>
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--event-location"></span>
+                </span>
+                <span class="skeleton-event-date-lines">
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--event-date"></span>
+                  <span class="skeleton-placeholder skeleton-line skeleton-line--event-link"></span>
+                </span>
               </div>
-              <div class="text-end">
-                <div class="event-date">{{ formatEventDate(event.startDate || event.start_date || event.date) }}</div>
-                <div class="text-muted extra-small">មើលអ្នកចូលរួម</div>
+            </div>
+
+            <div v-else-if="!upcomingEvents.length" key="upcoming-empty" class="dashboard-empty">
+              <div class="dashboard-empty__icon">
+                <i class="bi bi-calendar2-plus"></i>
               </div>
-            </button>
-          </div>
+              <h6 class="fw-bold mb-1">មិនទាន់មានព្រឹត្តិការណ៍ជិតមកដល់ទេ</h6>
+              <p class="text-muted small mb-0">ព្រឹត្តិការណ៍ដែលមានថ្ងៃចាប់ផ្តើមខាងមុខនឹងបង្ហាញនៅទីនេះ។</p>
+            </div>
+
+            <div v-else key="upcoming-list" class="upcoming-list">
+              <button v-for="event in upcomingEvents" :key="event.id" type="button" class="upcoming-event"
+                @click="router.push({ name: 'participant', params: { id: event.id } })">
+                <div>
+                  <div class="fw-bold text-dark">{{ event.title || '-' }}</div>
+                  <div class="text-muted small">{{ event.location || '-' }}</div>
+                </div>
+                <div class="text-end">
+                  <div class="event-date">{{ formatEventDate(event.startDate || event.start_date || event.date) }}</div>
+                  <div class="text-muted extra-small">មើលអ្នកចូលរួម</div>
+                </div>
+              </button>
+            </div>
+          </Transition>
         </div>
       </div>
     </div>
@@ -807,13 +811,36 @@ onMounted(() => {
   --dashboard-soft: #f8fafc;
   --dashboard-ring: rgba(33, 100, 119, 0.12);
 
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   gap: 1rem;
   padding: clamp(0rem, 1vw, 0.5rem);
   color: var(--dashboard-ink);
 }
 
+.dashboard-container::before {
+  content: "";
+  position: absolute;
+  inset: -1rem;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0%, rgba(33, 100, 119, 0.08) 42%, transparent 58%),
+    repeating-linear-gradient(90deg, rgba(33, 100, 119, 0.035) 0 1px, transparent 1px 68px);
+  opacity: 0;
+  transform: translateX(-72%);
+  animation: dashboardPageSweep 9s ease-in-out infinite;
+}
+
+.dashboard-container > * {
+  position: relative;
+  z-index: 1;
+}
+
 .dashboard-page-header {
+  position: relative;
   margin-bottom: 0;
   padding: 22px 24px;
   border: 1px solid var(--dashboard-border);
@@ -821,6 +848,22 @@ onMounted(() => {
   border-radius: 8px;
   background: var(--dashboard-surface);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  animation: dashboardFadeRise 0.58s ease both;
+}
+
+.dashboard-page-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.08), transparent);
+  transform: translateX(-100%);
+  animation: dashboardHeaderSweep 5.8s ease-in-out infinite;
+}
+
+.dashboard-page-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard-title {
@@ -850,7 +893,7 @@ onMounted(() => {
   gap: 0.35rem;
   font-weight: 700;
   white-space: nowrap;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .dashboard-refresh-btn:hover,
@@ -861,6 +904,12 @@ onMounted(() => {
   background: #f0f7f9;
   color: var(--dashboard-primary);
   box-shadow: 0 0 0 4px var(--dashboard-ring);
+  transform: translateY(-1px);
+}
+
+.dashboard-refresh-btn:hover i,
+.dashboard-refresh-btn:focus-visible i {
+  animation: dashboardRefreshSpin 0.7s ease;
 }
 
 .quick-actions-grid,
@@ -868,12 +917,44 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
+.quick-actions-grid > *,
+.stats-grid > * {
+  animation: dashboardCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.quick-actions-grid > *:nth-child(2),
+.stats-grid > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.quick-actions-grid > *:nth-child(3),
+.stats-grid > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.quick-actions-grid > *:nth-child(4),
+.stats-grid > *:nth-child(4) {
+  animation-delay: 0.18s;
+}
+
 .quick-action {
+  position: relative;
   min-height: 72px;
   padding: 14px;
   border-color: var(--dashboard-border);
   border-radius: 8px;
   box-shadow: none;
+  overflow: hidden;
+}
+
+.quick-action::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.08), transparent);
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 0.2s ease, transform 0.36s ease;
 }
 
 .quick-action:hover,
@@ -884,28 +965,76 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
+.quick-action:hover::after,
+.quick-action:focus-visible::after {
+  opacity: 1;
+  transform: translateX(100%);
+}
+
 .quick-action__icon {
   border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.quick-action:hover .quick-action__icon,
+.quick-action:focus-visible .quick-action__icon {
+  transform: scale(1.06) rotate(-2deg);
 }
 
 .quick-action__label {
   font-size: 0.9rem;
   line-height: 1.35;
+  position: relative;
+  z-index: 1;
+}
+
+.quick-action__arrow {
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.quick-action:hover .quick-action__arrow,
+.quick-action:focus-visible .quick-action__arrow {
+  color: var(--dashboard-primary);
+  transform: translateX(3px);
 }
 
 .metric-card.card {
+  position: relative;
   padding: 18px;
   border: 1px solid var(--dashboard-border) !important;
   border-left-width: 4px !important;
   border-radius: 8px !important;
   background: var(--dashboard-surface);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.metric-card.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.06), transparent);
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 0.2s ease, transform 0.36s ease;
 }
 
 .metric-card.card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.metric-card.card:hover::after {
+  opacity: 1;
+  transform: translateX(100%);
+}
+
+.metric-card.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .metric-card--primary {
@@ -929,6 +1058,11 @@ onMounted(() => {
   height: 44px;
   border-radius: 8px;
   flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.metric-card:hover .icon-box {
+  transform: scale(1.06) rotate(-2deg);
 }
 
 .metric-card--primary .icon-box {
@@ -940,19 +1074,31 @@ onMounted(() => {
   color: var(--dashboard-ink);
   font-size: 1.55rem;
   line-height: 1.1;
+  animation: dashboardNumberPop 0.34s ease both;
+}
+
+.dashboard-container > .row.g-4 > * {
+  animation: dashboardCardIn 0.54s cubic-bezier(0.16, 1, 0.3, 1) both 0.12s;
+}
+
+.dashboard-container > .row.g-4 > *:nth-child(2) {
+  animation-delay: 0.2s;
 }
 
 .dashboard-panel.card {
+  position: relative;
   padding: clamp(1rem, 1.8vw, 1.35rem);
   border: 1px solid var(--dashboard-border) !important;
   border-radius: 8px !important;
   background: var(--dashboard-surface);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  transition: border-color 0.2s ease;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-panel.card:hover {
   border-color: #cbd5e1;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.07);
   transform: none;
 }
 
@@ -992,12 +1138,37 @@ onMounted(() => {
   vertical-align: middle;
 }
 
+.table tbody tr {
+  animation: dashboardFieldIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.table tbody tr:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.table tbody tr:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.table tbody tr:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.table tbody tr:nth-child(5) {
+  animation-delay: 0.16s;
+}
+
 .table-hover>tbody>tr:hover>* {
   background-color: var(--dashboard-soft);
 }
 
 .avatar-sq {
   border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.table-hover > tbody > tr:hover .avatar-sq {
+  transform: scale(1.05);
 }
 
 .badge-status {
@@ -1018,6 +1189,7 @@ onMounted(() => {
   border-radius: 50%;
   background: currentColor;
   flex: 0 0 auto;
+  animation: dashboardStatusPulse 2.4s ease-in-out infinite;
 }
 
 .table-action-btn {
@@ -1030,13 +1202,14 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .table-action-btn:hover,
 .table-action-btn:focus-visible {
   background: #eaf5f7;
   color: var(--dashboard-primary);
+  transform: rotate(90deg);
   outline: 0;
 }
 
@@ -1044,17 +1217,32 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
+.upcoming-list > * {
+  animation: dashboardFieldIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.upcoming-list > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.upcoming-list > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
 .upcoming-event {
   min-height: 76px;
   padding: 14px;
   border-color: var(--dashboard-border);
   border-radius: 8px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .upcoming-event:hover,
 .upcoming-event:focus-visible {
   border-color: var(--dashboard-primary);
   background: var(--dashboard-soft);
+  box-shadow: 0 0 0 4px var(--dashboard-ring);
+  transform: translateY(-1px);
   outline: 0;
 }
 
@@ -1066,10 +1254,141 @@ onMounted(() => {
   min-height: 170px;
   border-radius: 8px;
   background: var(--dashboard-soft);
+  animation: dashboardFadeRise 0.42s ease both;
 }
 
 .dashboard-empty__icon {
   border-radius: 8px;
+  animation: dashboardEmptyIcon 3.2s ease-in-out infinite;
+}
+
+.dashboard-content-swap-enter-active,
+.dashboard-content-swap-leave-active {
+  transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.dashboard-content-swap-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.dashboard-content-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+@keyframes dashboardPageSweep {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  45% {
+    opacity: 0.8;
+  }
+
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes dashboardHeaderSweep {
+  0%,
+  28% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  48% {
+    opacity: 1;
+  }
+
+  76%,
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes dashboardFadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboardCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboardFieldIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboardNumberPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dashboardStatusPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(33, 100, 119, 0);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(33, 100, 119, 0.12);
+    transform: scale(1.12);
+  }
+}
+
+@keyframes dashboardEmptyIcon {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes dashboardRefreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
@@ -1094,8 +1413,13 @@ onMounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-placeholder::after {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 </style>
