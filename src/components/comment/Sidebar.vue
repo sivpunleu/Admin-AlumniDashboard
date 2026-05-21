@@ -12,10 +12,6 @@
     <!-- Menu -->
     <div class="p-3 flex-grow-1 overflow-auto">
 
-      <h6 class="text-uppercase text-muted extra-small fw-bold mb-3 tracking-wider ps-2">
-        មឺនុយមេ
-      </h6>
-
       <ul class="nav nav-pills flex-column gap-1">
 
         <li class="nav-item">

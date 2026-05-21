@@ -308,7 +308,7 @@ watch(showAdminRegisterModal, (isOpen) => {
 const tableColumns = [
   { key: "alumni", label: "សមាជិកអតីតនិស្សិត" },
   { key: "id", label: "លេខសម្គាល់" },
-  { key: "role", label: "Role" },
+  { key: "role", label: "តួនាទី" },
   { key: "verify", label: "ផ្ទៀងផ្ទាត់អ៊ីមែល" },
   { key: "status", label: "ស្ថានភាព" },
   { key: "actions", label: "ការគ្រប់គ្រង" },

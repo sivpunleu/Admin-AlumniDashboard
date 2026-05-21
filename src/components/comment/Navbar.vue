@@ -82,7 +82,10 @@
                             {{ displayName }}
                         </span>
 
+                        <!-- icon dropdown -->
+                        <i class="bi bi-chevron-down ms-2 fs-6 d-none d-lg-inline"></i>
                     </a>
+
 
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-4">
 
@@ -111,7 +114,9 @@
                             </a>
                         </li>
 
+
                     </ul>
+
 
                 </div>
 

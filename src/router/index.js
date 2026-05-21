@@ -149,7 +149,7 @@ const routes = [
         name: "participant",
         component: ParticipantView,
         props: true,
-        meta: { title: "អ្នកចូលរួម" },
+        meta: { title: "ព្រឹត្តិការណ៍​ / អ្នកចូលរួម" },
       },
     ],
   },

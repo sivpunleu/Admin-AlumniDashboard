@@ -218,7 +218,7 @@ const formatDateTime = (value) => {
         <div v-else>
             <BaseTable :columns="tableColumns" :data="store.events">
                 <template #cell-title="{ item }">
-                    <div class="fw-semibold ">{{ item.title }}</div>
+                    <div class="fw-semibold text-emphasis">{{ item.title }}</div>
                     <small class="text-muted">អត្តលេខ: {{ item.id }}</small>
                 </template>
 
