@@ -611,7 +611,7 @@ export const handleRegisterAlumni = async () => {
       confirmPassword: registerForm.value.confirmPassword,
       phone: registerForm.value.phone?.trim() || "",
       bio: registerForm.value.bio?.trim() || "N/A",
-      currentJob: registerForm.value.currentJob?.trim() || "DARA",
+      currentJob: registerForm.value.currentJob?.trim() || "",
       departmentId: Number(registerForm.value.departmentId),
       generationId: Number(registerForm.value.generationId),
       status: registerForm.value.status || "PENDING",
@@ -654,7 +654,7 @@ export const handleRegisterAdmin = async () => {
       password: adminRegisterForm.value.password,
       confirmPassword: adminRegisterForm.value.confirmPassword,
       bio: adminRegisterForm.value.bio?.trim() || "N/A",
-      currentJob: adminRegisterForm.value.currentJob?.trim() || "DARA",
+      currentJob: adminRegisterForm.value.currentJob?.trim() || "",
       status: adminRegisterForm.value.status || "APPROVE",
     };
 

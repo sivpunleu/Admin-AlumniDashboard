@@ -1,38 +1,44 @@
-# Demo-Project
+# Alumni Admin Dashboard
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite admin dashboard for managing alumni accounts, departments,
+generations, categories, events, participants, and profile settings.
 
-## Recommended IDE Setup
+## Requirements
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js `^20.19.0` or `>=22.12.0`
+- npm
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Setup
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+Create a local environment file if you need to point the dashboard at a
+different API:
+
+```sh
+VITE_API_BASE_URL=https://example.com/api/v1
+```
+
+If `VITE_API_BASE_URL` is not set, the app uses the default API base URL in
+`src/config/apiBaseUrl.js`.
+
+## Development
 
 ```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+## Verification
 
 ```sh
+npm run lint
 npm run build
+```
+
+## Preview Production Build
+
+```sh
+npm run preview
 ```

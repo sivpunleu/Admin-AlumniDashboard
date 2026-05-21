@@ -6,7 +6,8 @@
             <!-- Left -->
             <div class="d-flex align-items-center">
 
-                <button class="btn btn-menu border-0 me-3" @click="emit('toggleSidebar')">
+                <button type="button" class="btn btn-menu border-0 me-3" aria-label="បើក ឬបិទម៉ឺនុយ"
+                    title="បើក ឬបិទម៉ឺនុយ" @click="emit('toggleSidebar')">
                     <i class="bi bi-list fs-4"></i>
                 </button>
 
@@ -37,7 +38,9 @@
                                 <h6 class="fw-bold mb-0">ការជូនដំណឹង</h6>
                                 <p class="text-muted extra-small mb-0">{{ notificationCount }} ថ្មី</p>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light rounded-pill" @click="fetchNotifications">
+                            <button type="button" class="btn btn-sm btn-light rounded-pill"
+                                aria-label="ធ្វើបច្ចុប្បន្នភាពការជូនដំណឹង" title="ធ្វើបច្ចុប្បន្នភាព"
+                                @click="fetchNotifications">
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
                         </div>
@@ -72,8 +75,9 @@
                 <!-- Profile -->
                 <div class="dropdown">
 
-                    <a href="#" class="profile-trigger d-flex align-items-center text-decoration-none"
-                        data-bs-toggle="dropdown">
+                    <button type="button"
+                        class="profile-trigger d-flex align-items-center text-decoration-none border-0 bg-transparent"
+                        data-bs-toggle="dropdown" aria-label="បើកម៉ឺនុយគណនី">
 
                         <img :src="avatarUrl" alt="profile" class="profile-img-nav" @error="handleAvatarError"
                             @load="handleAvatarLoad" />
@@ -84,7 +88,7 @@
 
                         <!-- icon dropdown -->
                         <i class="bi bi-chevron-down ms-2 fs-6 d-none d-lg-inline"></i>
-                    </a>
+                    </button>
 
 
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow rounded-4">
@@ -131,6 +135,8 @@ import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/useAuth";
 import { useProfileStore } from "@/stores/useProfile";
 import api from "@/API/api";
+import { resolveApiAssetUrl } from "@/config/apiBaseUrl";
+import { fetchPaginatedCollection } from "@/utils/paginatedCollection";
 import logger from "@/utils/logger";
 
 defineProps({
@@ -154,13 +160,6 @@ let notificationRefreshTimer = null;
 
 const notificationCount = computed(() => notifications.value.length);
 
-const normalizeCollection = (response) => {
-    const payload = response.data?.data || response.data || {};
-    if (Array.isArray(payload?.items)) return payload.items;
-    if (Array.isArray(payload)) return payload;
-    return [];
-};
-
 const normalizeStatus = (value) => String(value || "PENDING").toUpperCase();
 
 const getUserStatus = (user) => {
@@ -179,13 +178,11 @@ const fetchNotifications = async () => {
 
     try {
         isNotificationLoading.value = true;
-        const [usersResponse, eventsResponse] = await Promise.all([
-            api.get("/users", { params: { _page: 1, _per_page: 100 } }),
-            api.get("/events", { params: { _page: 1, _per_page: 100 } }),
+        const [users, events] = await Promise.all([
+            fetchPaginatedCollection(api, "/users"),
+            fetchPaginatedCollection(api, "/events"),
         ]);
 
-        const users = normalizeCollection(usersResponse);
-        const events = normalizeCollection(eventsResponse);
         const now = new Date();
         const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -255,9 +252,7 @@ const avatarUrl = computed(() => {
     const user = currentUser.value;
     const rawAvatar = user.avatar || user.avatarUrl || user.avatar_url || user.image;
     if (rawAvatar) {
-        const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "https://ant-g2-ams.tt.linkpc.net/api/v1").replace(/\/+$/, "");
-        if (rawAvatar.startsWith("http")) return rawAvatar;
-        return `${apiBaseUrl}/${rawAvatar}`;
+        return resolveApiAssetUrl(rawAvatar);
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName.value)}&background=216477&color=fff&size=128`;
 });
@@ -334,9 +329,7 @@ onUnmounted(() => {
     color: #216477;
 
     font-size: 14px;
-
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0;
 }
 
 /* Notifications */
@@ -357,6 +350,13 @@ onUnmounted(() => {
 .notification-trigger:hover {
     background: #f0f7f9;
     border-color: #216477;
+}
+
+.notification-trigger:focus-visible,
+.profile-trigger:focus-visible,
+.btn-menu:focus-visible {
+    outline: 3px solid rgba(33, 100, 119, 0.22);
+    outline-offset: 2px;
 }
 
 .notification-badge {
