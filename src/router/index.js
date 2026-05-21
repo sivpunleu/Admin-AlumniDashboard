@@ -19,6 +19,8 @@ const ManagerAlumniView = () =>
   import("@/views/Manage Alumni/ManagerAlumni.vue");
 const DepartmentView = () => import("@/views/Department/DepartmentView.vue");
 
+const DEFAULT_TITLE = "ប្រព័ន្ធគ្រប់គ្រងអតីតនិស្សិត";
+
 const readFirstValue = (value) => Array.isArray(value) ? value[0] : value;
 
 const redirectToEmailChangeVerification = (to) => {
@@ -106,7 +108,7 @@ const routes = [
         path: "profile",
         name: "profile",
         component: ProfileView,
-        meta: { title: "ប្រវត្តិរូប" },
+        meta: { title: "ព័ត៌មានផ្ទាល់ខ្លួន" },
       },
       {
         path: "settings",
@@ -130,7 +132,7 @@ const routes = [
         path: "department",
         name: "department",
         component: DepartmentView,
-        meta: { title: "ដេប៉ាតេម៉ង់" },
+        meta: { title: "ដេប៉ាតឺម៉ង់" },
       },
       {
         path: "category",
@@ -164,6 +166,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+router.afterEach((to) => {
+  const pageTitle = [...to.matched]
+    .reverse()
+    .find((route) => route.meta?.title)?.meta.title;
+
+  document.title = pageTitle ? `${pageTitle}` : DEFAULT_TITLE;
 });
 
 /**
