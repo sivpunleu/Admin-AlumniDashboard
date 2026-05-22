@@ -65,15 +65,14 @@
                         <button type="button" :class="{ 'is-active': !isResetMode }" role="tab"
                             :aria-selected="!isResetMode" @click="showForgotForm">
                             <i class="bi bi-send" aria-hidden="true"></i>
-                            <span>ស្នើតំណ</span>
+                            <span>ស្នើតំណលីង</span>
                         </button>
                         <button type="button" :class="{ 'is-active': isResetMode }" role="tab"
                             :aria-selected="isResetMode" @click="showResetForm()">
                             <i class="bi bi-key" aria-hidden="true"></i>
-                            <span>កំណត់ថ្មី</span>
+                            <span>កំណត់ពាក្យសម្ងាត់ថ្មី</span>
                         </button>
                     </div>
-
                     <Transition name="auth-alert-slide">
                         <div v-if="notice.text" :class="['auth-alert', `auth-alert--${notice.type}`]" role="status">
                         <i :class="['bi', notice.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle']"
@@ -98,28 +97,11 @@
 
                         <BaseButton type="submit" variant="primary" shape="rounded" class="w-100 auth-submit" :disabled="loading"
                             :loading="loading">
-                            {{ loading ? "កំពុងផ្ញើតំណកំណត់ឡើងវិញ..." : "ផ្ញើតំណកំណត់ឡើងវិញ" }}
+                            {{ loading ? "កំពុងផ្ញើតំណលីងកំណត់ឡើងវិញ..." : "ផ្ញើតំណលីងកំណត់ឡើងវិញ" }}
                         </BaseButton>
-
-                        <button type="button" class="auth-text-button" @click="showResetForm()">
-                            <i class="bi bi-key" aria-hidden="true"></i>
-                            <span>ខ្ញុំមានលេខកូដកំណត់ឡើងវិញរួចហើយ</span>
-                        </button>
                     </form>
 
                     <form v-else key="reset" class="auth-form-stack" novalidate @submit.prevent="handleResetPassword">
-                        <div v-if="!hasRouteToken" class="auth-field">
-                            <label for="token" class="auth-label">លេខកូដកំណត់ឡើងវិញ</label>
-                            <div class="auth-input">
-                                <i class="bi bi-key" aria-hidden="true"></i>
-                                <input id="token" v-model="resetForm.token" type="text" name="token"
-                                    :class="{ 'is-invalid': errors.token }" placeholder="បញ្ចូលលេខកូដកំណត់ឡើងវិញ"
-                                    autocomplete="one-time-code" :aria-invalid="!!errors.token"
-                                    aria-describedby="token-error" @blur="validateToken" @input="clearError('token')" />
-                            </div>
-                            <p v-if="errors.token" id="token-error" class="auth-error">{{ errors.token }}</p>
-                        </div>
-
                         <div class="auth-field">
                             <label for="newPassword" class="auth-label">ពាក្យសម្ងាត់ថ្មី</label>
                             <div class="auth-input">
@@ -170,7 +152,7 @@
 
                         <button type="button" class="auth-text-button" @click="showForgotForm">
                             <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-                            <span>ស្នើសុំតំណកំណត់ឡើងវិញថ្មី</span>
+                            <span>ស្នើសុំតំណលីងកំណត់ឡើងវិញថ្មី</span>
                         </button>
                     </form>
                     </Transition>

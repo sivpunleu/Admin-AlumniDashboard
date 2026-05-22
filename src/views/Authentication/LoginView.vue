@@ -23,7 +23,7 @@
       <section class="admin-login-form-panel" aria-label="Login form">
         <div class="admin-login-form">
           <header class="admin-login-header">
-            <h2>សូមស្វាគមន៍ត្រឡប់</h2>
+            <h2>សូមស្វាគមន៍</h2>
             <p>សូមបញ្ចូលព័ត៌មានរបស់អ្នកដើម្បីចូលប្រើប្រាស់</p>
           </header>
 
@@ -38,7 +38,7 @@
                 <i class="bi bi-envelope"></i>
 
                 <input id="email" v-model="form.email" type="email" name="email"
-                  :class="{ 'is-invalid': authStore.errors.email }" placeholder="admin@alumni.edu" autocomplete="email"
+                  :class="{ 'is-invalid': authStore.errors.email }" placeholder="សូមបញ្ចូលអាស័យដ្ឋានអ៊ីមែល" autocomplete="email"
                   required :aria-invalid="!!authStore.errors.email" aria-describedby="email-error" @blur="validateEmail"
                   @input="validateEmail" />
               </div>
