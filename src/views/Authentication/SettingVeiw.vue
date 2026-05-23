@@ -442,37 +442,6 @@ const validateVerifyForm = () => {
   return Object.keys(verifyErrors).length === 0;
 };
 
-const extractTokenFromUrl = (value) => {
-  if (!value) return "";
-
-  try {
-    const url = new URL(value, window.location.origin);
-    return url.searchParams.get("token") ||
-      url.searchParams.get("verificationToken") ||
-      url.searchParams.get("emailChangeToken") ||
-      url.searchParams.get("changeEmailToken") ||
-      url.pathname.split("/").filter(Boolean).at(-1) ||
-      "";
-  } catch {
-    return "";
-  }
-};
-
-const extractVerificationToken = (response) => {
-  const payload = response?.data || response || {};
-  return payload.token ||
-    payload.verificationToken ||
-    payload.emailChangeToken ||
-    payload.changeEmailToken ||
-    extractTokenFromUrl(payload.url) ||
-    extractTokenFromUrl(payload.link) ||
-    extractTokenFromUrl(payload.verifyUrl) ||
-    extractTokenFromUrl(payload.verificationUrl) ||
-    extractTokenFromUrl(payload.confirmUrl) ||
-    extractTokenFromUrl(payload.confirmationUrl) ||
-    "";
-};
-
 const handleChangePassword = async () => {
   if (!validatePasswordForm() || loading.password) return;
 
@@ -508,27 +477,10 @@ const handleRequestEmailChange = async () => {
 
   loading.email = true;
   try {
-    const response = await authStore.requestEmailChange({
+    await authStore.requestEmailChange({
       newEmail: emailForm.newEmail,
       password: emailForm.password,
     });
-
-    const token = extractVerificationToken(response);
-    if (token) {
-      verifyForm.token = token;
-      const verified = await handleVerifyEmailChange({
-        successText: "អ៊ីមែលថ្មីត្រូវបានផ្លាស់ប្តូររួចរាល់។",
-      });
-
-      if (verified) {
-        resetForm(emailForm, {
-          newEmail: "",
-          password: "",
-        });
-      }
-
-      return;
-    }
 
     resetForm(emailForm, {
       newEmail: "",
@@ -547,6 +499,29 @@ const handleRequestEmailChange = async () => {
   } finally {
     loading.email = false;
   }
+};
+
+const showVerificationError = async (error) => {
+  if (error?.isSessionExpired) return;
+
+  const shouldRequestNewLink = [400, 401, 403, 404, 410, 422].includes(Number(error?.status));
+
+  applyApiErrors(verifyErrors, error);
+  if (shouldRequestNewLink) {
+    resetForm(verifyForm, { token: "" });
+    cleanEmailChangeQuery();
+  }
+
+  await Swal.fire({
+    icon: "error",
+    title: "បរាជ័យ",
+    text: error?.message || (
+      shouldRequestNewLink
+        ? "តំណផ្ទៀងផ្ទាត់មិនត្រឹមត្រូវ ឬផុតកំណត់។ សូមស្នើសុំតំណថ្មី។"
+        : "មិនអាចផ្ទៀងផ្ទាត់អ៊ីមែលថ្មីបានទេ។ សូមព្យាយាមម្ដងទៀត។"
+    ),
+    confirmButtonColor: "#216477",
+  });
 };
 
 const handleVerifyEmailChange = async ({
@@ -572,7 +547,7 @@ const handleVerifyEmailChange = async ({
 
     return true;
   } catch (error) {
-    await showError(verifyErrors, error, "មិនអាចផ្ទៀងផ្ទាត់អ៊ីមែលថ្មីបានទេ។");
+    await showVerificationError(error);
     return false;
   } finally {
     loading.verify = false;
