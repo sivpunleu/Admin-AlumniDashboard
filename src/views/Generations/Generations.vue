@@ -7,13 +7,9 @@ import BaseButton from "@/components/UI/Base/BaseButton.vue";
 import BaseModal from "@/components/UI/Base/BaseModal.vue";
 import BasePage from "@/components/UI/Base/BasePage.vue";
 import BaseTable from "@/components/UI/Base/BaseTable.vue";
-import api from "@/API/api";
 import logger from "@/utils/logger";
 
 const departmentStore = useDepartmentStore();
-
-const isSuccessResponse = (data) =>
-    data == null || (data.result !== false && data.success !== false);
 
 // ទាញយកទិន្នន័យនៅពេល Component ត្រូវបានដាក់បញ្ចូល (Mount)
 onMounted(async () => {
@@ -175,11 +171,11 @@ const submitForm = async () => {
             genStore.isLoading.value = true;
             if (modalMode.value === "create") {
                 const payload = buildGenerationPayload();
-                const res = await api.post("/generations", payload);
-                if (isSuccessResponse(res.data)) {
-                    await genStore.fetchGenerations();
-                    Swal.fire("Success", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
-                    showModal.value = false;
+                try {
+                    const result = await genStore.createGeneration(payload);
+                    if (result !== false) showModal.value = false;
+                } catch (err) {
+                    // error already handled in store; keep modal open for correction
                 }
             } else if (modalMode.value === "edit") {
                 const payload = buildGenerationPayload(false);
@@ -193,8 +189,8 @@ const submitForm = async () => {
             }
         } catch (err) {
             logger.error('Generation submit failed', err.response?.data || err);
-            const detail = err.response?.data?.message || err.response?.data || err.message || "Request failed";
-            Swal.fire("Error", String(detail), "error");
+            const detail = err.response?.data?.message || err.message || "មិនអាចរក្សាទុកជំនាន់បានទេ";
+            Swal.fire("កំហុស", String(detail), "error");
         } finally {
             genStore.isLoading.value = false;
         }

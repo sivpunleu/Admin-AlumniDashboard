@@ -23,7 +23,7 @@ export const useEventStore = defineStore("event", () => {
   const totalItems = ref(0);
   const totalPages = ref(1);
 
-  // --- ១. គ្រប់គ្រងព្រឹត្តិការណ៍ (CRUD) ---
+  // 1 fetch events (GET /events) with pagination, search, and sorting (based on image 1)
   async function fetchEvents() {
     try {
       isLoading.value = true;
@@ -52,6 +52,7 @@ export const useEventStore = defineStore("event", () => {
       isLoading.value = false;
     }
   }
+  // add fetchEvent function (GET /events/{id})
 
   async function fetchEvent(id) {
     try {
@@ -67,7 +68,7 @@ export const useEventStore = defineStore("event", () => {
       isLoading.value = false;
     }
   }
-
+// add create event function (POST /events) and update event function (PUT /events/{id})
   async function createEvent(payload) {
     try {
       isLoading.value = true;
@@ -103,7 +104,7 @@ export const useEventStore = defineStore("event", () => {
       isLoading.value = false;
     }
   }
-
+// add delete event function with confirmation dialog (DELETE /events/{id})
   async function deleteEvent(id) {
     const result = await confirmDelete({
       text: "ព្រឹត្តិការណ៍នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
@@ -119,7 +120,7 @@ export const useEventStore = defineStore("event", () => {
     }
   }
 
-  // --- ២. គ្រប់គ្រងរូបភាព Thumbnail (PUT & DELETE) ---
+  // 2 upload thumbnail for event (POST /events/{id}/thumbnail) and delete thumbnail (DELETE /events/{id}/thumbnail)
   async function uploadThumbnail(id, file) {
     const formData = new FormData();
     formData.append("thumbnail", file);
@@ -154,7 +155,7 @@ export const useEventStore = defineStore("event", () => {
     }
   }
 
-  // --- ៣. គ្រប់គ្រងអ្នកចូលរួម (Participants) ---
+  // 3 fetch participants of an event with pagination and status filter (GET /events/{id}/participants)
   async function fetchParticipants(id, status = "attending") {
     try {
       isLoading.value = true;
@@ -199,7 +200,7 @@ export const useEventStore = defineStore("event", () => {
       isLoading.value = false;
     }
   }
-  // បន្ថែមមុខងារនេះទៅក្នុង useEventStore
+  // add or update participant
   async function respondToEvent(eventId, status, participant = null) {
     try {
       isLoading.value = true;

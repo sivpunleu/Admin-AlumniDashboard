@@ -27,6 +27,13 @@
             <p>សូមបញ្ចូលព័ត៌មានរបស់អ្នកដើម្បីចូលប្រើប្រាស់</p>
           </header>
 
+          <Transition name="admin-login-error-slide">
+            <div v-if="authStore.errors.general" class="admin-login-alert" role="alert">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+              <span>{{ firstError(authStore.errors.general) }}</span>
+            </div>
+          </Transition>
+
           <form novalidate @submit.prevent="handleLogin">
             <!-- EMAIL -->
             <div class="admin-login-field">
@@ -38,14 +45,14 @@
                 <i class="bi bi-envelope"></i>
 
                 <input id="email" v-model="form.email" type="email" name="email"
-                  :class="{ 'is-invalid': authStore.errors.email }" placeholder="សូមបញ្ចូលអាស័យដ្ឋានអ៊ីមែល" autocomplete="email"
+                  :class="{ 'is-invalid': authStore.errors.email }" placeholder="សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែល" autocomplete="email"
                   required :aria-invalid="!!authStore.errors.email" aria-describedby="email-error" @blur="validateEmail"
                   @input="validateEmail" />
               </div>
 
               <Transition name="admin-login-error-slide">
                 <p v-if="authStore.errors.email" id="email-error" class="admin-login-error">
-                  {{ authStore.errors.email[0] }}
+                  {{ firstError(authStore.errors.email) }}
                 </p>
               </Transition>
             </div>
@@ -75,7 +82,7 @@
 
               <Transition name="admin-login-error-slide">
                 <p v-if="authStore.errors.password" id="password-error" class="admin-login-error">
-                  {{ authStore.errors.password[0] }}
+                  {{ firstError(authStore.errors.password) }}
                 </p>
               </Transition>
             </div>
@@ -126,29 +133,37 @@ const rememberMe = ref(false);
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function firstError(value) {
+  if (Array.isArray(value)) return value.find(Boolean) || "";
+  return value || "";
+}
+
+function clearAuthError(field) {
+  if (authStore.errors[field]) delete authStore.errors[field];
+  if (authStore.errors.general) delete authStore.errors.general;
+}
+
 function validateEmail() {
   const email = form.value.email.trim();
 
   form.value.email = email;
+  clearAuthError("email");
 
   if (!email) {
     authStore.errors.email = ["សូមបញ្ចូលអ៊ីមែល!"];
   } else if (!emailPattern.test(email)) {
     authStore.errors.email = ["ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ!"];
-  } else {
-    delete authStore.errors.email;
   }
 }
 
 function validatePassword() {
   const pass = form.value.password;
+  clearAuthError("password");
 
   if (!pass) {
     authStore.errors.password = ["សូមបញ្ចូលពាក្យសម្ងាត់!"];
   } else if (pass.length < 6) {
     authStore.errors.password = ["ពាក្យសម្ងាត់យ៉ាងតិច 6 តួ!"];
-  } else {
-    delete authStore.errors.password;
   }
 }
 
@@ -473,6 +488,31 @@ const handleLogin = async () => {
 
 .admin-login-input input::placeholder {
   color: #94a3b8;
+}
+
+.admin-login-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.admin-login-alert i {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  color: #dc2626;
+}
+
+.admin-login-alert span {
+  min-width: 0;
 }
 
 .admin-login-toggle {

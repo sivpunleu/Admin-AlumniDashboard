@@ -5,7 +5,7 @@ import logger from "@/utils/logger";
 import { useAuthStore } from "@/stores/useAuth";
 import { confirmDelete } from "@/utils/confirmDialog";
 
-/* ================= ស្ថានភាពទូទៅ (STATE) ================= */
+/* ================= (STATE) ================= */
 export const generations = ref([]);
 export const generationDetails = ref(null);
 export const isLoading = ref(false);
@@ -13,6 +13,92 @@ export const searchQuery = ref("");
 
 const isSuccessResponse = (data) =>
   data == null || (data.result !== false && data.success !== false);
+
+const generationInUseMessage =
+  "មិនអាចលុបជំនាន់នេះបានទេ ព្រោះមានប្រវត្តិរូប ឬទិន្នន័យពាក់ព័ន្ធកំពុងប្រើប្រាស់។";
+const fetchFallbackMessage = "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ";
+const fetchDetailsFallbackMessage = "មិនអាចទាញព័ត៌មានលម្អិតនៃជំនាន់នេះបានទេ";
+const createFallbackMessage = "មិនអាចបង្កើតជំនាន់ថ្មីបានទេ";
+const updateFallbackMessage = "មិនអាចកែប្រែព័ត៌មានជំនាន់បានទេ";
+const deleteFallbackMessage = "មិនអាចលុបជំនាន់នេះបានទេ";
+
+const readFirstError = (value) => {
+  if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
+  if (value && typeof value === "object") {
+    return Object.values(value).map(readFirstError).find(Boolean);
+  }
+  return value;
+};
+
+const isGenericApiMessage = (message = "") => {
+  const normalized = String(message).trim().toLowerCase();
+  return [
+    "invalid input",
+    "bad request",
+    "validation error",
+    "unprocessable entity",
+    "request failed",
+  ].includes(normalized);
+};
+
+const getApiErrorMessage = (err, fallbackMessage) => {
+  const responseData = err.response?.data;
+  const responseMessages = [
+    readFirstError(responseData?.details),
+    readFirstError(responseData?.errors),
+    readFirstError(responseData?.error),
+    readFirstError(responseData?.message),
+    typeof responseData === "string" ? responseData : "",
+  ]
+    .filter(Boolean)
+    .map(String);
+
+  const specificMessage = responseMessages.find(
+    (message) => !isGenericApiMessage(message),
+  );
+
+  if (specificMessage) return specificMessage;
+  if (fallbackMessage && responseMessages.some(isGenericApiMessage)) {
+    return fallbackMessage;
+  }
+  if (responseMessages.length) return responseMessages[0];
+  if (err.response?.status && fallbackMessage) return fallbackMessage;
+
+  return err.message || fallbackMessage;
+};
+
+const createResponseError = (response, fallbackMessage) => {
+  const error = new Error(getApiErrorMessage({ response }, fallbackMessage));
+  error.response = response;
+  return error;
+};
+
+const assertSuccessResponse = (response, fallbackMessage) => {
+  if (!isSuccessResponse(response.data)) {
+    throw createResponseError(response, fallbackMessage);
+  }
+};
+
+const isGenerationInUseError = (err) => {
+  const status = err.response?.status;
+  const message = getApiErrorMessage(err, "").toLowerCase();
+
+  return (
+    status === 409 ||
+    message.includes("in use") ||
+    message.includes("used") ||
+    message.includes("profile") ||
+    message.includes("alumni") ||
+    message.includes("foreign") ||
+    message.includes("constraint") ||
+    message.includes("ប្រើប្រាស់")
+  );
+};
+
+const getDeleteGenerationMessage = (err) => {
+  if (isGenerationInUseError(err)) return generationInUseMessage;
+  return getApiErrorMessage(err, deleteFallbackMessage);
+};
 
 const escapeHtml = (value = "") =>
   String(value ?? "")
@@ -22,7 +108,7 @@ const escapeHtml = (value = "") =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-/* ================= ជំនួយសិទ្ធិ (ADMIN ROLE CHECK) ================= */
+/* ================= (ADMIN ROLE CHECK) ================= */
 export const requireAdmin = (callback) => {
   const auth = useAuthStore();
   const userRole = auth.user?.role?.name || auth.user?.role || "";
@@ -35,7 +121,7 @@ export const requireAdmin = (callback) => {
   }
 
   Swal.fire({
-    title: "Permission Denied",
+    title: "សិទ្ធិមិនគ្រប់គ្រាន់",
     text: "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ!",
     icon: "error",
     confirmButtonColor: "#216477",
@@ -43,10 +129,10 @@ export const requireAdmin = (callback) => {
   return false;
 };
 
-/* ================= សកម្មភាពចម្បង (ACTIONS) ================= */
+/* ================ (ACTIONS) ================= */
 
 /**
- * ១. ទាញយកបញ្ជីជំនាន់ (Get Generations List)
+ * 1 fetch list of generations (GET /generations) and handle loading state and errors with SweetAlert
  */
 export const fetchGenerations = async () => {
   try {
@@ -59,14 +145,14 @@ export const fetchGenerations = async () => {
   } catch (err) {
     logger.error("Fetch Error:", err);
     generations.value = [];
-    Swal.fire("Error", "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ", "error");
+    Swal.fire("កំហុស", getApiErrorMessage(err, fetchFallbackMessage), "error");
   } finally {
     isLoading.value = false;
   }
 };
 
 /**
- * ១.១ ទាញយកព័ត៌មានលម្អិតតាម ID (Get Generation Details)
+ * 1. fetch details of a generation by id (GET /generations/{id}) and handle loading state and errors with SweetAlert
  */
 export const fetchGenerationDetails = async (id) => {
   try {
@@ -82,17 +168,21 @@ export const fetchGenerationDetails = async (id) => {
     }
   } catch (err) {
     logger.error("Fetch Details Error:", err);
-    Swal.fire("Error", "មិនអាចទាញព័ត៌មានលម្អិតនៃជំនាន់នេះបានទេ", "error");
+    Swal.fire(
+      "កំហុស",
+      getApiErrorMessage(err, fetchDetailsFallbackMessage),
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }
 };
 
 /**
- * ២. បង្កើតជំនាន់ថ្មី (Create Generation - យោងតាម image_aa9596.png)
+ * 2. create generation with input from a form in a SweetAlert modal, and handle API response with success and error messages
  */
 export const handleCreate = async () => {
-  requireAdmin(async () => {
+  return requireAdmin(async () => {
     const { value: formValues } = await Swal.fire({
       title: "Create New Generation",
       html:
@@ -144,30 +234,28 @@ export const handleCreate = async () => {
       try {
         isLoading.value = true;
         const response = await api.post("/generations", formValues);
-        if (isSuccessResponse(response.data)) {
-          await fetchGenerations();
-          Swal.fire("ជោគជ័យ", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
-        }
+        assertSuccessResponse(response, createFallbackMessage);
+        await fetchGenerations();
+        Swal.fire("ជោគជ័យ", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
+        return true;
       } catch (err) {
         logger.error("Generation create failed", err.response?.data || err);
-        const detail =
-          err.response?.data?.message ||
-          err.response?.data ||
-          err.message ||
-          "Error 400: Bad Request";
-        Swal.fire("បរាជ័យ", String(detail), "error");
+        Swal.fire("បរាជ័យ", getApiErrorMessage(err, createFallbackMessage), "error");
+        return false;
       } finally {
         isLoading.value = false;
       }
     }
+
+    return false;
   });
 };
 
 /**
- * ៣. កែប្រែព័ត៌មាន (Update Generation - យោងតាម image_aa951f.png)
+ * 3. editable fields with pre-filled data and update generation by id with payload
  */
 export const handleUpdate = async (gen) => {
-  requireAdmin(async () => {
+  return requireAdmin(async () => {
     const safeName = escapeHtml(gen.name || "");
     const safeStartYear = escapeHtml(gen.startYear || "");
     const safeEndYear = escapeHtml(gen.endYear || "");
@@ -228,22 +316,20 @@ export const handleUpdate = async (gen) => {
         isLoading.value = true;
         // ប្រើ PUT ទៅកាន់ /generations/{id}
         const response = await api.put(`/generations/${gen.id}`, formValues);
-        if (isSuccessResponse(response.data)) {
-          await fetchGenerations();
-          Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
-        }
+        assertSuccessResponse(response, updateFallbackMessage);
+        await fetchGenerations();
+        Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
+        return true;
       } catch (err) {
         logger.error("Generation update failed", err.response?.data || err);
-        const detail =
-          err.response?.data?.message ||
-          err.response?.data ||
-          err.message ||
-          "Error 400: Bad Request";
-        Swal.fire("បរាជ័យ", String(detail), "error");
+        Swal.fire("បរាជ័យ", getApiErrorMessage(err, updateFallbackMessage), "error");
+        return false;
       } finally {
         isLoading.value = false;
       }
     }
+
+    return false;
   });
 };
 
@@ -261,6 +347,25 @@ const normalizeGenerationUpdatePayload = (payload = {}) => {
   return updatePayload;
 };
 
+export const createGeneration = async (payload) => {
+  return requireAdmin(async () => {
+    try {
+      isLoading.value = true;
+      const response = await api.post("/generations", payload);
+      assertSuccessResponse(response, createFallbackMessage);
+      await fetchGenerations();
+      Swal.fire("ជោគជ័យ", "បង្កើតជំនាន់ថ្មីបានជោគជ័យ", "success");
+      return response;
+    } catch (err) {
+      logger.error("Generation create failed (store)", err.response?.data || err);
+      Swal.fire("បរាជ័យ", getApiErrorMessage(err, createFallbackMessage), "error");
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  });
+};
+
 /**
  * Update generation by id with payload (used by views)
  */
@@ -271,31 +376,14 @@ export const updateGeneration = async (id, payload) => {
       const updatePayload = normalizeGenerationUpdatePayload(payload);
       logger.info("Updating generation (store) payload", updatePayload);
       const res = await api.put(`/generations/${id}`, updatePayload);
-      if (isSuccessResponse(res.data)) {
-        await fetchGenerations();
-        Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
-      }
+      assertSuccessResponse(res, updateFallbackMessage);
+      await fetchGenerations();
+      Swal.fire("ជោគជ័យ", "ព័ត៌មានត្រូវបានកែប្រែ", "success");
       return res;
     } catch (err) {
       const resp = err.response?.data || err;
       logger.error("Generation update failed (store)", resp);
-      const msg =
-        resp?.message || resp?.error || err.message || "Error: Update failed";
-      let extra = "";
-      if (Array.isArray(resp?.details) && resp.details.length) {
-        try {
-          extra = "\nDetails: " + JSON.stringify(resp.details);
-        } catch (e) {
-          extra = "\nDetails: " + String(resp.details);
-        }
-      } else if (resp?.data) {
-        try {
-          extra = "\nData: " + JSON.stringify(resp.data);
-        } catch (e) {
-          extra = "\nData: " + String(resp.data);
-        }
-      }
-      Swal.fire("បរាជ័យ", String(msg) + extra, "error");
+      Swal.fire("បរាជ័យ", getApiErrorMessage(err, updateFallbackMessage), "error");
       throw err;
     } finally {
       isLoading.value = false;
@@ -307,25 +395,28 @@ export const updateGeneration = async (id, payload) => {
  * ៤. លុបជំនាន់ (Delete Generation)
  */
 export const handleDelete = async (id) => {
-  requireAdmin(async () => {
+  return requireAdmin(async () => {
     const result = await confirmDelete({
       text: "ជំនាន់នេះនឹងត្រូវបានលុបចេញពីប្រព័ន្ធ។",
     });
 
     if (result.isConfirmed) {
       try {
-        await api.delete(`/generations/${id}`);
+        isLoading.value = true;
+        const response = await api.delete(`/generations/${id}`);
+        assertSuccessResponse(response, deleteFallbackMessage);
         await fetchGenerations();
-        Swal.fire("Deleted!", "លុបទិន្នន័យបានជោគជ័យ", "success");
+        Swal.fire("ជោគជ័យ", "លុបទិន្នន័យបានជោគជ័យ", "success");
+        return true;
       } catch (err) {
         logger.error("Generation delete failed", err.response?.data || err);
-        const detail =
-          err.response?.data?.message ||
-          err.response?.data ||
-          err.message ||
-          "មិនអាចលុបទិន្នន័យនេះបានទេ";
-        Swal.fire("Error", String(detail), "error");
+        Swal.fire("កំហុស", getDeleteGenerationMessage(err), "error");
+        return false;
+      } finally {
+        isLoading.value = false;
       }
     }
+
+    return false;
   });
 };
