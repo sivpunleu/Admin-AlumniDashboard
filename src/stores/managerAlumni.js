@@ -20,11 +20,155 @@ export const allUsersPending = ref(0);
 export const allUsersDeactivated = ref(0);
 const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
+const registerAlumniFallbackMessage = "មិនអាចបង្កើតគណនីអតីតនិស្សិតបានទេ";
+const registerAdminFallbackMessage = "មិនអាចបង្កើតគណនី Admin បានទេ";
+const updateStatusFallbackMessage = "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ";
 
 export const showAccountTypeModal = ref(false);
 export const showRegisterModal = ref(false);
 export const showAdminRegisterModal = ref(false);
 
+const isSuccessResponse = (data) =>
+  data == null || (data.result !== false && data.success !== false);
+
+const readFirstError = (value) => {
+  if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
+  if (value && typeof value === "object") {
+    return Object.values(value).map(readFirstError).find(Boolean);
+  }
+  return value;
+};
+// error handling function to extract meaningful messages from API errors, with support for nested structures and fallback messages based on HTTP status codes.
+const isGenericApiMessage = (message = "") => {
+  const normalized = String(message).trim().toLowerCase();
+  return [
+    "invalid input",
+    "bad request",
+    "validation error",
+    "unprocessable entity",
+    "request failed",
+  ].includes(normalized);
+};
+
+const translateKnownApiMessage = (message, fallbackMessage = "") => {
+  const text = String(message || "").trim();
+  const lower = text.toLowerCase();
+
+  if (
+    lower.includes("email") &&
+    (lower.includes("already") ||
+      lower.includes("exist") ||
+      lower.includes("taken") ||
+      lower.includes("use"))
+  ) {
+    return "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
+  }
+
+  if (
+    lower.includes("phone") &&
+    (lower.includes("already") ||
+      lower.includes("exist") ||
+      lower.includes("taken") ||
+      lower.includes("use"))
+  ) {
+    return "លេខទូរស័ព្ទនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើលេខផ្សេង។";
+  }
+
+  if (lower.includes("password") && lower.includes("match")) {
+    return "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ។";
+  }
+
+  if (lower.includes("department") && (lower.includes("invalid") || lower.includes("not found"))) {
+    return "ដេប៉ាតឺម៉ង់ដែលបានជ្រើសរើសមិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("generation") && (lower.includes("invalid") || lower.includes("not found"))) {
+    return "ជំនាន់ដែលបានជ្រើសរើសមិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("status") && lower.includes("invalid")) {
+    return "ស្ថានភាពដែលបានជ្រើសរើសមិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("permission") || lower.includes("forbidden") || lower.includes("unauthorized")) {
+    return "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ។";
+  }
+
+  return text || fallbackMessage;
+};
+// error handling function to extract meaningful messages from API errors, with support for nested structures and fallback messages based on HTTP status codes.
+const getApiErrorMessage = (err, fallbackMessage) => {
+  const responseData = err.response?.data;
+  const responseMessages = [
+    readFirstError(responseData?.details),
+    readFirstError(responseData?.errors),
+    readFirstError(responseData?.error),
+    readFirstError(responseData?.message),
+    typeof responseData === "string" ? responseData : "",
+  ]
+    .filter(Boolean)
+    .map(String);
+
+  const specificMessage = responseMessages.find(
+    (message) => !isGenericApiMessage(message),
+  );
+
+  if (specificMessage) {
+    return translateKnownApiMessage(specificMessage, fallbackMessage);
+  }
+
+  if (fallbackMessage && responseMessages.some(isGenericApiMessage)) {
+    return fallbackMessage;
+  }
+
+  if (responseMessages.length) {
+    return translateKnownApiMessage(responseMessages[0], fallbackMessage);
+  }
+
+  if (err.response?.status && fallbackMessage) return fallbackMessage;
+
+  return translateKnownApiMessage(err.message, fallbackMessage);
+};
+// helper functions for API response handling, error message extraction, and form validation, with a focus on user registration and status management in the alumni management context.
+const createResponseError = (response, fallbackMessage) => {
+  const error = new Error(getApiErrorMessage({ response }, fallbackMessage));
+  error.response = response;
+  return error;
+};
+// helper functions for API response handling, error message extraction, and form validation, with a focus on user registration and status management in the alumni management context.
+const assertSuccessResponse = (response, fallbackMessage) => {
+  if (!isSuccessResponse(response.data)) {
+    throw createResponseError(response, fallbackMessage);
+  }
+};
+// helper functions for API response handling, error message extraction, and form validation, with a focus on user registration and status management in the alumni management context.
+const normalizeErrorField = (field) => {
+  const fieldMap = {
+    fullName: "fullname",
+    full_name: "fullname",
+    confirm_password: "confirmPassword",
+    confirm_password_confirmation: "confirmPassword",
+    password_confirmation: "confirmPassword",
+    department_id: "departmentId",
+    generation_id: "generationId",
+    current_job: "currentJob",
+  };
+
+  return fieldMap[field] || field;
+};
+// function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
+const applyApiFieldErrors = (err, targetErrors) => {
+  const responseErrors = err.response?.data?.errors;
+  if (!responseErrors || typeof responseErrors !== "object") return;
+
+  Object.entries(responseErrors).forEach(([field, value]) => {
+    const message = readFirstError(value);
+    if (message) {
+      targetErrors.value[normalizeErrorField(field)] = translateKnownApiMessage(message);
+    }
+  });
+};
+// function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const getDefaultRegisterForm = () => ({
   fullname: "",
   email: "",
@@ -40,7 +184,7 @@ const getDefaultRegisterForm = () => ({
 
 export const registerForm = ref(getDefaultRegisterForm());
 export const registerErrors = ref({});
-
+// Admin register form with default values and error state, along with validation logic to ensure proper input before making API calls for user registration.
 const getDefaultAdminRegisterForm = () => ({
   fullname: "",
   email: "",
@@ -77,7 +221,7 @@ const normalizeStatus = (value) =>
   String(value || "")
     .trim()
     .toUpperCase();
-
+// function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const getUserStatus = (user) => {
   const rawStatus = normalizeStatus(
     user?.status ||
@@ -96,7 +240,7 @@ const getUserStatus = (user) => {
 
   return rawStatus || (user?.isVerifyEmail ? "APPROVE" : "PENDING");
 };
-
+// function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const getUserRole = (user) =>
   String(
     user?.role?.name ||
@@ -106,7 +250,7 @@ const getUserRole = (user) =>
       user?.userRole ||
       "",
   ).toLowerCase();
-
+// function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const hasAlumniRole = (user) => {
   const role = getUserRole(user);
   if (!role) return true;
@@ -440,10 +584,11 @@ export const requireAdmin = (callback) => {
   const auth = useAuthStore();
   const role = auth.user?.role?.name || auth.user?.role || "";
   if (["admin", "administrator"].includes(String(role).toLowerCase())) {
-    callback();
-  } else {
-    Swal.fire("Permission Denied", "អ្នកមិនមានសិទ្ធិទេ!", "error");
+    return callback();
   }
+
+  Swal.fire("សិទ្ធិមិនគ្រប់គ្រាន់", "អ្នកមិនមានសិទ្ធិទេ!", "error");
+  return false;
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -619,6 +764,7 @@ export const handleRegisterAlumni = async () => {
 
     logger.debug("Registering alumni with payload:", payload);
     const response = await api.post("/users/alumni", payload);
+    assertSuccessResponse(response, registerAlumniFallbackMessage);
     logger.info("Registration response:", response.data);
 
     resetRegisterForm();
@@ -630,11 +776,12 @@ export const handleRegisterAlumni = async () => {
   } catch (err) {
     logger.error("Registration error:", err);
     logger.error("Error response data:", err.response?.data);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "មិនបានគ្រប់គ្រងបង្កើតគណនី";
-    Swal.fire("បរាជ័យ", errorMessage, "error");
+    applyApiFieldErrors(err, registerErrors);
+    Swal.fire(
+      "បរាជ័យ",
+      getApiErrorMessage(err, registerAlumniFallbackMessage),
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }
@@ -660,6 +807,7 @@ export const handleRegisterAdmin = async () => {
 
     logger.debug("Registering admin with payload:", payload);
     const response = await api.post("/users/admin", payload);
+    assertSuccessResponse(response, registerAdminFallbackMessage);
     logger.info("Admin registration response:", response.data);
 
     resetAdminRegisterForm();
@@ -670,11 +818,12 @@ export const handleRegisterAdmin = async () => {
   } catch (err) {
     logger.error("Admin registration error:", err);
     logger.error("Error response data:", err.response?.data);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "មិនអាចបង្កើតគណនី Admin បានទេ";
-    Swal.fire("បរាជ័យ", errorMessage, "error");
+    applyApiFieldErrors(err, adminRegisterErrors);
+    Swal.fire(
+      "បរាជ័យ",
+      getApiErrorMessage(err, registerAdminFallbackMessage),
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }
@@ -708,6 +857,7 @@ const updateUserStatus = async (userId, status) => {
       }
     }
 
+    assertSuccessResponse(response, updateStatusFallbackMessage);
     logger.info("Status update response:", response.data);
     await fetchUsers();
     Swal.fire("រួចរាល់", "ស្ថានភាពត្រូវបានប្តូរ", "success");
@@ -715,9 +865,11 @@ const updateUserStatus = async (userId, status) => {
     logger.error("Change status error:", err);
     logger.error("Error response data:", err.response?.data);
     logger.error("Error status:", err.response?.status);
-    const errorMessage =
-      err.response?.data?.message || "មិនបានគ្រប់គ្រងផ្លាស់ប្តូរស្ថានភាព";
-    Swal.fire("បរាជ័យ", errorMessage, "error");
+    Swal.fire(
+      "បរាជ័យ",
+      getApiErrorMessage(err, updateStatusFallbackMessage),
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }

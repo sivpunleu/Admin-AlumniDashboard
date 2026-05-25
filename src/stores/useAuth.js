@@ -58,26 +58,54 @@ const persistCurrentAuth = (userToken, userData) => {
 };
 
 const readFirstError = (value) => {
-  if (Array.isArray(value)) return value[0];
+  if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
+  if (value && typeof value === "object") {
+    return Object.values(value).map(readFirstError).find(Boolean);
+  }
   return value;
+};
+
+const getErrorMessage = (error, fallbackMessage) => {
+  const responseMessage =
+    readFirstError(error.response?.data?.message) ||
+    readFirstError(error.response?.data?.error) ||
+    readFirstError(error.response?.data?.details) ||
+    readFirstError(error.response?.data?.errors) ||
+    (typeof error.response?.data === "string" ? error.response.data : "");
+
+  if (responseMessage) return String(responseMessage);
+  if (error.response?.status && fallbackMessage) return fallbackMessage;
+
+  return error.message || fallbackMessage;
+};
+
+const normalizeErrorList = (value, fallbackMessage = "") => {
+  const message = readFirstError(value) || fallbackMessage;
+  return message ? [String(message)] : [];
+};
+
+const normalizeFieldErrors = (responseErrors = {}) => {
+  if (!responseErrors || typeof responseErrors !== "object") return {};
+
+  return Object.fromEntries(
+    Object.entries(responseErrors)
+      .map(([field, value]) => [field, normalizeErrorList(value)])
+      .filter(([, messages]) => messages.length),
+  );
 };
 
 const createAuthError = (error, fallbackMessage) => {
   const responseDetails = readFirstError(error.response?.data?.details);
   const responseErrors = error.response?.data?.errors || {};
   const fieldErrors = Object.fromEntries(
-    Object.entries(responseErrors).map(([field, value]) => [
+    Object.entries(normalizeFieldErrors(responseErrors)).map(([field, value]) => [
       field,
       readFirstError(value),
     ]),
   );
 
   return {
-    message:
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.message ||
-      fallbackMessage,
+    message: getErrorMessage(error, fallbackMessage),
     details: responseDetails,
     fieldErrors,
     status: error.response?.status || error.status || null,
@@ -205,6 +233,7 @@ export const useAuthStore = defineStore("auth", () => {
   const login = async (credentials, { remember = false } = {}) => {
     loading.value = true;
     errors.value = {};
+    const loginFallbackMessage = "អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ!";
     try {
       const response = await api.post("auth/login", credentials);
       const responseData = response?.data || {};
@@ -217,13 +246,19 @@ export const useAuthStore = defineStore("auth", () => {
 
 
       if (!checkIsAdmin(userData)) {
-        swal.fire({
+        const adminOnlyMessage = "គណនីនេះសម្រាប់តែ Admin ទេ។ សូមប្រើគណនី Admin ដើម្បីចូល។";
+        errors.value = { general: [adminOnlyMessage] };
+
+        await swal.fire({
           icon: "error",
           title: "សិទ្ធិមិនគ្រប់គ្រាន់",
-          text: "គណនីនេះសម្រាប់តែ Admin ទេ។ សូមប្រើគណនី Admin ដើម្បីចូល។",
+          text: adminOnlyMessage,
           timer: 1600,
         });
-        throw new Error("Unauthorized: Not an admin");
+
+        const adminError = new Error(adminOnlyMessage);
+        adminError.isHandled = true;
+        throw adminError;
       }
 
 
@@ -239,13 +274,24 @@ export const useAuthStore = defineStore("auth", () => {
 
       return response.data;
     } catch (error) {
+      const message = getErrorMessage(error, loginFallbackMessage);
+
+      if (error.isHandled) {
+        throw error;
+      }
+
       if (error.response?.status === 422) {
-        errors.value = error.response.data.errors;
+        const fieldErrors = normalizeFieldErrors(error.response?.data?.errors);
+        errors.value = Object.keys(fieldErrors).length
+          ? fieldErrors
+          : { general: normalizeErrorList(message, loginFallbackMessage) };
       } else if (isUnverifiedAccountError(error)) {
+        errors.value = { general: [message] };
+
         const result = await swal.fire({
           icon: "warning",
           title: "គណនីមិនទាន់បានផ្ទៀងផ្ទាត់",
-          text: "គណនីរបស់អ្នកមិនទាន់បាន verify ទេ។ សូមបញ្ចូល OTP ដើម្បីផ្ទៀងផ្ទាត់គណនី។",
+          text: message,
           showCancelButton: true,
           confirmButtonText: "ទៅ Verify គណនី",
           cancelButtonText: "បិទ",
@@ -259,11 +305,15 @@ export const useAuthStore = defineStore("auth", () => {
           });
         }
       } else if (error.response?.status === 401) {
+        errors.value = { general: [message] };
+
         await swal.fire({
           icon: "error",
           title: "បរាជ័យ",
-          text: "អ៊ីមែល ឬលេខសម្ងាត់មិនត្រឹមត្រូវ!",
+          text: message,
         });
+      } else {
+        errors.value = { general: [message] };
       }
       throw error;
     } finally {
