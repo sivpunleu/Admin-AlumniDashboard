@@ -273,7 +273,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const requestPasswordReset = async (email) => {
     try {
-      const response = await api.post("auth/admin/forget-password", { email });
+      const response = await api.post("/auth/admin/forget-password", { email });
       return {
         data: response?.data || {},
         token: extractResetToken(response?.data),
@@ -288,7 +288,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const resetPassword = async ({ token, newPassword }) => {
     try {
-      const response = await api.post("auth/admin/change-email/request", {
+      const response = await api.post("/auth/admin/reset-password", {
         token,
         newPassword,
       });
@@ -327,7 +327,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const requestEmailChange = async ({ newEmail, password }) => {
     try {
-      const response = await api.post("auth/change-email", {
+      const response = await api.post("/auth/admin/change-email", {
         newEmail,
         password,
       });
