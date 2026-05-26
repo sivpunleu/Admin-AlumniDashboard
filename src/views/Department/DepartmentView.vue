@@ -132,7 +132,8 @@ const handleSubmit = async () => {
                                 <span class="input-group-text bg-white border-0"><i
                                         class="bi bi-search text-muted"></i></span>
                                 <input v-model="store.queryParams.search" type="text"
-                                    class="form-control border-0 shadow-none ps-0" placeholder="ស្វែងរកដេប៉ាតឺម៉ង់...">
+                                    class="form-control border-0 shadow-none ps-0" aria-label="ស្វែងរកដេប៉ាតឺម៉ង់"
+                                    placeholder="ស្វែងរកដេប៉ាតឺម៉ង់...">
                             </div>
                         </div>
                     </div>
@@ -173,7 +174,9 @@ const handleSubmit = async () => {
                     </template>
 
                     <template #cell-name="{ item }">
-                        <div class="fw-bold text-dark">{{ item.name }}</div>
+                        <div class="department-name-cell fw-bold text-dark" :title="item.name || '-'">
+                            {{ item.name || '-' }}
+                        </div>
                     </template>
 
                     <template #cell-description="{ item }">
@@ -307,6 +310,14 @@ const handleSubmit = async () => {
 
 .department-skeleton__row:last-child {
     border-bottom: 0;
+}
+
+.department-name-cell {
+    display: block;
+    max-width: clamp(180px, 24vw, 320px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .skeleton-placeholder {

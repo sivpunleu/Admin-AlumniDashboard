@@ -187,7 +187,7 @@
                     <div class="cropper-wrapper mb-xl-3 mb-4">
                         <img ref="cropperImgRef" :src="rawImageSrc" class="mw-100 d-block" />
                     </div>
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="cropper-actions d-flex justify-content-end gap-2">
                         <BaseButton variant="light" @click="closeCropperModal">បោះបង់</BaseButton>
                         <BaseButton variant="primary" @click="confirmCrop" :loading="cropUploading">រក្សាទុករូបភាព
                         </BaseButton>
@@ -900,10 +900,12 @@ form .border-top {
     left: 0;
     width: 100%;
     height: 100%;
+    padding: 1rem;
     background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow-y: auto;
     z-index: 9999;
     backdrop-filter: blur(4px);
 }
@@ -911,12 +913,30 @@ form .border-top {
 .cropper-card {
     width: 100%;
     max-width: 500px;
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
     animation: profileModalCardIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cropper-wrapper {
+    max-height: min(58vh, 420px);
+    max-height: min(58dvh, 420px);
+    overflow: hidden;
+    border-radius: 12px;
+    background: #f8fafc;
 }
 
 .cropper-card img {
     width: 100%;
     height: auto;
+    max-height: min(58vh, 420px);
+    max-height: min(58dvh, 420px);
+    object-fit: contain;
+}
+
+.cropper-actions {
+    flex-wrap: wrap;
 }
 
 :deep(.cropper-container) {
@@ -933,7 +953,8 @@ form .border-top {
     position: relative;
     overflow: hidden;
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-height: inherit;
 }
 
 :deep(.cropper-drag-box) {
@@ -1184,6 +1205,32 @@ form .border-top {
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .cropper-overlay {
+        padding: 0.75rem;
+    }
+
+    .cropper-card {
+        max-height: calc(100vh - 1.5rem);
+        max-height: calc(100dvh - 1.5rem);
+        padding: 1rem !important;
+    }
+
+    .cropper-wrapper,
+    .cropper-card img {
+        max-height: min(52vh, 340px);
+        max-height: min(52dvh, 340px);
+    }
+
+    .cropper-actions {
+        flex-direction: column;
+    }
+
+    .cropper-actions .btn {
+        width: 100%;
     }
 }
 

@@ -190,7 +190,8 @@ const formatDateTime = (value) => {
             <h4 class="event-title fw-bold mb-0">ការគ្រប់គ្រងព្រឹត្តិការណ៍</h4>
             <div class="page-toolbar__actions">
                 <input v-model="store.queryParams.search" type="text"
-                    class="event-search form-control rounded-pill px-3" placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
+                    class="event-search form-control rounded-pill px-3" aria-label="ស្វែងរកព្រឹត្តិការណ៍"
+                    placeholder="ស្វែងរកព្រឹត្តិការណ៍...">
                 <BaseButton @click="openAddModal" variant="primary">
                     <i class="bi bi-plus-circle me-2"></i> បង្កើតថ្មី
                 </BaseButton>
@@ -229,8 +230,12 @@ const formatDateTime = (value) => {
         <div v-else>
             <BaseTable :columns="tableColumns" :data="store.events">
                 <template #cell-title="{ item }">
-                    <div class="fw-semibold text-emphasis">{{ item.title }}</div>
-                    <small class="text-muted">អត្តលេខ: {{ item.id }}</small>
+                    <div class="event-title-cell">
+                        <div class="event-title-cell__text fw-semibold text-emphasis" :title="item.title || '-'">
+                            {{ item.title || '-' }}
+                        </div>
+                        <small class="text-muted">អត្តលេខ: {{ item.id }}</small>
+                    </div>
                 </template>
 
                 <template #cell-location="{ item }">
@@ -300,41 +305,41 @@ const formatDateTime = (value) => {
             </div>
         </div>
 
-        <!-- ផ្ទាំង Modal សម្រាប់បង្កើត/កែប្រែ -->
+        <!-- BaseModal -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'កែប្រែព្រឹត្តិការណ៍' : 'បង្កើតព្រឹត្តិការណ៍ថ្មី'"
             size="lg" hide-default-footer>
             <form class="app-form" novalidate @submit.prevent="handleSubmit">
                 <div class="row g-3">
                     <div class="col-12">
-                        <label class="small fw-bold">ចំណងជើង</label>
+                        <label class="small fw-bold">ចំណងជើង *</label>
                         <input v-model="form.title" type="text" class="form-control"
                             :class="{ 'is-invalid': errors.title }" required @input="errors.title = ''"
                             @blur="validateForm">
                         <div v-if="errors.title" class="invalid-feedback">{{ errors.title }}</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="small fw-bold">ថ្ងៃចាប់ផ្តើម</label>
+                        <label class="small fw-bold">ថ្ងៃចាប់ផ្តើម *</label>
                         <input v-model="form.startDate" type="datetime-local" class="form-control"
                             :class="{ 'is-invalid': errors.startDate }" required @input="errors.startDate = ''"
                             @blur="validateForm">
                         <div v-if="errors.startDate" class="invalid-feedback">{{ errors.startDate }}</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="small fw-bold">ថ្ងៃបញ្ចប់</label>
+                        <label class="small fw-bold">ថ្ងៃបញ្ចប់ *</label>
                         <input v-model="form.endDate" type="datetime-local" class="form-control"
                             :class="{ 'is-invalid': errors.endDate }" required @input="errors.endDate = ''"
                             @blur="validateForm">
                         <div v-if="errors.endDate" class="invalid-feedback">{{ errors.endDate }}</div>
                     </div>
                     <div class="col-md-8">
-                        <label class="small fw-bold">ទីតាំង</label>
+                        <label class="small fw-bold">ទីតាំង *</label>
                         <input v-model="form.location" type="text" class="form-control"
                             :class="{ 'is-invalid': errors.location }" required @input="errors.location = ''"
                             @blur="validateForm">
                         <div v-if="errors.location" class="invalid-feedback">{{ errors.location }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="small fw-bold">លេខសម្គាល់ប្រភេទ (Category ID)</label>
+                        <label class="small fw-bold">ប្រភេទព្រឹត្តិការណ៍ *</label>
                         <select v-model.number="form.categoryId" class="form-control"
                             :class="{ 'is-invalid': errors.categoryId }" required @change="errors.categoryId = ''"
                             @blur="validateForm">
@@ -393,6 +398,19 @@ const formatDateTime = (value) => {
 .event-search {
     width: 220px;
     max-width: 100%;
+}
+
+.event-title-cell {
+    min-width: 0;
+    max-width: clamp(180px, 22vw, 280px);
+}
+
+.event-title-cell__text {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .event-location-text {

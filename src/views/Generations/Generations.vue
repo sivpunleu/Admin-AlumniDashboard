@@ -135,6 +135,15 @@ const minEndYear = computed(() => {
     const startYear = Number(form.startYear);
     return Number.isInteger(startYear) && startYear >= 1900 ? startYear + 1 : 1901;
 });
+const selectedDepartmentName = computed(() => {
+    if (form.departmentId === "" || form.departmentId == null) return "";
+
+    const department = (departmentStore.departments || []).find(
+        (item) => String(item.id) === String(form.departmentId),
+    );
+
+    return department?.name || "";
+});
 
 const columns = [
     { key: "id", label: "លេខសម្គាល់" },
@@ -282,7 +291,8 @@ const handlePageChange = (page) => {
                 <div class="search-box app-search-box p-2 rounded-3 shadow-sm d-flex align-items-center">
                     <i class="bi bi-search ms-2 text-muted"></i>
                     <input v-model="genStore.searchQuery.value" type="text"
-                        class="form-control border-0 shadow-none small" placeholder="ស្វែងរកតាមឈ្មោះ ឬលេខសម្គាល់...">
+                        class="form-control border-0 shadow-none small" aria-label="ស្វែងរកជំនាន់"
+                        placeholder="ស្វែងរកតាមឈ្មោះ ឬលេខសម្គាល់...">
                 </div>
             </div>
         </div>
@@ -320,6 +330,12 @@ const handlePageChange = (page) => {
                     </span>
                 </template>
 
+                <template #cell-name="{ item }">
+                    <div class="generation-name-cell fw-semibold text-dark" :title="item.name || '-'">
+                        {{ item.name || '-' }}
+                    </div>
+                </template>
+
                 <template #cell-years="{ item }">
                     <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
                         <i class="bi bi-calendar3 me-1"></i> ឆ្នាំ {{ item.startYear }} - {{ item.endYear }}
@@ -327,7 +343,10 @@ const handlePageChange = (page) => {
                 </template>
                 <!-- department -->
                 <template #cell-department="{ item }">
-                    <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
+                    <span
+                        class="generation-department-badge badge bg-light text-muted border fw-normal px-2 py-1 small"
+                        :title="item.department?.name || '-'"
+                    >
                         {{ item.department?.name || 'មិនមានការពិពណ៌នាឡើយ។' }}
                     </span>
                 </template>
@@ -400,12 +419,13 @@ const handlePageChange = (page) => {
 
                 <div v-if="modalMode === 'create'">
                     <label class="small fw-bold">ដេប៉ាតឺម៉ង់</label>
-                    <select v-model="form.departmentId" class="form-control"
+                    <select v-model="form.departmentId" class="form-control form-select-truncate"
                         :class="{ 'is-invalid': errors.departmentId }" @change="errors.departmentId = ''"
+                        :title="selectedDepartmentName"
                         @blur="validateForm">
                         <option value="">ជ្រើសរើសដេប៉ាតឺម៉ង់</option>
                         <option v-for="department in departmentStore.departments || []" :key="department.id"
-                            :value="department.id">
+                            :value="department.id" :title="department.name">
                             {{ department.name }}
                         </option>
                     </select>
@@ -562,6 +582,30 @@ const handlePageChange = (page) => {
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 3em;
+}
+
+.generation-name-cell {
+    display: block;
+    max-width: clamp(160px, 20vw, 260px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.generation-department-badge {
+    display: inline-block;
+    max-width: clamp(150px, 18vw, 240px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.form-select-truncate {
+    overflow: hidden;
+    padding-right: 2.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .btn-new,
