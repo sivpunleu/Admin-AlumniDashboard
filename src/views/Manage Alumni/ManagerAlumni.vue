@@ -125,14 +125,18 @@ const showAdminConfirmPassword = ref(false);
 const INITIAL_PLACEHOLDER_MIN_MS = 350;
 const VALID_STATUS_TABS = ["ALL", "PENDING", "APPROVE", "REJECT"];
 
+const readRouteQuery = (value) => (
+  Array.isArray(value) ? value[0] : value
+);
+
 const getRouteStatusTab = () => {
-  const rawStatus = Array.isArray(route.query.status)
-    ? route.query.status[0]
-    : route.query.status;
+  const rawStatus = readRouteQuery(route.query.status);
   const status = String(rawStatus || "").trim().toUpperCase();
 
   return VALID_STATUS_TABS.includes(status) ? status : "ALL";
 };
+
+const getRouteSearchQuery = () => String(readRouteQuery(route.query.search) || "").trim();
 
 const syncStatusTabFromRoute = () => {
   const nextTab = getRouteStatusTab();
@@ -141,7 +145,39 @@ const syncStatusTabFromRoute = () => {
   }
 };
 
+const syncSearchFromRoute = () => {
+  const nextSearch = getRouteSearchQuery();
+  if (store.searchQuery.value !== nextSearch) {
+    store.searchQuery.value = nextSearch;
+  }
+};
+
 syncStatusTabFromRoute();
+syncSearchFromRoute();
+
+const focusedUserId = computed(() => String(readRouteQuery(route.query.focus) || "").trim());
+
+const isFocusedUser = (item) => (
+  focusedUserId.value && String(item?.id || "") === focusedUserId.value
+);
+
+const getAlumniRowClass = (item) => (
+  isFocusedUser(item) ? "manager-row--focused" : ""
+);
+
+const getAlumniRowAttrs = (item) => (
+  isFocusedUser(item) ? { "data-focused-alumni": "true" } : {}
+);
+
+const scrollToFocusedAlumni = () => {
+  if (!focusedUserId.value || typeof window === "undefined") return;
+
+  window.requestAnimationFrame(() => {
+    document
+      .querySelector(".manager-alumni-page [data-focused-alumni='true']")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+};
 
 const stats = computed(() => {
   const result = {
@@ -198,6 +234,14 @@ watch(() => route.query.status, () => {
   syncStatusTabFromRoute();
 });
 
+watch(() => route.query.search, () => {
+  syncSearchFromRoute();
+});
+
+watch([() => store.users.value, focusedUserId], () => {
+  scrollToFocusedAlumni();
+}, { flush: "post" });
+
 watch([() => store.searchQuery.value, () => store.activeTab.value], ([, activeTab], [, previousActiveTab]) => {
   store.currentPage.value = 1;
   clearTimeout(searchDebounceTimer);
@@ -237,7 +281,18 @@ const pageSummary = computed(() => {
 const searchModel = computed({
   get: () => store.searchQuery.value,
   set: (value) => {
-    store.searchQuery.value = value;
+    const nextSearch = String(value || "");
+    store.searchQuery.value = nextSearch;
+
+    const query = { ...route.query };
+    if (nextSearch.trim()) {
+      query.search = nextSearch.trim();
+    } else {
+      delete query.search;
+      delete query.focus;
+    }
+
+    router.replace({ query }).catch(() => {});
   },
 });
 
@@ -493,7 +548,13 @@ const tableColumns = [
         </div>
       </div>
 
-      <BaseTable v-else :columns="tableColumns" :data="store.users.value">
+      <BaseTable
+        v-else
+        :columns="tableColumns"
+        :data="store.users.value"
+        :row-class="getAlumniRowClass"
+        :row-attrs="getAlumniRowAttrs"
+      >
         <template #cell-alumni="{ item }">
           <div class="d-flex align-items-center">
             <div class="avatar-sm me-3" :aria-label="getAlumniName(item)">
@@ -992,6 +1053,15 @@ const tableColumns = [
 
 .dot-icon {
   font-size: 6px;
+}
+
+:deep(.manager-row--focused > td) {
+  background: #eaf5f7 !important;
+  box-shadow: inset 0 1px 0 rgba(33, 100, 119, 0.18), inset 0 -1px 0 rgba(33, 100, 119, 0.18);
+}
+
+:deep(.manager-row--focused > td:first-child) {
+  box-shadow: inset 4px 0 0 #216477, inset 0 1px 0 rgba(33, 100, 119, 0.18), inset 0 -1px 0 rgba(33, 100, 119, 0.18);
 }
 
 .btn-count {

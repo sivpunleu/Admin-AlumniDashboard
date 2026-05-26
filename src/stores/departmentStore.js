@@ -23,7 +23,7 @@ export const useDepartmentStore = defineStore("department", () => {
   const totalItems = ref(0);
   const totalPages = ref(1);
   const departmentInUseMessage =
-    "មិនអាចលុបដេប៉ាតឺម៉ង់នេះបានទេ ព្រោះមានជំនាន់ ឬប្រវត្តិរូបដែលកំពុងប្រើប្រាស់។";
+    "មិនអាចលុបដេប៉ាតឺម៉ង់នេះបានទេ ព្រោះកំពុងត្រូវបានប្រើប្រាស់។";
   const createFallbackMessage = "មិនអាចបង្កើតបានទេ";
   const updateFallbackMessage = "មិនអាចកែប្រែទិន្នន័យបានទេ";
   const deleteFallbackMessage = "មិនអាចលុបទិន្នន័យនេះបានទេ";

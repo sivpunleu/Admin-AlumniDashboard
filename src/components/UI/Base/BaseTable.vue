@@ -9,7 +9,12 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="item in data" :key="getRowKey(item)">
+                <tr
+                    v-for="item in data"
+                    :key="getRowKey(item)"
+                    :class="getRowClass(item)"
+                    v-bind="getRowAttrs(item)"
+                >
                     <td v-for="column in columns" :key="column.key" :class="getCellClass(column)">
                         <slot :name="`cell-${column.key}`" :item="item">
                             {{ item[column.key] }}
@@ -53,6 +58,14 @@ const props = defineProps({
         type: String,
         default: '720px',
     },
+    rowClass: {
+        type: [String, Array, Object, Function],
+        default: '',
+    },
+    rowAttrs: {
+        type: [Object, Function],
+        default: () => ({}),
+    },
 });
 
 const isActionColumn = (column) => column?.key === 'actions';
@@ -81,6 +94,14 @@ const getRowKey = (item) => {
 
     return item?.[props.rowKey] ?? JSON.stringify(item);
 };
+
+const getRowClass = (item) => (
+    typeof props.rowClass === 'function' ? props.rowClass(item) : props.rowClass
+);
+
+const getRowAttrs = (item) => (
+    typeof props.rowAttrs === 'function' ? props.rowAttrs(item) : props.rowAttrs
+);
 </script>
 
 <style scoped>
