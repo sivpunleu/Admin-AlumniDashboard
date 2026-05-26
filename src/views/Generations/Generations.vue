@@ -19,13 +19,56 @@ onMounted(async () => {
     ]);
 });
 
+const KHMER_DIGITS = {
+    "០": "0",
+    "១": "1",
+    "២": "2",
+    "៣": "3",
+    "៤": "4",
+    "៥": "5",
+    "៦": "6",
+    "៧": "7",
+    "៨": "8",
+    "៩": "9",
+};
+
+const normalizeSearchValue = (value) =>
+    String(value ?? "")
+        .replace(/[០-៩]/g, (digit) => KHMER_DIGITS[digit] || digit)
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+
+const getGenerationIdValues = (generation) => [
+    generation?.id,
+    generation?._id,
+    generation?.generationId,
+    generation?.generationID,
+    generation?.generation_id,
+    generation?.code,
+].filter((value) => value !== undefined && value !== null && value !== "");
+
+const getGenerationPrimaryId = (generation) => getGenerationIdValues(generation)[0] ?? "";
+
+const getGenerationSearchText = (generation) => {
+    const idValues = getGenerationIdValues(generation);
+
+    return [
+        ...idValues,
+        ...idValues.map((id) => `#${id}`),
+        generation?.name,
+    ]
+        .map(normalizeSearchValue)
+        .filter(Boolean)
+        .join(" ");
+};
 
 const filteredGens = computed(() => {
-    if (!genStore.searchQuery.value) return genStore.generations.value;
-    const query = genStore.searchQuery.value.toLowerCase();
-    return genStore.generations.value.filter(g =>
-        String(g?.id ?? "").includes(query) ||
-        String(g?.name ?? "").toLowerCase().includes(query)
+    const query = normalizeSearchValue(genStore.searchQuery.value);
+    if (!query) return genStore.generations.value;
+
+    return genStore.generations.value.filter((generation) =>
+        getGenerationSearchText(generation).includes(query)
     );
 });
 
@@ -54,13 +97,15 @@ const showModal = ref(false);
 const modalMode = ref("create"); // 'create' | 'edit'
 const selectedGenId = ref(null);
 const form = reactive({
+    id: "",
     name: "",
     startYear: new Date().getFullYear(),
-    endYear: new Date().getFullYear(),
+    endYear: new Date().getFullYear() + 1,
     departmentId: null,
     description: "",
 });
 const errors = reactive({
+    id: "",
     name: "",
     startYear: "",
     endYear: "",
@@ -86,8 +131,13 @@ const buildGenerationPayload = (includeDepartment = true) => {
 const modalTitle = computed(() => (modalMode.value === "create" ? "បង្កើតជំនាន់ថ្មី" : "កែប្រែព័ត៌មានជំនាន់"));
 const modalConfirmText = computed(() => (modalMode.value === "create" ? "បង្កើត" : "រក្សាទុក"));
 const maxGenerationYear = computed(() => new Date().getFullYear() + 10);
+const minEndYear = computed(() => {
+    const startYear = Number(form.startYear);
+    return Number.isInteger(startYear) && startYear >= 1900 ? startYear + 1 : 1901;
+});
 
 const columns = [
+    { key: "id", label: "លេខសម្គាល់" },
     { key: "name", label: "ឈ្មោះជំនាន់" },
     { key: "years", label: "ឆ្នាំ" },
     { key: "department", label: "ដេប៉ាតឺម៉ង់" },
@@ -99,9 +149,10 @@ const skeletonRows = Array.from({ length: 6 }, (_, index) => index);
 const openCreateModal = () => {
     modalMode.value = "create";
     selectedGenId.value = null;
+    form.id = "";
     form.name = "";
     form.startYear = new Date().getFullYear();
-    form.endYear = new Date().getFullYear();
+    form.endYear = new Date().getFullYear() + 1;
     form.departmentId = "";
     form.description = "";
     clearErrors();
@@ -109,8 +160,10 @@ const openCreateModal = () => {
 };
 
 const openEditModal = (gen) => {
+    const generationId = getGenerationPrimaryId(gen);
     modalMode.value = "edit";
-    selectedGenId.value = gen.id;
+    selectedGenId.value = generationId;
+    form.id = generationId;
     form.name = gen.name || "";
     form.startYear = gen.startYear || new Date().getFullYear();
     form.endYear = gen.endYear || new Date().getFullYear();
@@ -136,6 +189,10 @@ const validateForm = () => {
     const departmentId = Number(form.departmentId);
     const currentYear = new Date().getFullYear();
 
+    if (modalMode.value === "edit" && !String(selectedGenId.value || "").trim()) {
+        errors.id = "លេខសម្គាល់ជំនាន់មិនត្រឹមត្រូវ";
+    }
+
     if (!form.name) {
         errors.name = "សូមបញ្ចូលឈ្មោះជំនាន់";
     }
@@ -150,8 +207,8 @@ const validateForm = () => {
         errors.endYear = "សូមបញ្ចូលឆ្នាំបញ្ចប់";
     } else if (!Number.isInteger(endYear) || endYear < 1900 || endYear > currentYear + 10) {
         errors.endYear = "ឆ្នាំបញ្ចប់មិនត្រឹមត្រូវ";
-    } else if (Number.isInteger(startYear) && endYear < startYear) {
-        errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាង ឬស្មើឆ្នាំចាប់ផ្តើម";
+    } else if (Number.isInteger(startYear) && endYear <= startYear) {
+        errors.endYear = "ឆ្នាំបញ្ចប់ត្រូវធំជាងឆ្នាំចាប់ផ្តើម";
     }
 
     if (modalMode.value === "create" && !form.departmentId) {
@@ -189,7 +246,7 @@ const submitForm = async () => {
             }
         } catch (err) {
             logger.error('Generation submit failed', err.response?.data || err);
-            const detail = err.response?.data?.message || err.message || "មិនអាចរក្សាទុកជំនាន់បានទេ";
+            const detail = genStore.getApiErrorMessage(err, "មិនអាចរក្សាទុកជំនាន់បានទេ");
             Swal.fire("កំហុស", String(detail), "error");
         } finally {
             genStore.isLoading.value = false;
@@ -238,6 +295,7 @@ const handlePageChange = (page) => {
             </div>
             <div class="generation-table-skeleton">
                 <div v-for="row in skeletonRows" :key="row" class="generation-skeleton-row">
+                    <span class="skeleton-placeholder skeleton-pill skeleton-pill--id"></span>
                     <span class="skeleton-placeholder skeleton-line skeleton-line--name"></span>
                     <span class="skeleton-placeholder skeleton-pill skeleton-pill--year"></span>
                     <span class="skeleton-placeholder skeleton-pill skeleton-pill--department"></span>
@@ -256,6 +314,12 @@ const handlePageChange = (page) => {
         <!-- បញ្ជីជំនាន់ក្នុងតារាង (Generation Table) -->
         <div v-else class="bg-white rounded-4 shadow-sm border overflow-hidden">
             <BaseTable :columns="columns" :data="paginatedGens">
+                <template #cell-id="{ item }">
+                    <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
+                        #{{ getGenerationPrimaryId(item) || '-' }}
+                    </span>
+                </template>
+
                 <template #cell-years="{ item }">
                     <span class="badge bg-light text-muted border fw-normal px-2 py-1 small">
                         <i class="bi bi-calendar3 me-1"></i> ឆ្នាំ {{ item.startYear }} - {{ item.endYear }}
@@ -280,7 +344,7 @@ const handlePageChange = (page) => {
                             aria-label="កែប្រែជំនាន់">
                             <i class="bi bi-pencil-square text-info"></i>
                         </BaseButton>
-                        <BaseButton @click="genStore.handleDelete(item.id)" variant="danger" size="sm" shape="sharp"
+                        <BaseButton @click="genStore.handleDelete(getGenerationPrimaryId(item))" variant="danger" size="sm" shape="sharp"
                             title="លុប" aria-label="លុបជំនាន់">
                             <i class="bi bi-trash text-light"></i>
                         </BaseButton>
@@ -309,6 +373,13 @@ const handlePageChange = (page) => {
             </template>
 
             <div class="app-form">
+                <!-- លេខសម្គាល់ id -->
+                <div>
+                    <label class="small fw-bold">លេខសម្គាល់</label>
+                    <input v-model="form.id" class="form-control" :class="{ 'is-invalid': errors.id }" readonly
+                        @input="errors.id = ''" @blur="validateForm">
+                    <div v-if="errors.id" class="invalid-feedback">{{ errors.id }}</div>
+                </div>
                 <div>
                     <label class="small fw-bold">ឈ្មោះជំនាន់</label>
                     <input v-model="form.name" class="form-control" :class="{ 'is-invalid': errors.name }"
@@ -327,7 +398,7 @@ const handlePageChange = (page) => {
                     </div>
                     <div class="col-6">
                         <label class="small fw-bold">ឆ្នាំបញ្ចប់</label>
-                        <input v-model="form.endYear" type="number" class="form-control" min="1900"
+                        <input v-model="form.endYear" type="number" class="form-control" :min="minEndYear"
                             :max="maxGenerationYear" step="1"
                             :class="{ 'is-invalid': errors.endYear }" @input="errors.endYear = ''" @blur="validateForm">
                         <div v-if="errors.endYear" class="invalid-feedback">{{ errors.endYear }}</div>
@@ -391,10 +462,10 @@ const handlePageChange = (page) => {
 .generation-skeleton-header,
 .generation-skeleton-row {
     display: grid;
-    grid-template-columns: minmax(170px, 1fr) minmax(120px, 0.75fr) minmax(150px, 0.85fr) minmax(220px, 1.25fr) minmax(110px, 0.55fr);
+    grid-template-columns: minmax(96px, 0.55fr) minmax(170px, 1fr) minmax(120px, 0.75fr) minmax(150px, 0.85fr) minmax(220px, 1.25fr) minmax(110px, 0.55fr);
     align-items: center;
     gap: 1rem;
-    min-width: 720px;
+    min-width: 820px;
 }
 
 .generation-skeleton-header {
@@ -444,6 +515,10 @@ const handlePageChange = (page) => {
 
 .skeleton-pill {
     height: 26px;
+}
+
+.skeleton-pill--id {
+    width: 84px;
 }
 
 .skeleton-pill--year {

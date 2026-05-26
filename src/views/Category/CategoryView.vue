@@ -12,7 +12,9 @@ const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentId = ref(null);
 const form = reactive({ name: '', description: '' });
-const errors = reactive({ name: '' });
+const errors = reactive({ name: '', description: '' });
+const NAME_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = 500;
 
 onMounted(() => store.fetchCategories());
 
@@ -40,6 +42,7 @@ const openAddModal = () => {
     currentId.value = null;
     form.name = ''; form.description = '';
     errors.name = '';
+    errors.description = '';
     isModalOpen.value = true;
 };
 
@@ -49,6 +52,7 @@ const openEditModal = (cat) => {
     form.name = cat.name;
     form.description = cat.description;
     errors.name = '';
+    errors.description = '';
     isModalOpen.value = true;
 };
 
@@ -58,13 +62,21 @@ const closeModal = () => {
 
 const validateForm = () => {
     errors.name = '';
+    errors.description = '';
     form.name = form.name.trim();
+    form.description = String(form.description || '').trim();
 
     if (!form.name) {
         errors.name = 'សូមបញ្ចូលឈ្មោះប្រភេទ';
+    } else if (form.name.length > NAME_MAX_LENGTH) {
+        errors.name = `ឈ្មោះប្រភេទមិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
-    return !errors.name;
+    if (form.description.length > DESCRIPTION_MAX_LENGTH) {
+        errors.description = `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return !errors.name && !errors.description;
 };
 
 const handleSubmit = async () => {
@@ -167,13 +179,18 @@ const handleSubmit = async () => {
                     <label class="form-label small fw-bold text-muted text-uppercase">ឈ្មោះ *</label>
                     <input v-model="form.name" type="text" class="form-control py-2 rounded-3 border-2"
                         :class="{ 'is-invalid': errors.name }" placeholder="បញ្ចូលឈ្មោះប្រភេទ..." required
+                        :maxlength="NAME_MAX_LENGTH"
                         @input="errors.name = ''" @blur="validateForm">
                     <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
                 <div>
                     <label class="form-label small fw-bold text-muted text-uppercase">ការពិពណ៌នា</label>
                     <textarea v-model="form.description" class="form-control rounded-3 border-2" rows="4"
-                        placeholder="បញ្ចូលព័ត៌មានលម្អិត..."></textarea>
+                        :class="{ 'is-invalid': errors.description }"
+                        :maxlength="DESCRIPTION_MAX_LENGTH"
+                        placeholder="បញ្ចូលព័ត៌មានលម្អិត..."
+                        @input="errors.description = ''" @blur="validateForm"></textarea>
+                    <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
                 </div>
             </form>
 
