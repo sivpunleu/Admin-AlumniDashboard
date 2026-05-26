@@ -35,6 +35,18 @@ export const useDepartmentStore = defineStore("department", () => {
     }
     return value;
   };
+
+  const collectErrorMessages = (value) => {
+    if (Array.isArray(value)) {
+      return value.flatMap(collectErrorMessages);
+    }
+
+    if (value && typeof value === "object") {
+      return Object.values(value).flatMap(collectErrorMessages);
+    }
+
+    return typeof value === "string" && value.trim() ? [value.trim()] : [];
+  };
 // error handling function to extract meaningful messages from API errors, with support for nested structures and fallback messages based on HTTP status codes.
   const isGenericApiMessage = (message = "") => {
     const normalized = String(message).trim().toLowerCase();
@@ -47,30 +59,73 @@ export const useDepartmentStore = defineStore("department", () => {
     ].includes(normalized);
   };
 
+  const translateKnownApiMessage = (message, fallbackMessage = "") => {
+    const text = String(message || "").trim();
+    const lower = text.toLowerCase();
+
+    if (lower.includes("name") && lower.includes("must not exceed")) {
+      return "ឈ្មោះដេប៉ាតឺម៉ង់មិនអាចលើស 100 តួអក្សរបានទេ។";
+    }
+
+    if (lower.includes("description") && lower.includes("must not exceed")) {
+      return "ការពិពណ៌នាដេប៉ាតឺម៉ង់មិនអាចលើស 500 តួអក្សរបានទេ។";
+    }
+
+    if (lower.includes("name") && (lower.includes("required") || lower.includes("empty"))) {
+      return "សូមបញ្ចូលឈ្មោះដេប៉ាតឺម៉ង់។";
+    }
+
+    if (
+      lower.includes("name") &&
+      (lower.includes("already") || lower.includes("exist") || lower.includes("taken"))
+    ) {
+      return "ឈ្មោះដេប៉ាតឺម៉ង់នេះមានរួចហើយ។ សូមប្រើឈ្មោះផ្សេង។";
+    }
+
+    if (isGenericApiMessage(text)) {
+      return fallbackMessage || "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+    }
+
+    return text || fallbackMessage;
+  };
+
   const getApiErrorMessage = (err, fallbackMessage) => {
     const responseData = err.response?.data;
     const responseMessages = [
       readFirstError(responseData?.details),
       readFirstError(responseData?.errors),
       readFirstError(responseData?.error),
+      readFirstError(responseData?.ts),
+      readFirstError(responseData?.msg),
+      readFirstError(responseData?.data),
       readFirstError(responseData?.message),
       typeof responseData === "string" ? responseData : "",
+      ...collectErrorMessages(responseData),
     ]
       .filter(Boolean)
       .map(String);
 
-    const specificMessage = responseMessages.find(
+    const specificMessages = responseMessages.filter(
       (message) => !isGenericApiMessage(message),
     );
+    const translatedMessages = [
+      ...new Set(
+        specificMessages
+          .map((message) => translateKnownApiMessage(message, fallbackMessage))
+          .filter(Boolean),
+      ),
+    ];
 
-    if (specificMessage) return specificMessage;
+    if (translatedMessages.length) return translatedMessages.join("\n");
     if (fallbackMessage && responseMessages.some(isGenericApiMessage)) {
       return fallbackMessage;
     }
-    if (responseMessages.length) return responseMessages[0];
+    if (responseMessages.length) {
+      return translateKnownApiMessage(responseMessages[0], fallbackMessage);
+    }
     if (err.response?.status && fallbackMessage) return fallbackMessage;
 
-    return err.message || fallbackMessage;
+    return translateKnownApiMessage(err.message, fallbackMessage);
   };
 
   const isSuccessResponse = (data) =>
@@ -129,11 +184,19 @@ export const useDepartmentStore = defineStore("department", () => {
       }
 
       await fetchDepartments();
-      Swal.fire("ជោគជ័យ", "ដេប៉ាតឺម៉ង់ថ្មីត្រូវបានបង្កើត", "success");
+      Swal.fire({
+        title: "បង្កើតបានជោគជ័យ",
+        text: `បានបង្កើតដេប៉ាតឺម៉ង់ "${payload.name}" រួចរាល់។`,
+        icon: "success",
+      });
       return true;
     } catch (err) {
       logger.error("Create Department Error:", err.response?.data || err);
-      Swal.fire("កំហុស", getApiErrorMessage(err, createFallbackMessage), "error");
+      Swal.fire({
+        title: "មិនអាចបង្កើតដេប៉ាតឺម៉ង់បានទេ",
+        text: getApiErrorMessage(err, createFallbackMessage),
+        icon: "error",
+      });
       return false;
     } finally {
       isLoading.value = false;

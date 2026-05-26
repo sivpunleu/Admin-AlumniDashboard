@@ -67,9 +67,10 @@
                             <i class="bi bi-send" aria-hidden="true"></i>
                             <span>ស្នើតំណលីង</span>
                         </button>
-                        <button type="button" :class="{ 'is-active': isResetMode }" role="tab"
-                            :aria-selected="isResetMode" @click="showResetForm()">
-                            <i class="bi bi-key" aria-hidden="true"></i>
+                        <button type="button" :class="{ 'is-active': isResetMode, 'is-locked': !canAccessResetForm }"
+                            role="tab" :aria-selected="isResetMode" :aria-disabled="!canAccessResetForm"
+                            :disabled="!canAccessResetForm" :title="resetTabTitle" @click="showResetForm()">
+                            <i :class="['bi', canAccessResetForm ? 'bi-key' : 'bi-lock']" aria-hidden="true"></i>
                             <span>កំណត់ពាក្យសម្ងាត់ថ្មី</span>
                         </button>
                     </div>
@@ -194,6 +195,7 @@ const loading = ref(false);
 const mode = ref("forgot");
 const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
+const resetAccessGranted = ref(false);
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -204,6 +206,12 @@ const routeToken = computed(() => {
 
 const hasRouteToken = computed(() => !!routeToken.value);
 const isResetMode = computed(() => mode.value === "reset");
+const canAccessResetForm = computed(() => hasRouteToken.value || resetAccessGranted.value || !!resetForm.token);
+const resetTabTitle = computed(() => (
+    canAccessResetForm.value
+        ? "កំណត់ពាក្យសម្ងាត់ថ្មី"
+        : "សូមបញ្ចូលអ៊ីមែល និងស្នើតំណកំណត់ឡើងវិញជាមុនសិន"
+));
 
 function clearNotice() {
     notice.text = "";
@@ -305,9 +313,18 @@ function validateResetForm() {
 }
 
 function showResetForm(token = "") {
+    if (token) {
+        resetForm.token = token;
+        resetAccessGranted.value = true;
+    }
+
+    if (!canAccessResetForm.value) {
+        setNotice("error", "សូមបញ្ចូលអ៊ីមែល និងស្នើតំណកំណត់ឡើងវិញជាមុនសិន។");
+        return;
+    }
+
     clearErrors();
     clearNotice();
-    if (token) resetForm.token = token;
     mode.value = "reset";
 }
 
@@ -326,6 +343,7 @@ async function handleForgotPassword() {
         const { token } = await authStore.requestPasswordReset(forgotForm.email);
 
         if (token) {
+            resetAccessGranted.value = true;
             showResetForm(token);
             setNotice("success", "បានទទួលលេខកូដកំណត់ឡើងវិញ។ សូមបង្កើតពាក្យសម្ងាត់ថ្មីដើម្បីបន្ត។");
         } else {
@@ -378,14 +396,20 @@ watch(
     (token) => {
         if (token) {
             resetForm.token = token;
+            resetAccessGranted.value = true;
             mode.value = "reset";
+        } else if (route.name === "reset-password") {
+            mode.value = "forgot";
         }
     },
     { immediate: true },
 );
 
 onMounted(() => {
-    if (route.name === "reset-password") mode.value = "reset";
+    if (route.name === "reset-password" && hasRouteToken.value) {
+        resetAccessGranted.value = true;
+        mode.value = "reset";
+    }
 });
 </script>
 
@@ -766,6 +790,18 @@ onMounted(() => {
     color: #216477;
     transform: translateY(-1px);
     outline: none;
+}
+
+.auth-mode-tabs button:disabled,
+.auth-mode-tabs button.is-locked {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.auth-mode-tabs button:disabled:hover,
+.auth-mode-tabs button.is-locked:hover {
+    color: #48606b;
+    transform: none;
 }
 
 .auth-mode-tabs button.is-active {

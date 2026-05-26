@@ -38,6 +38,18 @@ const readFirstError = (value) => {
   }
   return value;
 };
+
+const collectErrorMessages = (value) => {
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
+};
 // error handling function to extract meaningful messages from API errors, with support for nested structures and fallback messages based on HTTP status codes.
 const isGenericApiMessage = (message = "") => {
   const normalized = String(message).trim().toLowerCase();
@@ -90,6 +102,10 @@ const translateKnownApiMessage = (message, fallbackMessage = "") => {
     return "ស្ថានភាពដែលបានជ្រើសរើសមិនត្រឹមត្រូវ។";
   }
 
+  if (lower.includes("start year") && lower.includes("end year")) {
+    return "ឆ្នាំចាប់ផ្តើមត្រូវតែតូចជាងឆ្នាំបញ្ចប់។";
+  }
+
   if (lower.includes("permission") || lower.includes("forbidden") || lower.includes("unauthorized")) {
     return "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ។";
   }
@@ -103,8 +119,12 @@ const getApiErrorMessage = (err, fallbackMessage) => {
     readFirstError(responseData?.details),
     readFirstError(responseData?.errors),
     readFirstError(responseData?.error),
+    readFirstError(responseData?.ts),
+    readFirstError(responseData?.msg),
+    readFirstError(responseData?.data),
     readFirstError(responseData?.message),
     typeof responseData === "string" ? responseData : "",
+    ...collectErrorMessages(responseData),
   ]
     .filter(Boolean)
     .map(String);
@@ -221,6 +241,17 @@ const normalizeStatus = (value) =>
   String(value || "")
     .trim()
     .toUpperCase();
+
+const getStatusSelectValue = (value) => {
+  const status = normalizeStatus(value);
+
+  if (["APPROVED", "ACTIVE", "VERIFIED"].includes(status)) return "APPROVE";
+  if (["REJECTED", "DEACTIVATE", "DEACTIVATED", "INACTIVE", "DISABLED"].includes(status)) {
+    return "REJECT";
+  }
+
+  return ["PENDING", "APPROVE", "REJECT"].includes(status) ? status : "PENDING";
+};
 // function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const getUserStatus = (user) => {
   const rawStatus = normalizeStatus(
@@ -349,7 +380,11 @@ const getPaginationMeta = (root, payload) => {
   };
 };
 
-const getFetchParams = ({ includePagination = true } = {}) => {
+const getFetchParams = ({
+  includePagination = true,
+  includeSearch = true,
+  includeStatus = true,
+} = {}) => {
   const params = {};
 
   if (includePagination) {
@@ -357,11 +392,11 @@ const getFetchParams = ({ includePagination = true } = {}) => {
     params._per_page = getPerPage();
   }
 
-  if (searchQuery.value?.trim()) {
+  if (includeSearch && searchQuery.value?.trim()) {
     params.search = searchQuery.value.trim();
   }
 
-  if (activeTab.value !== "ALL") {
+  if (includeStatus && activeTab.value !== "ALL") {
     params.status = activeTab.value;
   }
 
@@ -438,7 +473,14 @@ export const fetchUsers = async () => {
       logger.warn("Unable to fetch global summary counts:", summaryErr);
     }
 
-    const params = getFetchParams({ includePagination: false });
+    const usedGenericUsersEndpoint = true;
+    const needsClientPagination = true;
+    const needsClientFilters = true;
+    const params = getFetchParams({
+      includePagination: false,
+      includeSearch: false,
+      includeStatus: false,
+    });
 
     logger.debug(
       "Fetching users with params:",
@@ -446,10 +488,6 @@ export const fetchUsers = async () => {
       "activeTab:",
       activeTab.value,
     );
-
-    const usedGenericUsersEndpoint = true;
-    const needsClientPagination = true;
-    const needsClientFilters = true;
 
     let root = {};
     let payload = {};
@@ -878,10 +916,12 @@ const updateUserStatus = async (userId, status) => {
 export const handleApproveUser = (userId) =>
   updateUserStatus(userId, "APPROVE");
 
-export const handleChangeStatus = async (userId) => {
+export const handleChangeStatus = async (userId, currentStatus = "") => {
+  const selectedStatus = getStatusSelectValue(currentStatus);
   const { value: status } = await Swal.fire({
     title: "ប្តូរស្ថានភាព",
     input: "select",
+    inputValue: selectedStatus,
     inputOptions: {
       PENDING: "កំពុងរង់ចាំ",
       APPROVE: "យល់ព្រម",

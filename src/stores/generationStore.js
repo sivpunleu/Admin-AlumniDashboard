@@ -30,6 +30,18 @@ const readFirstError = (value) => {
   return value;
 };
 
+const collectErrorMessages = (value) => {
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
+};
+
 const isGenericApiMessage = (message = "") => {
   const normalized = String(message).trim().toLowerCase();
   return [
@@ -41,14 +53,33 @@ const isGenericApiMessage = (message = "") => {
   ].includes(normalized);
 };
 
-const getApiErrorMessage = (err, fallbackMessage) => {
+const translateKnownApiMessage = (message, fallbackMessage = "") => {
+  const text = String(message || "").trim();
+  const lower = text.toLowerCase();
+
+  if (lower.includes("start year") && lower.includes("end year")) {
+    return "ឆ្នាំចាប់ផ្តើមត្រូវតែតូចជាងឆ្នាំបញ្ចប់។";
+  }
+
+  if (isGenericApiMessage(text)) {
+    return fallbackMessage || "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+  }
+
+  return text || fallbackMessage;
+};
+
+export const getApiErrorMessage = (err, fallbackMessage) => {
   const responseData = err.response?.data;
   const responseMessages = [
     readFirstError(responseData?.details),
     readFirstError(responseData?.errors),
     readFirstError(responseData?.error),
+    readFirstError(responseData?.ts),
+    readFirstError(responseData?.msg),
+    readFirstError(responseData?.data),
     readFirstError(responseData?.message),
     typeof responseData === "string" ? responseData : "",
+    ...collectErrorMessages(responseData),
   ]
     .filter(Boolean)
     .map(String);
@@ -57,14 +88,16 @@ const getApiErrorMessage = (err, fallbackMessage) => {
     (message) => !isGenericApiMessage(message),
   );
 
-  if (specificMessage) return specificMessage;
+  if (specificMessage) return translateKnownApiMessage(specificMessage, fallbackMessage);
   if (fallbackMessage && responseMessages.some(isGenericApiMessage)) {
     return fallbackMessage;
   }
-  if (responseMessages.length) return responseMessages[0];
+  if (responseMessages.length) {
+    return translateKnownApiMessage(responseMessages[0], fallbackMessage);
+  }
   if (err.response?.status && fallbackMessage) return fallbackMessage;
 
-  return err.message || fallbackMessage;
+  return translateKnownApiMessage(err.message, fallbackMessage);
 };
 
 const createResponseError = (response, fallbackMessage) => {
@@ -220,12 +253,25 @@ export const handleCreate = async () => {
           return null;
         }
 
+        const parsedStartYear = parseInt(startYear, 10);
+        const parsedEndYear = parseInt(endYear, 10);
+
+        if (!Number.isInteger(parsedStartYear) || !Number.isInteger(parsedEndYear)) {
+          Swal.showValidationMessage("សូមបញ្ចូលឆ្នាំឱ្យបានត្រឹមត្រូវ");
+          return null;
+        }
+
+        if (parsedStartYear >= parsedEndYear) {
+          Swal.showValidationMessage("ឆ្នាំចាប់ផ្តើមត្រូវតែតូចជាងឆ្នាំបញ្ចប់");
+          return null;
+        }
+
         return {
           name,
           description,
-          startYear: parseInt(startYear),
-          endYear: parseInt(endYear),
-          departmentId: parseInt(departmentId),
+          startYear: parsedStartYear,
+          endYear: parsedEndYear,
+          departmentId: parseInt(departmentId, 10),
         };
       },
     });
@@ -302,11 +348,24 @@ export const handleUpdate = async (gen) => {
           return null;
         }
 
+        const parsedStartYear = parseInt(startYear, 10);
+        const parsedEndYear = parseInt(endYear, 10);
+
+        if (!Number.isInteger(parsedStartYear) || !Number.isInteger(parsedEndYear)) {
+          Swal.showValidationMessage("សូមបញ្ចូលឆ្នាំឱ្យបានត្រឹមត្រូវ");
+          return null;
+        }
+
+        if (parsedStartYear >= parsedEndYear) {
+          Swal.showValidationMessage("ឆ្នាំចាប់ផ្តើមត្រូវតែតូចជាងឆ្នាំបញ្ចប់");
+          return null;
+        }
+
         return {
           name,
           description: document.getElementById("swal-desc").value,
-          startYear: parseInt(startYear),
-          endYear: parseInt(endYear),
+          startYear: parsedStartYear,
+          endYear: parsedEndYear,
         };
       },
     });

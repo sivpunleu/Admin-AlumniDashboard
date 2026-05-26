@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useEventStore } from '@/stores/eventStore';
+import { EVENT_THUMBNAIL_MAX_SIZE_LABEL, useEventStore } from '@/stores/eventStore';
 import { useCategoryStore } from '@/stores/categoryStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
@@ -15,6 +15,8 @@ const isModalOpen = ref(false);
 const isEditing = ref(false);
 const currentId = ref(null);
 const isSubmitting = ref(false);
+const defaultThumbnailUrl = 'https://via.placeholder.com/100x60?text=Default';
+const thumbnailUploadHint = `អតិបរមា ${EVENT_THUMBNAIL_MAX_SIZE_LABEL}`;
 
 const tableColumns = [
     { key: 'title', label: 'ចំណងជើង' },
@@ -166,9 +168,11 @@ const handleSubmit = async () => {
     }
 };
 
-const handleFileChange = (e, id) => {
-    const file = e.target.files[0];
-    if (file) store.uploadThumbnail(id, file);
+const handleFileChange = async (e, id) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (file) await store.uploadThumbnail(id, file);
+    input.value = '';
 };
 
 const formatDateTime = (value) => {
@@ -244,18 +248,30 @@ const formatDateTime = (value) => {
                 </template>
 
                 <template #cell-thumbnail="{ item }">
-                    <div class="d-flex align-items-center gap-2">
-                        <img :src="item.thumbnail || 'https://via.placeholder.com/100x60'" alt="thumbnail"
+                    <div class="thumbnail-cell">
+                        <img :src="item.thumbnail || defaultThumbnailUrl" alt="thumbnail"
                             class="table-thumbnail rounded-2 border">
-                        <label :for="'file-' + item.id" class="btn btn-sm btn-white shadow-sm" title="ផ្ទុកឡើងរូបភាព">
-                            <i class="bi bi-camera"></i>
-                        </label>
-                        <input type="file" :id="'file-' + item.id" accept="image/*" hidden
-                            @change="handleFileChange($event, item.id)">
-                        <button v-if="item.thumbnail" @click="store.deleteThumbnail(item.id)"
-                            class="btn btn-sm btn-outline-danger" title="លុបរូបភាព">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
+                        <div class="thumbnail-controls">
+                            <div class="thumbnail-buttons">
+                                <label
+                                    :for="'file-' + item.id"
+                                    class="btn btn-sm btn-white shadow-sm"
+                                    :title="`បង្ហោះរូបភាពតំណាង (${thumbnailUploadHint})`"
+                                    :aria-label="`បង្ហោះរូបភាពតំណាង (${thumbnailUploadHint})`"
+                                >
+                                    <i class="bi bi-camera"></i>
+                                </label>
+                                <input type="file" :id="'file-' + item.id" accept="image/*" hidden
+                                    @change="handleFileChange($event, item.id)">
+                                <button v-if="item.thumbnail" @click="store.deleteThumbnail(item.id)"
+                                    class="btn btn-sm btn-outline-danger"
+                                    title="លុបរូបភាពតំណាង ហើយប្រើរូបភាពលំនាំដើមវិញ"
+                                    aria-label="លុបរូបភាពតំណាង ហើយប្រើរូបភាពលំនាំដើមវិញ">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <small class="thumbnail-hint">{{ thumbnailUploadHint }}</small>
+                        </div>
                     </div>
                 </template>
 
@@ -507,7 +523,7 @@ const formatDateTime = (value) => {
 
 .btn-white {
     background: white;
-    border: none;
+    border: 1px solid #e2e8f0;
 }
 
 .object-fit-cover {
@@ -518,6 +534,31 @@ const formatDateTime = (value) => {
     width: 80px;
     height: 48px;
     object-fit: cover;
+}
+
+.thumbnail-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 190px;
+}
+
+.thumbnail-controls {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.thumbnail-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.thumbnail-hint {
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 @media (max-width: 768px) {

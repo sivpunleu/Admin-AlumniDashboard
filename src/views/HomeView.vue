@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import api from '@/API/api';
 import logger from '@/utils/logger';
 import { fetchPaginatedCollection } from '@/utils/paginatedCollection';
+import * as alumniStore from '@/stores/managerAlumni';
 
 const router = useRouter();
 
@@ -25,10 +26,10 @@ const isLoading = ref(true);
 const PRIMARY_COLOR = '#216477';
 
 const quickActions = [
-  { label: 'គ្រប់គ្រងអតីតនិស្សិត', icon: 'bi-people-fill', path: '/manager-alumni', tone: 'primary' },
-  { label: 'ព្រឹត្តិការណ៍', icon: 'bi-calendar-event-fill', path: '/event', tone: 'info' },
-  { label: 'ការចូលរួម', icon: 'bi-person-check-fill', path: '/participant', tone: 'success' },
-  { label: 'ដេប៉ាតឺម៉ង់', icon: 'bi-diagram-3-fill', path: '/department', tone: 'warning' }
+  { label: 'គ្រប់គ្រងអតីតនិស្សិត', icon: 'bi-people-fill', route: { name: 'manager-alumni' }, tone: 'primary' },
+  { label: 'ព្រឹត្តិការណ៍', icon: 'bi-calendar-event-fill', route: { name: 'event' }, tone: 'info' },
+  { label: 'ការចូលរួម', icon: 'bi-person-check-fill', route: { name: 'participant' }, tone: 'success' },
+  { label: 'ដេប៉ាតឺម៉ង់', icon: 'bi-diagram-3-fill', route: { name: 'department' }, tone: 'warning' }
 ];
 const recentSkeletonRows = Array.from({ length: 5 }, (_, index) => index);
 const upcomingSkeletonRows = Array.from({ length: 3 }, (_, index) => index);
@@ -105,6 +106,21 @@ const getTimestamp = (value) => {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 };
 
+const goToQuickAction = async (action) => {
+  try {
+    await router.push(action.route);
+  } catch (error) {
+    logger.error('Quick action navigation failed:', action.route, error);
+  }
+};
+
+const goToPendingApprovals = () => router.push({
+  name: 'manager-alumni',
+  query: { status: 'PENDING' },
+});
+
+const goToAlumniRecords = () => router.push({ name: 'manager-alumni' });
+
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'approved';
   if (status === 'DEACTIVATED') return 'deactivated';
@@ -129,6 +145,20 @@ const getUserStatus = (user) => {
 
   if (status === 'REJECT' || status === 'DEACTIVATED') return 'DEACTIVATED';
   return status;
+};
+
+const canApproveUser = (user) => getUserStatus(user) === 'PENDING' && Boolean(user?.id);
+
+const handleApproveFromDashboard = async (user) => {
+  if (!user?.id) return;
+  await alumniStore.handleApproveUser(user.id);
+  await fetchDashboardData();
+};
+
+const handleChangeStatusFromDashboard = async (user) => {
+  if (!user?.id) return;
+  await alumniStore.handleChangeStatus(user.id, getUserStatus(user));
+  await fetchDashboardData();
 };
 
 const buildActivityLog = (users = [], events = []) => {
@@ -252,9 +282,9 @@ onMounted(() => {
 
     <!-- ផ្នែកកាតស្ថិតិ (Stats Cards Section) -->
     <div class="quick-actions-grid row g-3">
-      <div v-for="action in quickActions" :key="action.path" class="col-12 col-sm-6 col-xl-3">
+      <div v-for="action in quickActions" :key="action.route.name" class="col-12 col-sm-6 col-xl-3">
         <button type="button" class="quick-action w-100" :class="`quick-action--${action.tone}`"
-          @click="router.push(action.path)">
+          @click="goToQuickAction(action)">
           <span class="quick-action__icon">
             <i :class="['bi', action.icon]"></i>
           </span>
@@ -337,7 +367,7 @@ onMounted(() => {
                 </template>
               </p>
             </div>
-            <button @click="router.push('/manager-alumni')" class="btn dashboard-link-btn btn-sm">
+            <button @click="goToPendingApprovals" class="btn dashboard-link-btn btn-sm">
               ពិនិត្យទាំងអស់
             </button>
           </div>
@@ -365,7 +395,7 @@ onMounted(() => {
 
             <div v-else key="approval-list" class="approval-list">
               <button v-for="user in pendingApprovals" :key="user.id || getUserEmail(user)" type="button"
-                class="approval-item" @click="router.push('/manager-alumni')">
+                class="approval-item" @click="goToPendingApprovals">
                 <span class="approval-avatar" :style="{ backgroundColor: PRIMARY_COLOR }">
                   {{ getUserInitial(user) }}
                 </span>
@@ -442,7 +472,7 @@ onMounted(() => {
         <div class="card dashboard-panel h-100">
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0">ការចុះឈ្មោះថ្មីៗ</h5>
-            <button @click="router.push('/manager-alumni')"
+            <button @click="goToAlumniRecords"
               class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
           </div>
 
@@ -488,7 +518,16 @@ onMounted(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="user in recentRegistrations" :key="user.id">
+                  <tr
+                    v-for="user in recentRegistrations"
+                    :key="user.id || getUserEmail(user)"
+                    class="dashboard-clickable-row"
+                    role="button"
+                    tabindex="0"
+                    @click="goToAlumniRecords"
+                    @keydown.enter.prevent="goToAlumniRecords"
+                    @keydown.space.prevent="goToAlumniRecords"
+                  >
                     <td>
                       <div class="d-flex align-items-center">
                         <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
@@ -509,11 +548,35 @@ onMounted(() => {
                         <span class="badge-status__dot"></span>{{ getStatusLabel(getUserStatus(user)) }}
                       </span>
                     </td>
-                    <td class="text-end">
-                      <button type="button" class="table-action-btn" aria-label="មើលព័ត៌មានលម្អិត"
-                        @click="router.push('/manager-alumni')">
-                        <i class="bi bi-three-dots"></i>
-                      </button>
+                    <td class="text-end" @click.stop>
+                      <div class="dropdown dashboard-row-menu">
+                        <button
+                          type="button"
+                          class="table-action-btn"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          :aria-label="`បើកម៉ឺនុយសម្រាប់ ${getUserDisplayName(user)}`"
+                        >
+                          <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end dashboard-action-menu">
+                          <li>
+                            <button type="button" class="dropdown-item" @click="goToAlumniRecords">
+                              <i class="bi bi-list-ul me-2"></i>មើលក្នុងបញ្ជី
+                            </button>
+                          </li>
+                          <li v-if="canApproveUser(user)">
+                            <button type="button" class="dropdown-item text-success" @click="handleApproveFromDashboard(user)">
+                              <i class="bi bi-check2-circle me-2"></i>អនុម័ត
+                            </button>
+                          </li>
+                          <li>
+                            <button type="button" class="dropdown-item" @click="handleChangeStatusFromDashboard(user)">
+                              <i class="bi bi-pencil-square me-2"></i>ប្តូរស្ថានភាព
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -1152,6 +1215,7 @@ onMounted(() => {
   content: "";
   position: absolute;
   inset: 0;
+  pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(33, 100, 119, 0.08), transparent);
   opacity: 0;
   transform: translateX(-100%);
@@ -1524,6 +1588,19 @@ button.approval-item:focus-visible .approval-action {
   animation: dashboardFieldIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.dashboard-clickable-row {
+  cursor: pointer;
+}
+
+.dashboard-clickable-row:focus-visible {
+  outline: 0;
+}
+
+.dashboard-clickable-row:focus-visible > * {
+  background-color: var(--dashboard-soft);
+  box-shadow: inset 0 0 0 2px var(--dashboard-ring);
+}
+
 .table tbody tr:nth-child(2) {
   animation-delay: 0.04s;
 }
@@ -1593,6 +1670,34 @@ button.approval-item:focus-visible .approval-action {
   color: var(--dashboard-primary);
   transform: rotate(90deg);
   outline: 0;
+}
+
+.dashboard-row-menu {
+  display: inline-flex;
+  position: relative;
+}
+
+.dashboard-action-menu {
+  min-width: 184px;
+  padding: 0.35rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+  z-index: 20;
+}
+
+.dashboard-action-menu .dropdown-item {
+  border-radius: 6px;
+  color: var(--dashboard-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.48rem 0.65rem;
+}
+
+.dashboard-action-menu .dropdown-item:hover,
+.dashboard-action-menu .dropdown-item:focus {
+  background: var(--dashboard-soft);
+  color: var(--dashboard-primary);
 }
 
 .upcoming-list {

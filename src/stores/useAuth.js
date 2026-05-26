@@ -65,6 +65,62 @@ const readFirstError = (value) => {
   return value;
 };
 
+const translateAuthMessage = (message, fallbackMessage = "") => {
+  const text = String(message || "").trim();
+  const lower = text.toLowerCase();
+
+  if (!text) return fallbackMessage;
+
+  if (
+    lower.includes("invalid email or password") ||
+    lower.includes("invalid credentials") ||
+    lower.includes("incorrect email") ||
+    lower.includes("incorrect password") ||
+    lower.includes("wrong password") ||
+    lower.includes("authentication failed")
+  ) {
+    return "អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("unauthorized") || lower.includes("unauthenticated")) {
+    return "អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("email") && lower.includes("required")) {
+    return "សូមបញ្ចូលអ៊ីមែល។";
+  }
+
+  if (lower.includes("email") && lower.includes("invalid")) {
+    return "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ។";
+  }
+
+  if (lower.includes("password") && lower.includes("required")) {
+    return "សូមបញ្ចូលពាក្យសម្ងាត់។";
+  }
+
+  if (lower.includes("password") && (lower.includes("min") || lower.includes("least"))) {
+    return "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 8 តួអក្សរ។";
+  }
+
+  if (lower.includes("not verified") || lower.includes("verify") || lower.includes("otp")) {
+    return "គណនីមិនទាន់បានផ្ទៀងផ្ទាត់។ សូមផ្ទៀងផ្ទាត់គណនីជាមុនសិន។";
+  }
+
+  if (lower.includes("token") && (lower.includes("invalid") || lower.includes("expired"))) {
+    return "តំណកំណត់ពាក្យសម្ងាត់ឡើងវិញមិនត្រឹមត្រូវ ឬផុតកំណត់។";
+  }
+
+  if (lower.includes("email") && (lower.includes("not found") || lower.includes("does not exist"))) {
+    return "រកមិនឃើញគណនីដែលភ្ជាប់ជាមួយអ៊ីមែលនេះទេ។";
+  }
+
+  if (lower.includes("email") && lower.includes("already") && lower.includes("use")) {
+    return "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
+  }
+
+  return text || fallbackMessage;
+};
+
 const getErrorMessage = (error, fallbackMessage) => {
   const responseMessage =
     readFirstError(error.response?.data?.message) ||
@@ -73,15 +129,15 @@ const getErrorMessage = (error, fallbackMessage) => {
     readFirstError(error.response?.data?.errors) ||
     (typeof error.response?.data === "string" ? error.response.data : "");
 
-  if (responseMessage) return String(responseMessage);
+  if (responseMessage) return translateAuthMessage(responseMessage, fallbackMessage);
   if (error.response?.status && fallbackMessage) return fallbackMessage;
 
-  return error.message || fallbackMessage;
+  return translateAuthMessage(error.message, fallbackMessage);
 };
 
 const normalizeErrorList = (value, fallbackMessage = "") => {
   const message = readFirstError(value) || fallbackMessage;
-  return message ? [String(message)] : [];
+  return message ? [translateAuthMessage(message, fallbackMessage)] : [];
 };
 
 const normalizeFieldErrors = (responseErrors = {}) => {

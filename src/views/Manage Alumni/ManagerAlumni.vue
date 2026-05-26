@@ -8,6 +8,7 @@ import * as store from "../../stores/managerAlumni";
 import { useDepartmentStore } from "@/stores/departmentStore";
 import * as generationStore from "@/stores/generationStore";
 import { resolveApiAssetUrl } from "@/config/apiBaseUrl";
+import { useRoute, useRouter } from "vue-router";
 
 const getStatusClass = (status) => {
   if (status === 'APPROVE') return 'bg-success-subtle text-success border-success-subtle';
@@ -108,6 +109,8 @@ const handleAvatarLoad = (event) => {
 };
 
 const departmentStore = useDepartmentStore();
+const route = useRoute();
+const router = useRouter();
 const showAccountTypeModal = store.showAccountTypeModal;
 const showRegisterModal = store.showRegisterModal;
 const showAdminRegisterModal = store.showAdminRegisterModal;
@@ -120,6 +123,25 @@ const showConfirmPassword = ref(false);
 const showAdminPassword = ref(false);
 const showAdminConfirmPassword = ref(false);
 const INITIAL_PLACEHOLDER_MIN_MS = 350;
+const VALID_STATUS_TABS = ["ALL", "PENDING", "APPROVE", "REJECT"];
+
+const getRouteStatusTab = () => {
+  const rawStatus = Array.isArray(route.query.status)
+    ? route.query.status[0]
+    : route.query.status;
+  const status = String(rawStatus || "").trim().toUpperCase();
+
+  return VALID_STATUS_TABS.includes(status) ? status : "ALL";
+};
+
+const syncStatusTabFromRoute = () => {
+  const nextTab = getRouteStatusTab();
+  if (store.activeTab.value !== nextTab) {
+    store.activeTab.value = nextTab;
+  }
+};
+
+syncStatusTabFromRoute();
 
 const stats = computed(() => {
   const result = {
@@ -172,6 +194,10 @@ onMounted(async () => {
   }
 });
 
+watch(() => route.query.status, () => {
+  syncStatusTabFromRoute();
+});
+
 watch([() => store.searchQuery.value, () => store.activeTab.value], ([, activeTab], [, previousActiveTab]) => {
   store.currentPage.value = 1;
   clearTimeout(searchDebounceTimer);
@@ -219,6 +245,15 @@ const activeTabModel = computed({
   get: () => store.activeTab.value,
   set: (value) => {
     store.activeTab.value = value;
+    const query = { ...route.query };
+
+    if (value === "ALL") {
+      delete query.status;
+    } else {
+      query.status = value;
+    }
+
+    router.replace({ query }).catch(() => {});
   },
 });
 
@@ -499,7 +534,7 @@ const tableColumns = [
               variant="light" size="sm">
               <i class="bi bi-check-lg text-success me-1"></i> យល់ព្រម
             </BaseButton>
-            <BaseButton @click="store.handleChangeStatus(item.id)" variant="light" size="sm" shape="sharp"
+            <BaseButton @click="store.handleChangeStatus(item.id, normalizeStatus(item))" variant="light" size="sm" shape="sharp"
               title="Change User Status" aria-label="Change User Status">
               <i class="bi bi-pencil-square text-primary"></i>
             </BaseButton>
