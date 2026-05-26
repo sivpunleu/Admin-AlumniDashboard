@@ -619,7 +619,7 @@ const tableColumns = [
           <i class="bi bi-mortarboard-fill"></i>
         </span>
         <span>
-          <span class="account-type-btn__title">Alumni Register</span>
+          <span class="account-type-btn__title">ចុះឈ្មោះអតីតនិស្សិត</span>
           <span class="account-type-btn__text">បង្កើតគណនីអតីតនិស្សិត</span>
         </span>
       </button>
@@ -628,7 +628,7 @@ const tableColumns = [
           <i class="bi bi-shield-lock-fill"></i>
         </span>
         <span>
-          <span class="account-type-btn__title">Admin Register</span>
+          <span class="account-type-btn__title">ចុះឈ្មោះអ្នកគ្រប់គ្រង</span>
           <span class="account-type-btn__text">បង្កើតគណនីអ្នកគ្រប់គ្រង</span>
         </span>
       </button>
@@ -639,12 +639,17 @@ const tableColumns = [
   <!--alumni Register Modal using BaseModal -->
   <BaseModal v-model="showRegisterModal" title="ចុះឈ្មោះអតីតនិស្សិត" size="lg" hideDefaultFooter>
     <form class="app-form register-modal-form" novalidate autocomplete="off" @submit.prevent="store.handleRegisterAlumni">
+      <div v-if="store.registerErrors.value.form" class="inline-form-error" role="alert">
+        {{ store.registerErrors.value.form }}
+      </div>
+
       <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
         <input v-model="store.registerForm.value.fullname" type="text" class="form-control"
           autocomplete="off"
           :class="{ 'is-invalid': store.registerErrors.value.fullname }" placeholder="បញ្ចូលឈ្មោះពេញលេញ" required
-          @input="delete store.registerErrors.value.fullname" />
+          @input="store.validateRegisterField('fullname')"
+          @blur="store.validateRegisterField('fullname')" />
         <div v-if="store.registerErrors.value.fullname" class="invalid-feedback">
           {{ store.registerErrors.value.fullname }}
         </div>
@@ -655,7 +660,8 @@ const tableColumns = [
         <input v-model="store.registerForm.value.email" type="email" class="form-control"
           autocomplete="off"
           :class="{ 'is-invalid': store.registerErrors.value.email }" placeholder="បញ្ចូលអ៊ីមែល" required
-          @input="delete store.registerErrors.value.email" />
+          @input="store.validateRegisterField('email')"
+          @blur="store.validateRegisterField('email')" />
         <div v-if="store.registerErrors.value.email" class="invalid-feedback">
           {{ store.registerErrors.value.email }}
         </div>
@@ -665,7 +671,8 @@ const tableColumns = [
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
         <input v-model="store.registerForm.value.phone" type="tel" class="form-control"
           autocomplete="off" :class="{ 'is-invalid': store.registerErrors.value.phone }"
-          @input="delete store.registerErrors.value.phone"
+          @input="store.validateRegisterField('phone')"
+          @blur="store.validateRegisterField('phone')"
           placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
         <div v-if="store.registerErrors.value.phone" class="invalid-feedback">
           {{ store.registerErrors.value.phone }}
@@ -678,9 +685,10 @@ const tableColumns = [
           <input v-model="store.registerForm.value.password" :type="showPassword ? 'text' : 'password'"
             class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.registerErrors.value.password }" placeholder="បញ្ចូលពាក្យសម្ងាត់" required
-            @input="delete store.registerErrors.value.password" />
-          <button type="button" class="password-field__toggle" :title="showPassword ? 'Hide password' : 'Show password'"
-            :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword">
+            @input="store.validateRegisterField('password')"
+            @blur="store.validateRegisterField('password')" />
+          <button type="button" class="password-field__toggle" :title="showPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
+            :aria-label="showPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'" @click="showPassword = !showPassword">
             <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
         </div>
@@ -696,10 +704,11 @@ const tableColumns = [
             class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.registerErrors.value.confirmPassword }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
-            @input="delete store.registerErrors.value.confirmPassword" />
+            @input="store.validateRegisterField('confirmPassword')"
+            @blur="store.validateRegisterField('confirmPassword')" />
           <button type="button" class="password-field__toggle"
-            :title="showConfirmPassword ? 'Hide password' : 'Show password'"
-            :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            :title="showConfirmPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
+            :aria-label="showConfirmPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
             @click="showConfirmPassword = !showConfirmPassword">
             <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
@@ -712,7 +721,7 @@ const tableColumns = [
         <label class="form-label fw-bold small">ជំនាន់ </label>
         <select v-model="store.registerForm.value.generationId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
-          @change="delete store.registerErrors.value.generationId">
+          @change="store.validateRegisterField('generationId')">
           <option value="" disabled>ជ្រើសរើសជំនាន់</option>
           <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id">
             {{ generation.name }}
@@ -726,7 +735,7 @@ const tableColumns = [
         <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ </label>
         <select v-model="store.registerForm.value.departmentId" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
-          @change="delete store.registerErrors.value.departmentId">
+          @change="store.validateRegisterField('departmentId')">
           <option value="" disabled>ជ្រើសរើសដេប៉ាតឺម៉ង់</option>
           <option v-for="department in filteredDepartments" :key="department.id" :value="department.id">
             {{ department.name }}
@@ -744,10 +753,8 @@ const tableColumns = [
         <label class="form-label fw-bold small">ស្ថានភាព *</label>
         <select v-model="store.registerForm.value.status" class="form-control"
           :class="{ 'is-invalid': store.registerErrors.value.status }" required
-          @change="delete store.registerErrors.value.status">
-          <option value="PENDING">កំពុងរង់ចាំ</option>
+          @change="store.validateRegisterField('status')">
           <option value="APPROVE">យល់ព្រម</option>
-          <option value="REJECT">បានផ្អាកដំណើរការ</option>
         </select>
         <div v-if="store.registerErrors.value.status" class="invalid-feedback">
           {{ store.registerErrors.value.status }}
@@ -755,9 +762,16 @@ const tableColumns = [
       </div>
 
       <div class="form-field--full">
-        <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
+        <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន *</label>
         <input v-model="store.registerForm.value.currentJob" type="text" class="form-control"
-          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន" />
+          :class="{ 'is-invalid': store.registerErrors.value.currentJob }"
+          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន"
+          required
+          @input="store.validateRegisterField('currentJob')"
+          @blur="store.validateRegisterField('currentJob')" />
+        <div v-if="store.registerErrors.value.currentJob" class="invalid-feedback">
+          {{ store.registerErrors.value.currentJob }}
+        </div>
       </div>
 
       <div class="form-field--full">
@@ -780,12 +794,17 @@ const tableColumns = [
   <!-- admin register modal uaing BaseModal -->
   <BaseModal v-model="showAdminRegisterModal" title="ចុះឈ្មោះអ្នកគ្រប់គ្រង" size="lg" hideDefaultFooter>
     <form class="app-form register-modal-form" novalidate autocomplete="off" @submit.prevent="store.handleRegisterAdmin">
+      <div v-if="store.adminRegisterErrors.value.form" class="inline-form-error" role="alert">
+        {{ store.adminRegisterErrors.value.form }}
+      </div>
+
       <div>
         <label class="form-label fw-bold small">ឈ្មោះពេញលេញ *</label>
         <input v-model="store.adminRegisterForm.value.fullname" type="text" class="form-control"
           autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.fullname }"
           placeholder="បញ្ចូលឈ្មោះពេញលេញ" required
-          @input="delete store.adminRegisterErrors.value.fullname" />
+          @input="store.validateAdminRegisterField('fullname')"
+          @blur="store.validateAdminRegisterField('fullname')" />
         <div v-if="store.adminRegisterErrors.value.fullname" class="invalid-feedback">
           {{ store.adminRegisterErrors.value.fullname }}
         </div>
@@ -796,7 +815,8 @@ const tableColumns = [
         <input v-model="store.adminRegisterForm.value.email" type="email" class="form-control"
           autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.email }"
           placeholder="បញ្ចូលអ៊ីមែល" required
-          @input="delete store.adminRegisterErrors.value.email" />
+          @input="store.validateAdminRegisterField('email')"
+          @blur="store.validateAdminRegisterField('email')" />
         <div v-if="store.adminRegisterErrors.value.email" class="invalid-feedback">
           {{ store.adminRegisterErrors.value.email }}
         </div>
@@ -806,7 +826,9 @@ const tableColumns = [
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
         <input v-model="store.adminRegisterForm.value.phone" type="tel" class="form-control"
           autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.phone }"
-          placeholder="បញ្ចូលលេខទូរស័ព្ទ" @input="delete store.adminRegisterErrors.value.phone" />
+          placeholder="បញ្ចូលលេខទូរស័ព្ទ"
+          @input="store.validateAdminRegisterField('phone')"
+          @blur="store.validateAdminRegisterField('phone')" />
         <div v-if="store.adminRegisterErrors.value.phone" class="invalid-feedback">
           {{ store.adminRegisterErrors.value.phone }}
         </div>
@@ -819,10 +841,11 @@ const tableColumns = [
             class="form-control password-field__input" autocomplete="new-password" minlength="8"
             :class="{ 'is-invalid': store.adminRegisterErrors.value.password }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់" required
-            @input="delete store.adminRegisterErrors.value.password" />
+            @input="store.validateAdminRegisterField('password')"
+            @blur="store.validateAdminRegisterField('password')" />
           <button type="button" class="password-field__toggle"
-            :title="showAdminPassword ? 'Hide password' : 'Show password'"
-            :aria-label="showAdminPassword ? 'Hide password' : 'Show password'"
+            :title="showAdminPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
+            :aria-label="showAdminPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
             @click="showAdminPassword = !showAdminPassword">
             <i :class="showAdminPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
@@ -839,10 +862,11 @@ const tableColumns = [
             :type="showAdminConfirmPassword ? 'text' : 'password'" class="form-control password-field__input"
             autocomplete="new-password" minlength="8" :class="{ 'is-invalid': store.adminRegisterErrors.value.confirmPassword }"
             placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" required
-            @input="delete store.adminRegisterErrors.value.confirmPassword" />
+            @input="store.validateAdminRegisterField('confirmPassword')"
+            @blur="store.validateAdminRegisterField('confirmPassword')" />
           <button type="button" class="password-field__toggle"
-            :title="showAdminConfirmPassword ? 'Hide password' : 'Show password'"
-            :aria-label="showAdminConfirmPassword ? 'Hide password' : 'Show password'"
+            :title="showAdminConfirmPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
+            :aria-label="showAdminConfirmPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
             @click="showAdminConfirmPassword = !showAdminConfirmPassword">
             <i :class="showAdminConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
           </button>
@@ -856,10 +880,8 @@ const tableColumns = [
         <label class="form-label fw-bold small">ស្ថានភាព *</label>
         <select v-model="store.adminRegisterForm.value.status" class="form-control"
           :class="{ 'is-invalid': store.adminRegisterErrors.value.status }" required
-          @change="delete store.adminRegisterErrors.value.status">
-          <option value="PENDING">កំពុងរង់ចាំ</option>
+          @change="store.validateAdminRegisterField('status')">
           <option value="APPROVE">យល់ព្រម</option>
-          <option value="REJECT">បានផ្អាកដំណើរការ</option>
         </select>
         <div v-if="store.adminRegisterErrors.value.status" class="invalid-feedback">
           {{ store.adminRegisterErrors.value.status }}
@@ -867,9 +889,16 @@ const tableColumns = [
       </div>
 
       <div class="form-field--full">
-        <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន</label>
+        <label class="form-label fw-bold small">មុខរបរបច្ចុប្បន្ន *</label>
         <input v-model="store.adminRegisterForm.value.currentJob" type="text" class="form-control"
-          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន" />
+          :class="{ 'is-invalid': store.adminRegisterErrors.value.currentJob }"
+          placeholder="បញ្ចូលមុខរបរបច្ចុប្បន្ន"
+          required
+          @input="store.validateAdminRegisterField('currentJob')"
+          @blur="store.validateAdminRegisterField('currentJob')" />
+        <div v-if="store.adminRegisterErrors.value.currentJob" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.currentJob }}
+        </div>
       </div>
 
       <div class="form-field--full">
@@ -884,7 +913,7 @@ const tableColumns = [
         </BaseButton>
         <BaseButton type="submit" variant="primary" :disabled="store.isLoading.value" :loading="store.isLoading.value"
           class="flex-grow-1">
-          បង្កើត Admin
+          បង្កើតអ្នកគ្រប់គ្រង
         </BaseButton>
       </div>
     </form>
@@ -1261,8 +1290,28 @@ const tableColumns = [
 }
 
 .register-modal-form .form-field--full,
-.register-modal-form .modal-actions {
+.register-modal-form .modal-actions,
+.register-modal-form .inline-form-error {
   grid-column: 1 / -1;
+}
+
+.register-modal-form .invalid-feedback {
+  display: block;
+  margin-top: 0.35rem;
+  color: #dc3545;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.inline-form-error {
+  border: 1px solid #f5c2c7;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #b42318;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 0.75rem 0.85rem;
 }
 
 @media (max-width: 768px) {

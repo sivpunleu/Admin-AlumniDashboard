@@ -65,11 +65,29 @@ const readFirstError = (value) => {
   return value;
 };
 
+const collectErrorMessages = (value) => {
+  if (Array.isArray(value)) return value.flatMap(collectErrorMessages);
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
+};
+
+const isGenericAuthMessage = (message = "") =>
+  ["invalid input", "validation error", "bad request", "unprocessable entity"]
+    .includes(String(message).trim().toLowerCase());
+
 const translateAuthMessage = (message, fallbackMessage = "") => {
   const text = String(message || "").trim();
   const lower = text.toLowerCase();
 
   if (!text) return fallbackMessage;
+
+  if (lower === "invalid input") {
+    return (
+      fallbackMessage || "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។"
+    );
+  }
 
   if (
     lower.includes("invalid email or password") ||
@@ -98,23 +116,60 @@ const translateAuthMessage = (message, fallbackMessage = "") => {
     return "សូមបញ្ចូលពាក្យសម្ងាត់។";
   }
 
-  if (lower.includes("password") && (lower.includes("min") || lower.includes("least"))) {
+  if (
+    lower.includes("password") &&
+    (lower.includes("invalid") ||
+      lower.includes("incorrect") ||
+      lower.includes("wrong"))
+  ) {
+    return "ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។";
+  }
+
+  if (
+    lower.includes("password") &&
+    (lower.includes("uppercase") ||
+      lower.includes("lowercase") ||
+      lower.includes("number") ||
+      lower.includes("digit") ||
+      lower.includes("special"))
+  ) {
+    return "ពាក្យសម្ងាត់ត្រូវមានអក្សរធំ អក្សរតូច លេខ និងតួអក្សរពិសេសយ៉ាងតិចមួយ។";
+  }
+
+  if (
+    lower.includes("password") &&
+    (lower.includes("min") || lower.includes("least") || lower.includes("length"))
+  ) {
     return "ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 8 តួអក្សរ។";
   }
 
-  if (lower.includes("not verified") || lower.includes("verify") || lower.includes("otp")) {
+  if (
+    lower.includes("not verified") ||
+    lower.includes("verify") ||
+    lower.includes("otp")
+  ) {
     return "គណនីមិនទាន់បានផ្ទៀងផ្ទាត់។ សូមផ្ទៀងផ្ទាត់គណនីជាមុនសិន។";
   }
 
-  if (lower.includes("token") && (lower.includes("invalid") || lower.includes("expired"))) {
+  if (
+    lower.includes("token") &&
+    (lower.includes("invalid") || lower.includes("expired"))
+  ) {
     return "តំណកំណត់ពាក្យសម្ងាត់ឡើងវិញមិនត្រឹមត្រូវ ឬផុតកំណត់។";
   }
 
-  if (lower.includes("email") && (lower.includes("not found") || lower.includes("does not exist"))) {
+  if (
+    lower.includes("email") &&
+    (lower.includes("not found") || lower.includes("does not exist"))
+  ) {
     return "រកមិនឃើញគណនីដែលភ្ជាប់ជាមួយអ៊ីមែលនេះទេ។";
   }
 
-  if (lower.includes("email") && lower.includes("already") && lower.includes("use")) {
+  if (
+    lower.includes("email") &&
+    lower.includes("already") &&
+    lower.includes("use")
+  ) {
     return "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
   }
 
@@ -122,14 +177,35 @@ const translateAuthMessage = (message, fallbackMessage = "") => {
 };
 
 const getErrorMessage = (error, fallbackMessage) => {
-  const responseMessage =
-    readFirstError(error.response?.data?.message) ||
-    readFirstError(error.response?.data?.error) ||
-    readFirstError(error.response?.data?.details) ||
-    readFirstError(error.response?.data?.errors) ||
-    (typeof error.response?.data === "string" ? error.response.data : "");
+  const responseData = error.response?.data;
+  const responseMessages = [
+    readFirstError(responseData?.details),
+    readFirstError(responseData?.errors),
+    readFirstError(responseData?.error),
+    readFirstError(responseData?.data),
+    readFirstError(responseData?.message),
+    typeof responseData === "string" ? responseData : "",
+    ...collectErrorMessages(responseData),
+  ]
+    .filter(Boolean)
+    .map(String);
 
-  if (responseMessage) return translateAuthMessage(responseMessage, fallbackMessage);
+  const specificMessage = responseMessages.find(
+    (message) => !isGenericAuthMessage(message),
+  );
+
+  if (specificMessage) {
+    return translateAuthMessage(specificMessage, fallbackMessage);
+  }
+
+  if (fallbackMessage && responseMessages.some(isGenericAuthMessage)) {
+    return fallbackMessage;
+  }
+
+  if (responseMessages.length) {
+    return translateAuthMessage(responseMessages[0], fallbackMessage);
+  }
+
   if (error.response?.status && fallbackMessage) return fallbackMessage;
 
   return translateAuthMessage(error.message, fallbackMessage);
@@ -154,10 +230,9 @@ const createAuthError = (error, fallbackMessage) => {
   const responseDetails = readFirstError(error.response?.data?.details);
   const responseErrors = error.response?.data?.errors || {};
   const fieldErrors = Object.fromEntries(
-    Object.entries(normalizeFieldErrors(responseErrors)).map(([field, value]) => [
-      field,
-      readFirstError(value),
-    ]),
+    Object.entries(normalizeFieldErrors(responseErrors)).map(
+      ([field, value]) => [field, readFirstError(value)],
+    ),
   );
 
   return {
@@ -170,9 +245,34 @@ const createAuthError = (error, fallbackMessage) => {
   };
 };
 
+const getAuthErrorSearchText = (authError) => [
+  authError.details,
+  authError.message,
+  ...collectErrorMessages(authError.originalError?.response?.data),
+]
+  .filter(Boolean)
+  .join(" ")
+  .toLowerCase();
+
 const isEmailAlreadyInUseError = (authError) => {
-  const detail = String(authError.details || authError.message || "").toLowerCase();
-  return detail.includes("email") && detail.includes("already") && detail.includes("use");
+  const detail = getAuthErrorSearchText(authError);
+  return (
+    detail.includes("email") &&
+    detail.includes("already") &&
+    detail.includes("use")
+  );
+};
+
+const isInvalidPasswordError = (authError) => {
+  const detail = getAuthErrorSearchText(authError);
+
+  return (
+    (detail.includes("password") &&
+      (detail.includes("invalid") ||
+        detail.includes("incorrect") ||
+        detail.includes("wrong"))) ||
+    detail.includes("ពាក្យសម្ងាត់មិនត្រឹមត្រូវ")
+  );
 };
 
 const extractResetToken = (responseData) => {
@@ -185,14 +285,14 @@ const extractAuthToken = (responseData) => {
 
   return normalizeToken(
     payload.token ||
-    payload.access_token ||
-    payload.accessToken ||
-    payload.auth?.token ||
-    payload.auth?.access_token ||
-    payload.auth?.accessToken ||
-    responseData?.token ||
-    responseData?.access_token ||
-    responseData?.accessToken,
+      payload.access_token ||
+      payload.accessToken ||
+      payload.auth?.token ||
+      payload.auth?.access_token ||
+      payload.auth?.accessToken ||
+      responseData?.token ||
+      responseData?.access_token ||
+      responseData?.accessToken,
   );
 };
 
@@ -300,9 +400,9 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (!userToken) throw new Error("មិនអាចរកឃើញ Token ពីម៉ាស៊ីនមេឡើយ");
 
-
       if (!checkIsAdmin(userData)) {
-        const adminOnlyMessage = "គណនីនេះសម្រាប់តែ Admin ទេ។ សូមប្រើគណនី Admin ដើម្បីចូល។";
+        const adminOnlyMessage =
+          "គណនីនេះសម្រាប់តែ Admin ទេ។ សូមប្រើគណនី Admin ដើម្បីចូល។";
         errors.value = { general: [adminOnlyMessage] };
 
         await swal.fire({
@@ -316,7 +416,6 @@ export const useAuthStore = defineStore("auth", () => {
         adminError.isHandled = true;
         throw adminError;
       }
-
 
       token.value = userToken;
       user.value = userData;
@@ -440,12 +539,22 @@ export const useAuthStore = defineStore("auth", () => {
 
       return response?.data || {};
     } catch (error) {
-      const authError = createAuthError(error, "មិនអាចផ្ញើសំណើផ្លាស់ប្តូរអ៊ីមែលបានទេ។");
+      const authError = createAuthError(
+        error,
+        "មិនអាចផ្ញើសំណើផ្លាស់ប្តូរអ៊ីមែលបានទេ។",
+      );
 
       if (isEmailAlreadyInUseError(authError)) {
-        const message = "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
+        const message =
+          "អ៊ីមែលនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើអ៊ីមែលផ្សេង។";
         authError.message = message;
         authError.fieldErrors.newEmail = message;
+      }
+
+      if (isInvalidPasswordError(authError)) {
+        const message = "ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។";
+        authError.message = message;
+        authError.fieldErrors.password = message;
       }
 
       throw authError;

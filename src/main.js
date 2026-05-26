@@ -36,6 +36,26 @@ const isPublicAuthRequest = (url = "") => [
   "/otp/verify",
 ].some((endpoint) => String(url).includes(endpoint));
 
+const collectResponseMessages = (value) => {
+  if (Array.isArray(value)) return value.flatMap(collectResponseMessages);
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectResponseMessages);
+  }
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
+};
+
+const isChangeEmailInvalidPassword = (url = "", responseData) => {
+  if (!String(url).includes("auth/admin/change-email")) return false;
+
+  const message = collectResponseMessages(responseData).join(" ").toLowerCase();
+  return (
+    message.includes("password") &&
+    (message.includes("invalid") ||
+      message.includes("incorrect") ||
+      message.includes("wrong"))
+  );
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -46,7 +66,8 @@ api.interceptors.response.use(
       status === 401 &&
       hasBearerToken(config.headers) &&
       !auth.sessionRefreshing &&
-      !isPublicAuthRequest(config.url)
+      !isPublicAuthRequest(config.url) &&
+      !isChangeEmailInvalidPassword(config.url, error.response?.data)
     ) {
       error.isSessionExpired = true;
 

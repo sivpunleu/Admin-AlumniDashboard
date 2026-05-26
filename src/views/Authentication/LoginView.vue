@@ -162,8 +162,8 @@ function validatePassword() {
 
   if (!pass) {
     authStore.errors.password = ["សូមបញ្ចូលពាក្យសម្ងាត់!"];
-  } else if (pass.length < 6) {
-    authStore.errors.password = ["ពាក្យសម្ងាត់យ៉ាងតិច 6 តួ!"];
+  } else if (pass.length < 8) {
+    authStore.errors.password = ["ពាក្យសម្ងាត់យ៉ាងតិច 8 តួ!"];
   }
 }
 
