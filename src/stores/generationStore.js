@@ -15,7 +15,7 @@ const isSuccessResponse = (data) =>
   data == null || (data.result !== false && data.success !== false);
 
 const generationInUseMessage =
-  "មិនអាចលុបជំនាន់នេះបានទេ ព្រោះមានប្រវត្តិរូប ឬទិន្នន័យពាក់ព័ន្ធកំពុងប្រើប្រាស់។";
+  "មិនអាចលុបជំនាន់នេះបានទេ ព្រោះមានការកំពុងប្រើប្រាស់។";
 const fetchFallbackMessage = "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ";
 const fetchDetailsFallbackMessage = "មិនអាចទាញព័ត៌មានលម្អិតនៃជំនាន់នេះបានទេ";
 const createFallbackMessage = "មិនអាចបង្កើតជំនាន់ថ្មីបានទេ";

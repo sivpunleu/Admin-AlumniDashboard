@@ -11,7 +11,7 @@ import logger from "@/utils/logger";
 
 const departmentStore = useDepartmentStore();
 
-// ទាញយកទិន្នន័យនៅពេល Component ត្រូវបានដាក់បញ្ចូល (Mount)
+
 onMounted(async () => {
     await Promise.all([
         genStore.fetchGenerations(),
@@ -265,7 +265,7 @@ const handlePageChange = (page) => {
 
 <template>
     <div class="generations-page">
-        <!-- ផ្នែកក្បាល (Header Section) -->
+        <!-- (Header Section) -->
         <div class="generations-header page-toolbar align-items-start mb-4">
             <div>
                 <h2 class="fw-bold text-dark">ជំនាន់និស្សិត</h2>
@@ -311,7 +311,7 @@ const handlePageChange = (page) => {
             </div>
         </div>
 
-        <!-- បញ្ជីជំនាន់ក្នុងតារាង (Generation Table) -->
+        <!--(Generation Table) -->
         <div v-else class="bg-white rounded-4 shadow-sm border overflow-hidden">
             <BaseTable :columns="columns" :data="paginatedGens">
                 <template #cell-id="{ item }">
@@ -373,13 +373,6 @@ const handlePageChange = (page) => {
             </template>
 
             <div class="app-form">
-                <!-- លេខសម្គាល់ id -->
-                <div>
-                    <label class="small fw-bold">លេខសម្គាល់</label>
-                    <input v-model="form.id" class="form-control" :class="{ 'is-invalid': errors.id }" readonly
-                        @input="errors.id = ''" @blur="validateForm">
-                    <div v-if="errors.id" class="invalid-feedback">{{ errors.id }}</div>
-                </div>
                 <div>
                     <label class="small fw-bold">ឈ្មោះជំនាន់</label>
                     <input v-model="form.name" class="form-control" :class="{ 'is-invalid': errors.name }"

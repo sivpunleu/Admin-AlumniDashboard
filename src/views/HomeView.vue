@@ -147,6 +147,38 @@ const getUserStatus = (user) => {
   return status;
 };
 
+const getAlumniStatusRouteValue = (status) => (
+  status === 'DEACTIVATED' ? 'REJECT' : status
+);
+
+const getAlumniSearchTarget = (user) => {
+  if (user?.id) return String(user.id);
+
+  const email = getUserEmail(user);
+  if (email !== '-') return email;
+
+  return getUserDisplayName(user);
+};
+
+const getAlumniRecordRoute = (user) => {
+  const status = getUserStatus(user);
+  const query = {
+    status: getAlumniStatusRouteValue(status),
+    search: getAlumniSearchTarget(user),
+  };
+
+  if (user?.id) {
+    query.focus = String(user.id);
+  }
+
+  return {
+    name: 'manager-alumni',
+    query,
+  };
+};
+
+const goToAlumniRecord = (user) => router.push(getAlumniRecordRoute(user));
+
 const canApproveUser = (user) => getUserStatus(user) === 'PENDING' && Boolean(user?.id);
 
 const handleApproveFromDashboard = async (user) => {
@@ -185,7 +217,7 @@ const buildActivityLog = (users = [], events = []) => {
       date: dateValue,
       icon,
       tone,
-      to: '/manager-alumni',
+      to: getAlumniRecordRoute(user),
       timestamp: getTimestamp(dateValue),
     };
   });
@@ -524,9 +556,9 @@ onMounted(() => {
                     class="dashboard-clickable-row"
                     role="button"
                     tabindex="0"
-                    @click="goToAlumniRecords"
-                    @keydown.enter.prevent="goToAlumniRecords"
-                    @keydown.space.prevent="goToAlumniRecords"
+                    @click="goToAlumniRecord(user)"
+                    @keydown.enter.prevent="goToAlumniRecord(user)"
+                    @keydown.space.prevent="goToAlumniRecord(user)"
                   >
                     <td>
                       <div class="d-flex align-items-center">
@@ -561,7 +593,7 @@ onMounted(() => {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end dashboard-action-menu">
                           <li>
-                            <button type="button" class="dropdown-item" @click="goToAlumniRecords">
+                            <button type="button" class="dropdown-item" @click="goToAlumniRecord(user)">
                               <i class="bi bi-list-ul me-2"></i>មើលក្នុងបញ្ជី
                             </button>
                           </li>
