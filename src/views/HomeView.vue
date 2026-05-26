@@ -561,14 +561,20 @@ onMounted(() => {
                     @keydown.space.prevent="goToAlumniRecord(user)"
                   >
                     <td>
-                      <div class="d-flex align-items-center">
+                      <div class="recent-registration-user d-flex align-items-center">
                         <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
                           :style="{ backgroundColor: PRIMARY_COLOR }">
                           {{ getUserInitial(user) }}
                         </div>
-                        <div>
-                          <div class="fw-bold text-dark small">{{ getUserDisplayName(user) }}</div>
-                          <div class="text-muted extra-small">{{ getUserEmail(user) }}</div>
+                        <div class="recent-registration-user__body">
+                          <div class="recent-registration-user__name fw-bold text-dark small"
+                            :title="getUserDisplayName(user)">
+                            {{ getUserDisplayName(user) }}
+                          </div>
+                          <div class="recent-registration-user__email text-muted extra-small"
+                            :title="getUserEmail(user)">
+                            {{ getUserEmail(user) }}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -1614,6 +1620,26 @@ button.approval-item:focus-visible .approval-action {
 .table tbody td {
   padding: 14px;
   vertical-align: middle;
+}
+
+.recent-registration-user {
+  min-width: 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+.recent-registration-user__body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.recent-registration-user__name,
+.recent-registration-user__email {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table tbody tr {

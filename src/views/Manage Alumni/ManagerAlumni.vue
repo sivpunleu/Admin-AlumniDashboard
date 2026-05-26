@@ -81,18 +81,63 @@ const getAlumniName = (user) => (
 
 const getAlumniEmail = (user) => user?.email || user?.profile?.email || '';
 
+const AVATAR_VALUE_KEYS = [
+  'avatar',
+  'avatarUrl',
+  'avatar_url',
+  'avatarPath',
+  'avatar_path',
+  'profileImage',
+  'profile_image',
+  'profilePicture',
+  'profile_picture',
+  'profilePhoto',
+  'profile_photo',
+  'profilePhotoUrl',
+  'profile_photo_url',
+  'image',
+  'imageUrl',
+  'image_url',
+  'photo',
+  'photoUrl',
+  'photo_url',
+  'picture',
+  'pictureUrl',
+  'picture_url',
+];
+
+const AVATAR_OBJECT_VALUE_KEYS = ['url', 'path', 'src', 'href', 'location'];
+
+const normalizeAvatarValue = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value !== 'object') return '';
+
+  return AVATAR_OBJECT_VALUE_KEYS
+    .map((key) => normalizeAvatarValue(value?.[key]))
+    .find(Boolean) || '';
+};
+
+const pickAvatarValue = (source) => {
+  if (!source || typeof source !== 'object') return '';
+
+  return AVATAR_VALUE_KEYS
+    .map((key) => normalizeAvatarValue(source?.[key]))
+    .find(Boolean) || '';
+};
+
 const getAlumniAvatar = (user) => {
-  const rawAvatar =
-    user?.profile?.avatar ||
-    user?.profile?.avatarUrl ||
-    user?.profile?.avatar_url ||
-    user?.profile?.image ||
-    user?.profile?.photo ||
-    user?.avatar ||
-    user?.avatarUrl ||
-    user?.avatar_url ||
-    user?.image ||
-    user?.photo;
+  const rawAvatar = [
+    user?.profile,
+    user?.profile?.profile,
+    user?.alumniProfile,
+    user?.alumni_profile,
+    user?.alumni?.profile,
+    user?.user?.profile,
+    user,
+  ]
+    .map(pickAvatarValue)
+    .find(Boolean);
 
   if (!rawAvatar) return '';
   return resolveApiAssetUrl(rawAvatar);
@@ -354,6 +399,28 @@ const filteredDepartments = computed(() => {
   return generation?.department ? [generation.department] : [];
 });
 
+const selectedGenerationLabel = computed(() => {
+  const generationId = normalizeId(store.registerForm.value.generationId);
+  if (!generationId) return "";
+
+  const generation = (generationStore.generations.value || []).find(
+    gen => normalizeId(gen.id) === generationId
+  );
+
+  return generation?.name || "";
+});
+
+const selectedDepartmentLabel = computed(() => {
+  const departmentId = normalizeId(store.registerForm.value.departmentId);
+  if (!departmentId) return "";
+
+  const department = (filteredDepartments.value || []).find(
+    dept => normalizeId(dept.id) === departmentId
+  );
+
+  return department?.name || "";
+});
+
 // Reset department when generation changes
 watch(() => store.registerForm.value.generationId, () => {
   store.registerForm.value.departmentId = "";
@@ -478,6 +545,7 @@ const tableColumns = [
         <label class="search-input-wrapper flex-grow-1" aria-label="Search alumni">
           <span class="search-input-icon"><i class="bi bi-search"></i></span>
           <input v-model="searchModel" type="text" class="form-control-custom"
+            aria-label="ស្វែងរកអតីតនិស្សិត"
             placeholder="ស្វែងរកតាមឈ្មោះ, អ៊ីមែល ..." />
         </label>
         <div class="filter-tabs-wrapper" role="tablist" aria-label="Filter alumni status">
@@ -508,8 +576,8 @@ const tableColumns = [
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
       <div
         class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center manager-table-header">
-        <h5 class="fw-bold m-0 text-dark">កំណត់ត្រាអតីតនិស្សិត <button class="btn-count">{{ store.totalItems.value }}
-            កំណត់ត្រា</button></h5>
+        <h5 class="fw-bold m-0 text-dark">កំណត់ត្រាអតីតនិស្សិត <span class="btn-count">{{ store.totalItems.value }}
+            កំណត់ត្រា</span></h5>
         <div class="text-muted small">
           បង្ហាញ {{ pageSummary }} នៃ {{ store.totalItems.value }}
         </div>
@@ -533,6 +601,7 @@ const tableColumns = [
           </div>
           <span class="placeholder skeleton-placeholder skeleton-line skeleton-line--id" aria-hidden="true"></span>
           <span class="placeholder skeleton-placeholder skeleton-pill" aria-hidden="true"></span>
+          <span class="placeholder skeleton-placeholder skeleton-pill skeleton-pill--verify" aria-hidden="true"></span>
           <span class="placeholder skeleton-placeholder skeleton-pill skeleton-pill--status" aria-hidden="true"></span>
           <div class="skeleton-actions-cell">
             <span class="placeholder skeleton-placeholder skeleton-action" aria-hidden="true"></span>
@@ -556,15 +625,19 @@ const tableColumns = [
         :row-attrs="getAlumniRowAttrs"
       >
         <template #cell-alumni="{ item }">
-          <div class="d-flex align-items-center">
+          <div class="alumni-cell d-flex align-items-center">
             <div class="avatar-sm me-3" :aria-label="getAlumniName(item)">
               <span>{{ getAlumniInitial(item) }}</span>
               <img v-if="getAlumniAvatar(item)" :src="getAlumniAvatar(item)" :alt="getAlumniName(item)"
                 class="avatar-sm__image" @error="handleAvatarError" @load="handleAvatarLoad" />
             </div>
-            <div>
-              <div class="fw-bold small text-dark">{{ getAlumniName(item) }}</div>
-              <div class="text-muted smaller">{{ getAlumniEmail(item) }}</div>
+            <div class="alumni-cell__body">
+              <div class="alumni-cell__name fw-bold small text-dark" :title="getAlumniName(item)">
+                {{ getAlumniName(item) }}
+              </div>
+              <div class="alumni-cell__email text-muted smaller" :title="getAlumniEmail(item)">
+                {{ getAlumniEmail(item) }}
+              </div>
             </div>
           </div>
         </template>
@@ -574,7 +647,9 @@ const tableColumns = [
         </template>
 
         <template #cell-role="{ item }">
-          <div class="text-muted smaller fs-6">{{ item.role?.name || item.role || 'Alumni' }}</div>
+          <div class="alumni-role text-muted smaller fs-6" :title="item.role?.name || item.role || 'Alumni'">
+            {{ item.role?.name || item.role || 'Alumni' }}
+          </div>
         </template>
         <!-- Account email verification -->
         <template #cell-verify="{ item }">
@@ -680,7 +755,7 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">ពាក្យសម្ងាត់ </label>
+        <label class="form-label fw-bold small">ពាក្យសម្ងាត់ *</label>
         <div class="password-field">
           <input v-model="store.registerForm.value.password" :type="showPassword ? 'text' : 'password'"
             class="form-control password-field__input" autocomplete="new-password" minlength="8"
@@ -698,7 +773,7 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ </label>
+        <label class="form-label fw-bold small">បញ្ជាក់ពាក្យសម្ងាត់ *</label>
         <div class="password-field">
           <input v-model="store.registerForm.value.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
             class="form-control password-field__input" autocomplete="new-password" minlength="8"
@@ -718,12 +793,14 @@ const tableColumns = [
         </div>
       </div>
       <div>
-        <label class="form-label fw-bold small">ជំនាន់ </label>
-        <select v-model="store.registerForm.value.generationId" class="form-control"
+        <label class="form-label fw-bold small">ជំនាន់ *</label>
+        <select v-model="store.registerForm.value.generationId" class="form-control form-select-truncate"
           :class="{ 'is-invalid': store.registerErrors.value.generationId }" required
+          :title="selectedGenerationLabel"
           @change="store.validateRegisterField('generationId')">
           <option value="" disabled>ជ្រើសរើសជំនាន់</option>
-          <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id">
+          <option v-for="generation in generationStore.generations.value" :key="generation.id" :value="generation.id"
+            :title="generation.name">
             {{ generation.name }}
           </option>
         </select>
@@ -732,12 +809,15 @@ const tableColumns = [
         </div>
       </div>
       <div>
-        <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ </label>
-        <select v-model="store.registerForm.value.departmentId" class="form-control"
+        <label class="form-label fw-bold small">ដេប៉ាតឺម៉ង់ *</label>
+        <select v-model="store.registerForm.value.departmentId" class="form-control form-select-truncate"
           :class="{ 'is-invalid': store.registerErrors.value.departmentId }" required
+          :title="selectedDepartmentLabel"
+          :disabled="!store.registerForm.value.generationId"
           @change="store.validateRegisterField('departmentId')">
           <option value="" disabled>ជ្រើសរើសដេប៉ាតឺម៉ង់</option>
-          <option v-for="department in filteredDepartments" :key="department.id" :value="department.id">
+          <option v-for="department in filteredDepartments" :key="department.id" :value="department.id"
+            :title="department.name">
             {{ department.name }}
           </option>
 
@@ -1070,6 +1150,31 @@ const tableColumns = [
   object-fit: cover;
 }
 
+.alumni-cell {
+  min-width: 0;
+  width: 100%;
+  max-width: 280px;
+}
+
+.alumni-cell__body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.alumni-cell__name,
+.alumni-cell__email,
+.alumni-role {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alumni-role {
+  max-width: 120px;
+}
+
 .badge-status {
   padding: 4px 12px;
   border-radius: 20px;
@@ -1078,6 +1183,7 @@ const tableColumns = [
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .dot-icon {
@@ -1094,12 +1200,16 @@ const tableColumns = [
 }
 
 .btn-count {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   font-size: 10px;
   border-radius: 6px;
   padding: 2px 8px;
+  margin-left: 0.25rem;
   color: #64748b;
+  vertical-align: middle;
 }
 
 .skeleton-placeholder {
@@ -1142,7 +1252,7 @@ const tableColumns = [
 
 .skeleton-table-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1.9fr) minmax(72px, 0.65fr) minmax(110px, 0.8fr) minmax(140px, 1fr) minmax(150px, 0.9fr);
+  grid-template-columns: minmax(240px, 1.9fr) minmax(64px, 0.55fr) minmax(96px, 0.7fr) minmax(122px, 0.85fr) minmax(136px, 0.9fr) minmax(124px, 0.75fr);
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
@@ -1194,6 +1304,10 @@ const tableColumns = [
 .skeleton-pill {
   width: 88px;
   height: 24px;
+}
+
+.skeleton-pill--verify {
+  width: 112px;
 }
 
 .skeleton-pill--status {
@@ -1438,6 +1552,19 @@ const tableColumns = [
   border-color: #216477;
   outline: none;
   box-shadow: 0 0 0 3px rgba(33, 100, 119, 0.1);
+}
+
+.form-control:disabled {
+  background-color: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.form-select-truncate {
+  overflow: hidden;
+  padding-right: 2.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .btn-secondary {

@@ -114,7 +114,7 @@ const handleSubmit = async () => {
                 <div class="search-box-custom app-search-box rounded-pill px-3 d-flex align-items-center shadow-sm">
                     <i class="bi bi-search text-muted"></i>
                     <input v-model="store.queryParams.search" type="text" class="form-control border-0 shadow-none py-2"
-                        placeholder="ស្វែងរក...">
+                        aria-label="ស្វែងរកប្រភេទ" placeholder="ស្វែងរក...">
                 </div>
             </div>
         </div>

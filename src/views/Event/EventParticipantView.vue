@@ -53,6 +53,13 @@ const selectedEvent = computed(() => {
     return store.events.find((event) => String(event.id) === eventId) || store.selectedEvent;
 });
 
+const selectedEventOptionLabel = computed(() => {
+    const event = selectedEvent.value;
+    if (!event) return '';
+
+    return `${event.title || '-'} (ID: ${event.id ?? selectedEventId.value ?? '-'})`;
+});
+
 const totalParticipants = computed(() => (
     participantGroups.attending.length
     + participantGroups.interested.length
@@ -219,7 +226,11 @@ watch(() => props.id, async (newId) => {
                     <h3 class="fw-bold text-dark mb-1">ការចូលរួមព្រឹត្តិការណ៍</h3>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">ផ្ទាំងគ្រប់គ្រង</a></li>
+                            <li class="breadcrumb-item">
+                                <router-link :to="{ name: 'home' }" class="text-decoration-none">
+                                    ផ្ទាំងគ្រប់គ្រង
+                                </router-link>
+                            </li>
                             <li class="breadcrumb-item active">អ្នកចូលរួម</li>
                         </ol>
                     </nav>
@@ -230,10 +241,12 @@ watch(() => props.id, async (newId) => {
                 <div class="participant-select-wrap">
                     <i class="bi bi-calendar-event participant-select-wrap__icon"></i>
                     <select v-model="selectedEventId" class="participant-event-select form-select"
+                        aria-label="ជ្រើសរើសព្រឹត្តិការណ៍" :title="selectedEventOptionLabel"
                         @change="openEventDetail()">
-                        <option value="">ជ្រើសរើសព្រឹត្តិការណ៍</option>
-                        <option v-for="event in store.events" :key="event.id" :value="event.id">
-                            {{ event.title }} (ID: {{ event.id }})
+                        <option value="" title="ជ្រើសរើសព្រឹត្តិការណ៍">ជ្រើសរើសព្រឹត្តិការណ៍</option>
+                        <option v-for="event in store.events" :key="event.id" :value="event.id"
+                            :title="`${event.title || '-'} (ID: ${event.id})`">
+                            {{ event.title || '-' }} (ID: {{ event.id }})
                         </option>
                     </select>
                 </div>
@@ -373,14 +386,18 @@ watch(() => props.id, async (newId) => {
                                     <div class="participant-person">
                                         <span class="participant-avatar">{{ getParticipantInitial(item) }}</span>
                                         <span class="participant-person__copy">
-                                            <span class="participant-person__name">{{ getParticipantName(item) }}</span>
+                                            <span class="participant-person__name" :title="getParticipantName(item)">
+                                                {{ getParticipantName(item) }}
+                                            </span>
                                             <!-- <small class="text-muted">ID: {{ item.id ?? '-' }}</small> -->
                                         </span>
                                     </div>
                                 </template>
 
                                 <template #cell-email="{ item }">
-                                    {{ getParticipantEmail(item) }}
+                                    <span class="participant-email-cell" :title="getParticipantEmail(item)">
+                                        {{ getParticipantEmail(item) }}
+                                    </span>
                                 </template>
 
                                 <template #cell-status="{ item }">
@@ -463,6 +480,7 @@ watch(() => props.id, async (newId) => {
 .participant-select-wrap {
     position: relative;
     width: 100%;
+    min-width: 0;
 }
 
 .participant-select-wrap__icon {
@@ -476,13 +494,19 @@ watch(() => props.id, async (newId) => {
 }
 
 .participant-event-select {
+    width: 100%;
+    min-width: 0;
     min-height: 46px;
     padding-left: 2.65rem !important;
+    padding-right: 2.5rem !important;
     border-color: var(--participant-border);
     border-radius: 999px;
     color: #0f172a;
     font-weight: 600;
+    overflow: hidden;
     box-shadow: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .participant-event-select:focus {
@@ -1069,7 +1093,8 @@ watch(() => props.id, async (newId) => {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    min-width: 180px;
+    min-width: 0;
+    max-width: clamp(180px, 22vw, 280px);
 }
 
 .participant-avatar {
@@ -1088,9 +1113,22 @@ watch(() => props.id, async (newId) => {
 }
 
 .participant-person__name {
+    display: block;
+    max-width: 100%;
     color: #0f172a;
     font-weight: 800;
     line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.participant-email-cell {
+    display: block;
+    max-width: clamp(180px, 24vw, 300px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .participant-empty {

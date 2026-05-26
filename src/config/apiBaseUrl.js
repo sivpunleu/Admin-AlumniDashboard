@@ -23,7 +23,11 @@ export const resolveApiAssetUrl = (path) => {
   if (/^(https?:|data:|blob:)/i.test(value)) return value;
 
   const cleanPath = value.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (/^(api|storage|uploads|images)\//i.test(cleanPath)) {
+  if (/^api\//i.test(cleanPath)) {
+    return `${API_ORIGIN}/${cleanPath}`;
+  }
+
+  if (/^(storage|uploads|images|media|files|avatars|avatar|public)\//i.test(cleanPath)) {
     return `${API_ORIGIN}/${cleanPath}`;
   }
 
