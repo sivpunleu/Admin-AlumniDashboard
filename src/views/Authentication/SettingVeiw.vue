@@ -11,48 +11,48 @@
     </header>
 
     <Transition name="settings-strip-swap" mode="out-in">
-    <section v-if="isInitialLoading" key="loading" class="account-strip account-strip--skeleton" aria-busy="true"
-      aria-live="polite" aria-label="កំពុងផ្ទុកព័ត៌មានគណនី">
-      <div v-for="item in accountSkeletonItems" :key="item" class="account-item">
-        <span class="skeleton-placeholder skeleton-account-icon"></span>
-        <span class="skeleton-account-copy">
-          <span class="skeleton-placeholder skeleton-line skeleton-line--account-label"></span>
-          <span class="skeleton-placeholder skeleton-line skeleton-line--account-value"></span>
-        </span>
-      </div>
-    </section>
+      <section v-if="isInitialLoading" key="loading" class="account-strip account-strip--skeleton" aria-busy="true"
+        aria-live="polite" aria-label="កំពុងផ្ទុកព័ត៌មានគណនី">
+        <div v-for="item in accountSkeletonItems" :key="item" class="account-item">
+          <span class="skeleton-placeholder skeleton-account-icon"></span>
+          <span class="skeleton-account-copy">
+            <span class="skeleton-placeholder skeleton-line skeleton-line--account-label"></span>
+            <span class="skeleton-placeholder skeleton-line skeleton-line--account-value"></span>
+          </span>
+        </div>
+      </section>
 
-    <section v-else key="summary" class="account-strip" aria-label="Account summary">
-      <div class="account-item">
-        <span class="account-icon">
-          <i class="bi bi-person-badge"></i>
-        </span>
-        <span>
-          <span class="account-label">ឈ្មោះ</span>
-          <strong>{{ displayName }}</strong>
-        </span>
-      </div>
+      <section v-else key="summary" class="account-strip" aria-label="Account summary">
+        <div class="account-item">
+          <span class="account-icon">
+            <i class="bi bi-person-badge"></i>
+          </span>
+          <span>
+            <span class="account-label">ឈ្មោះ</span>
+            <strong>{{ displayName }}</strong>
+          </span>
+        </div>
 
-      <div class="account-item">
-        <span class="account-icon">
-          <i class="bi bi-envelope-at"></i>
-        </span>
-        <span>
-          <span class="account-label">អ៊ីមែល</span>
-          <strong>{{ displayEmail }}</strong>
-        </span>
-      </div>
+        <div class="account-item">
+          <span class="account-icon">
+            <i class="bi bi-envelope-at"></i>
+          </span>
+          <span>
+            <span class="account-label">អ៊ីមែល</span>
+            <strong>{{ displayEmail }}</strong>
+          </span>
+        </div>
 
-      <div class="account-item">
-        <span class="account-icon">
-          <i class="bi bi-person-gear"></i>
-        </span>
-        <span>
-          <span class="account-label">តួនាទី</span>
-          <strong>{{ displayRole }}</strong>
-        </span>
-      </div>
-    </section>
+        <div class="account-item">
+          <span class="account-icon">
+            <i class="bi bi-person-gear"></i>
+          </span>
+          <span>
+            <span class="account-label">តួនាទី</span>
+            <strong>{{ displayRole }}</strong>
+          </span>
+        </div>
+      </section>
     </Transition>
 
     <div class="settings-grid">
@@ -71,19 +71,12 @@
             <label for="current-password">ពាក្យសម្ងាត់បច្ចុប្បន្ន</label>
             <div class="input-shell" :class="{ 'is-invalid': passwordErrors.currentPassword }">
               <i class="bi bi-lock"></i>
-              <input
-                id="current-password"
-                v-model.trim="passwordForm.currentPassword"
-                :type="passwordVisible.currentPassword ? 'text' : 'password'"
-                autocomplete="current-password"
-                @input="clearFieldError(passwordErrors, 'currentPassword')"
-              />
-              <button
-                type="button"
-                class="icon-button"
+              <input id="current-password" v-model.trim="passwordForm.currentPassword"
+                :type="passwordVisible.currentPassword ? 'text' : 'password'" autocomplete="current-password"
+                @input="clearFieldError(passwordErrors, 'currentPassword')" />
+              <button type="button" class="icon-button"
                 :aria-label="passwordVisible.currentPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
-                @click="passwordVisible.currentPassword = !passwordVisible.currentPassword"
-              >
+                @click="passwordVisible.currentPassword = !passwordVisible.currentPassword">
                 <i :class="['bi', passwordVisible.currentPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
@@ -96,19 +89,12 @@
             <label for="new-password">ពាក្យសម្ងាត់ថ្មី</label>
             <div class="input-shell" :class="{ 'is-invalid': passwordErrors.newPassword }">
               <i class="bi bi-shield-check"></i>
-              <input
-                id="new-password"
-                v-model.trim="passwordForm.newPassword"
-                :type="passwordVisible.newPassword ? 'text' : 'password'"
-                autocomplete="new-password"
-                @input="clearFieldError(passwordErrors, 'newPassword')"
-              />
-              <button
-                type="button"
-                class="icon-button"
+              <input id="new-password" v-model.trim="passwordForm.newPassword"
+                :type="passwordVisible.newPassword ? 'text' : 'password'" autocomplete="new-password"
+                @input="clearFieldError(passwordErrors, 'newPassword')" />
+              <button type="button" class="icon-button"
                 :aria-label="passwordVisible.newPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
-                @click="passwordVisible.newPassword = !passwordVisible.newPassword"
-              >
+                @click="passwordVisible.newPassword = !passwordVisible.newPassword">
                 <i :class="['bi', passwordVisible.newPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
@@ -121,19 +107,12 @@
             <label for="confirm-password">បញ្ជាក់ពាក្យសម្ងាត់ថ្មី</label>
             <div class="input-shell" :class="{ 'is-invalid': passwordErrors.confirmPassword }">
               <i class="bi bi-check2-circle"></i>
-              <input
-                id="confirm-password"
-                v-model.trim="passwordForm.confirmPassword"
-                :type="passwordVisible.confirmPassword ? 'text' : 'password'"
-                autocomplete="new-password"
-                @input="clearFieldError(passwordErrors, 'confirmPassword')"
-              />
-              <button
-                type="button"
-                class="icon-button"
+              <input id="confirm-password" v-model.trim="passwordForm.confirmPassword"
+                :type="passwordVisible.confirmPassword ? 'text' : 'password'" autocomplete="new-password"
+                @input="clearFieldError(passwordErrors, 'confirmPassword')" />
+              <button type="button" class="icon-button"
                 :aria-label="passwordVisible.confirmPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
-                @click="passwordVisible.confirmPassword = !passwordVisible.confirmPassword"
-              >
+                @click="passwordVisible.confirmPassword = !passwordVisible.confirmPassword">
                 <i :class="['bi', passwordVisible.confirmPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
@@ -166,20 +145,10 @@
             <label for="new-email">អ៊ីមែលថ្មី</label>
             <div class="input-shell" :class="{ 'is-invalid': emailErrors.newEmail }">
               <i class="bi bi-envelope"></i>
-              <input
-                id="new-email"
-                v-model.trim="emailForm.newEmail"
-                type="email"
-                :readonly="emailAutofillLocked.newEmail"
-                autocomplete="off"
-                data-1p-ignore
-                data-bwignore
-                data-lpignore="true"
-                placeholder="name@example.com"
-                @focus="unlockEmailField('newEmail')"
-                @pointerdown="unlockEmailField('newEmail')"
-                @input="clearFieldError(emailErrors, 'newEmail')"
-              />
+              <input id="new-email" v-model.trim="emailForm.newEmail" type="email"
+                :readonly="emailAutofillLocked.newEmail" autocomplete="off" data-1p-ignore data-bwignore
+                data-lpignore="true" placeholder="name@example.com" @focus="unlockEmailField('newEmail')"
+                @pointerdown="unlockEmailField('newEmail')" @input="clearFieldError(emailErrors, 'newEmail')" />
             </div>
             <Transition name="settings-error-slide">
               <p v-if="emailErrors.newEmail" class="field-error">{{ emailErrors.newEmail }}</p>
@@ -190,25 +159,14 @@
             <label for="email-password">ពាក្យសម្ងាត់</label>
             <div class="input-shell" :class="{ 'is-invalid': emailErrors.password }">
               <i class="bi bi-lock"></i>
-              <input
-                id="email-password"
-                v-model.trim="emailForm.password"
-                :type="passwordVisible.emailPassword ? 'text' : 'password'"
-                :readonly="emailAutofillLocked.password"
-                autocomplete="new-password"
-                data-1p-ignore
-                data-bwignore
-                data-lpignore="true"
-                @focus="unlockEmailField('password')"
-                @pointerdown="unlockEmailField('password')"
-                @input="clearFieldError(emailErrors, 'password')"
-              />
-              <button
-                type="button"
-                class="icon-button"
+              <input id="email-password" v-model.trim="emailForm.password"
+                :type="passwordVisible.emailPassword ? 'text' : 'password'" :readonly="emailAutofillLocked.password"
+                autocomplete="new-password" data-1p-ignore data-bwignore data-lpignore="true"
+                @focus="unlockEmailField('password')" @pointerdown="unlockEmailField('password')"
+                @input="clearFieldError(emailErrors, 'password')" />
+              <button type="button" class="icon-button"
                 :aria-label="passwordVisible.emailPassword ? 'លាក់ពាក្យសម្ងាត់' : 'បង្ហាញពាក្យសម្ងាត់'"
-                @click="passwordVisible.emailPassword = !passwordVisible.emailPassword"
-              >
+                @click="passwordVisible.emailPassword = !passwordVisible.emailPassword">
                 <i :class="['bi', passwordVisible.emailPassword ? 'bi-eye-slash' : 'bi-eye']"></i>
               </button>
             </div>
@@ -282,8 +240,33 @@ const loading = reactive({
 });
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordMinLength = 8;
+const passwordComplexityPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
+const passwordComplexityMessage =
+  "ពាក្យសម្ងាត់ថ្មីត្រូវមានអក្សរធំ អក្សរតូច លេខ និងតួអក្សរពិសេសយ៉ាងតិចមួយ។";
 
 const readFirstValue = (value) => Array.isArray(value) ? value[0] : value;
+
+const readFirstError = (value) => {
+  if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
+  if (value && typeof value === "object") {
+    return Object.values(value).map(readFirstError).find(Boolean);
+  }
+  return value;
+};
+
+const isGenericErrorMessage = (message = "") =>
+  ["invalid input", "validation error", "bad request", "unprocessable entity"]
+    .includes(String(message).trim().toLowerCase());
+
+const getDisplayErrorMessage = (error, fallbackMessage) => {
+  const message = readFirstError(error?.message);
+  const detail = readFirstError(error?.details);
+
+  if (message && !isGenericErrorMessage(message)) return message;
+  if (detail) return detail;
+  return message || fallbackMessage;
+};
 
 const getRouteToken = () => readFirstValue(route.query.token) ||
   readFirstValue(route.query.verificationToken) ||
@@ -301,7 +284,7 @@ const cleanEmailChangeQuery = () => {
   delete query.changeEmailToken;
   delete query.verifyEmailChange;
 
-  router.replace({ name: "settings", query }).catch(() => {});
+  router.replace({ name: "settings", query }).catch(() => { });
 };
 
 const profilePayload = computed(() => profileStore.profile || authStore.user || {});
@@ -365,23 +348,37 @@ const normalizeField = (field) => {
   return fieldMap[field] || field;
 };
 
-const applyApiErrors = (target, error) => {
+const applyApiErrors = (target, error, fallbackMessage = "") => {
   clearErrors(target);
 
-  Object.entries(error?.fieldErrors || {}).forEach(([field, message]) => {
+  const entries = Object.entries(error?.fieldErrors || {});
+  entries.forEach(([field, message]) => {
     target[normalizeField(field)] = message;
   });
+
+  // If no specific field errors were provided but there is a general
+  // message/details from the API, map it to the newPassword field so the
+  // user sees an inline message under the password input.
+  if (
+    target === passwordErrors &&
+    entries.length === 0 &&
+    (error?.details || error?.message)
+  ) {
+    target.newPassword = getDisplayErrorMessage(error, fallbackMessage);
+  }
 };
 
 const showError = async (target, error, fallbackMessage) => {
   if (error?.isSessionExpired) return;
 
-  applyApiErrors(target, error);
+  const message = getDisplayErrorMessage(error, fallbackMessage);
+
+  applyApiErrors(target, error, fallbackMessage);
 
   await Swal.fire({
     icon: "error",
     title: "បរាជ័យ",
-    text: error?.message || fallbackMessage,
+    text: message,
     confirmButtonColor: "#216477",
   });
 };
@@ -395,8 +392,10 @@ const validatePasswordForm = () => {
 
   if (!passwordForm.newPassword) {
     passwordErrors.newPassword = "សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី។";
-  } else if (passwordForm.newPassword.length < 8) {
-    passwordErrors.newPassword = "ពាក្យសម្ងាត់ថ្មីត្រូវមានយ៉ាងតិច 8 តួ។";
+  } else if (passwordForm.newPassword.length < passwordMinLength) {
+    passwordErrors.newPassword = `ពាក្យសម្ងាត់ថ្មីត្រូវមានយ៉ាងតិច ${passwordMinLength} តួ។`;
+  } else if (!passwordComplexityPattern.test(passwordForm.newPassword)) {
+    passwordErrors.newPassword = passwordComplexityMessage;
   } else if (passwordForm.newPassword === passwordForm.currentPassword) {
     passwordErrors.newPassword = "ពាក្យសម្ងាត់ថ្មីត្រូវខុសពីពាក្យសម្ងាត់បច្ចុប្បន្ន។";
   }
@@ -491,7 +490,7 @@ const handleRequestEmailChange = async () => {
       icon: "success",
       title: "ជោគជ័យ",
       text: "សំណើផ្លាស់ប្តូរអ៊ីមែលត្រូវបានផ្ញើរួចរាល់។ សូមចុច Confirm Email Change ក្នុងអ៊ីមែលថ្មី។",
-      timer: 2600,
+      timer: 4000,
       showConfirmButton: false,
     });
   } catch (error) {
@@ -578,7 +577,7 @@ onMounted(async () => {
 
   if (!profileStore.profile) {
     try {
-      await profileStore.fetchProfile().catch(() => {});
+      await profileStore.fetchProfile().catch(() => { });
     } finally {
       isInitialLoading.value = false;
     }
@@ -627,7 +626,7 @@ watch(
   animation: settingsPageSweep 9s ease-in-out infinite;
 }
 
-.settings-page > * {
+.settings-page>* {
   position: relative;
   z-index: 1;
 }
@@ -657,7 +656,7 @@ watch(
   animation: settingsHeaderSweep 5.8s ease-in-out infinite;
 }
 
-.settings-header > * {
+.settings-header>* {
   position: relative;
   z-index: 1;
 }
@@ -910,19 +909,19 @@ watch(
   gap: 0.85rem;
 }
 
-.field-stack > * {
+.field-stack>* {
   animation: settingsFieldIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.field-stack > *:nth-child(1) {
+.field-stack>*:nth-child(1) {
   animation-delay: 0.08s;
 }
 
-.field-stack > *:nth-child(2) {
+.field-stack>*:nth-child(2) {
   animation-delay: 0.14s;
 }
 
-.field-stack > *:nth-child(3) {
+.field-stack>*:nth-child(3) {
   animation-delay: 0.2s;
 }
 
@@ -967,13 +966,13 @@ watch(
   background: #fff7f7;
 }
 
-.input-shell > i {
+.input-shell>i {
   color: #94a3b8;
   flex: 0 0 auto;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
-.input-shell:focus-within > i {
+.input-shell:focus-within>i {
   color: #216477;
   transform: scale(1.08);
 }
@@ -1073,6 +1072,7 @@ watch(
 }
 
 @keyframes settingsPageSweep {
+
   0%,
   24% {
     opacity: 0;
@@ -1103,6 +1103,7 @@ watch(
 }
 
 @keyframes settingsHeaderSweep {
+
   0%,
   28% {
     opacity: 0;
@@ -1121,6 +1122,7 @@ watch(
 }
 
 @keyframes settingsIconPulse {
+
   0%,
   100% {
     box-shadow: 0 0 0 rgba(33, 100, 119, 0);
@@ -1156,6 +1158,7 @@ watch(
 }
 
 @media (max-width: 991.98px) {
+
   .account-strip,
   .settings-grid {
     grid-template-columns: 1fr;
@@ -1187,6 +1190,7 @@ watch(
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

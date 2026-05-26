@@ -20,9 +20,15 @@ export const allUsersPending = ref(0);
 export const allUsersDeactivated = ref(0);
 const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
+const MIN_PASSWORD_LENGTH = 8;
 const registerAlumniFallbackMessage = "មិនអាចបង្កើតគណនីអតីតនិស្សិតបានទេ";
-const registerAdminFallbackMessage = "មិនអាចបង្កើតគណនី Admin បានទេ";
+const registerAdminFallbackMessage = "មិនអាចបង្កើតគណនីអ្នកគ្រប់គ្រងបានទេ";
 const updateStatusFallbackMessage = "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ";
+const passwordLengthMessage = `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`;
+const passwordComplexityMessage =
+  "ពាក្យសម្ងាត់ត្រូវមានអក្សរធំយ៉ាងតិច ១ តួ លេខយ៉ាងតិច ១ និងតួអក្សរពិសេសយ៉ាងតិច ១។";
+const passwordMismatchMessage = "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
+const currentJobRequiredMessage = "សូមបញ្ចូលមុខរបរបច្ចុប្បន្ន";
 
 export const showAccountTypeModal = ref(false);
 export const showRegisterModal = ref(false);
@@ -87,7 +93,17 @@ const translateKnownApiMessage = (message, fallbackMessage = "") => {
   }
 
   if (lower.includes("password") && lower.includes("match")) {
-    return "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ។";
+    return passwordMismatchMessage;
+  }
+
+  if (
+    lower.includes("password") &&
+    (lower.includes("uppercase") ||
+      lower.includes("number") ||
+      lower.includes("special") ||
+      lower.includes("must contain"))
+  ) {
+    return passwordComplexityMessage;
   }
 
   if (lower.includes("department") && (lower.includes("invalid") || lower.includes("not found"))) {
@@ -100,6 +116,13 @@ const translateKnownApiMessage = (message, fallbackMessage = "") => {
 
   if (lower.includes("status") && lower.includes("invalid")) {
     return "ស្ថានភាពដែលបានជ្រើសរើសមិនត្រឹមត្រូវ។";
+  }
+
+  if (
+    (lower.includes("current job") || lower.includes("current_job")) &&
+    (lower.includes("empty") || lower.includes("blank") || lower.includes("required"))
+  ) {
+    return currentJobRequiredMessage;
   }
 
   if (lower.includes("start year") && lower.includes("end year")) {
@@ -176,6 +199,19 @@ const normalizeErrorField = (field) => {
 
   return fieldMap[field] || field;
 };
+
+const inlineErrorFields = new Set([
+  "form",
+  "fullname",
+  "email",
+  "phone",
+  "password",
+  "confirmPassword",
+  "departmentId",
+  "generationId",
+  "currentJob",
+  "status",
+]);
 // function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const applyApiFieldErrors = (err, targetErrors) => {
   const responseErrors = err.response?.data?.errors;
@@ -183,11 +219,45 @@ const applyApiFieldErrors = (err, targetErrors) => {
 
   Object.entries(responseErrors).forEach(([field, value]) => {
     const message = readFirstError(value);
-    if (message) {
-      targetErrors.value[normalizeErrorField(field)] = translateKnownApiMessage(message);
+    if (message && !isGenericApiMessage(message)) {
+      const normalizedField = normalizeErrorField(field);
+      const translatedMessage = translateKnownApiMessage(message);
+
+      if (inlineErrorFields.has(normalizedField)) {
+        targetErrors.value[normalizedField] = translatedMessage;
+      } else {
+        targetErrors.value.form = translatedMessage;
+      }
     }
   });
 };
+
+const applyInlineApiMessage = (message, targetErrors) => {
+  const text = String(message || "").trim();
+  if (!text) return false;
+
+  if (text.includes("ពាក្យសម្ងាត់")) {
+    targetErrors.value.password = text;
+  } else if (text.includes("អ៊ីមែល")) {
+    targetErrors.value.email = text;
+  } else if (text.includes("លេខទូរស័ព្ទ")) {
+    targetErrors.value.phone = text;
+  } else if (text.includes("ដេប៉ាតឺម៉ង់")) {
+    targetErrors.value.departmentId = text;
+  } else if (text.includes("ជំនាន់")) {
+    targetErrors.value.generationId = text;
+  } else if (text.includes("មុខរបរបច្ចុប្បន្ន")) {
+    targetErrors.value.currentJob = text;
+  } else if (text.includes("ស្ថានភាព")) {
+    targetErrors.value.status = text;
+  } else {
+    targetErrors.value.form = text;
+  }
+
+  return true;
+};
+
+const hasInlineErrors = (targetErrors) => Object.keys(targetErrors.value).length > 0;
 // function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
 const getDefaultRegisterForm = () => ({
   fullname: "",
@@ -199,7 +269,7 @@ const getDefaultRegisterForm = () => ({
   currentJob: "",
   departmentId: "",
   generationId: "",
-  status: "PENDING",
+  status: "APPROVE",
 });
 
 export const registerForm = ref(getDefaultRegisterForm());
@@ -631,7 +701,7 @@ export const requireAdmin = (callback) => {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
-const MIN_PASSWORD_LENGTH = 8;
+const PASSWORD_COMPLEXITY_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
 const ALLOWED_STATUSES = ["PENDING", "APPROVE", "REJECT"];
 
 const isValidPhone = (value) => {
@@ -647,6 +717,97 @@ const isPositiveInteger = (value) => {
   return Number.isInteger(numberValue) && numberValue > 0;
 };
 
+const setValidationError = (targetErrors, field, message) => {
+  if (message) {
+    targetErrors.value[field] = message;
+  } else {
+    delete targetErrors.value[field];
+  }
+};
+
+const getPasswordError = (password) => {
+  const value = String(password || "");
+  if (!value) return "សូមបញ្ចូលពាក្យសម្ងាត់";
+  if (value.length < MIN_PASSWORD_LENGTH) return passwordLengthMessage;
+  if (!PASSWORD_COMPLEXITY_PATTERN.test(value)) return passwordComplexityMessage;
+  return "";
+};
+
+const getConfirmPasswordError = (form) => {
+  if (!form.confirmPassword) return "សូមបញ្ជាក់ពាក្យសម្ងាត់";
+  if (form.password !== form.confirmPassword) return passwordMismatchMessage;
+  return "";
+};
+
+const getFormFieldError = (form, field, options = {}) => {
+  const email = String(form.email || "").trim();
+  const phone = String(form.phone || "").trim();
+
+  if (field === "fullname") {
+    return String(form.fullname || "").trim() ? "" : "សូមបញ្ចូលឈ្មោះពេញលេញ";
+  }
+
+  if (field === "email") {
+    if (!email) return "សូមបញ្ចូលអ៊ីម៉ែល";
+    return EMAIL_PATTERN.test(email) ? "" : "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
+  }
+
+  if (field === "phone") {
+    return phone && !isValidPhone(phone) ? "លេខទូរស័ព្ទមិនត្រឹមត្រូវ" : "";
+  }
+
+  if (field === "password") {
+    return getPasswordError(form.password);
+  }
+
+  if (field === "confirmPassword") {
+    return getConfirmPasswordError(form);
+  }
+
+  if (field === "currentJob") {
+    return String(form.currentJob || "").trim()
+      ? ""
+      : currentJobRequiredMessage;
+  }
+
+  if (field === "departmentId" && options.requireDepartment) {
+    return isPositiveInteger(form.departmentId) ? "" : "សូមជ្រើសរើសដេប៉ាតមេន";
+  }
+
+  if (field === "generationId" && options.requireGeneration) {
+    return isPositiveInteger(form.generationId) ? "" : "សូមជ្រើសរើសជំនាន់";
+  }
+
+  if (field === "status") {
+    return ALLOWED_STATUSES.includes(normalizeStatus(form.status))
+      ? ""
+      : "សូមជ្រើសរើសស្ថានភាពត្រឹមត្រូវ";
+  }
+
+  return "";
+};
+
+const validateField = (form, targetErrors, field, options = {}) => {
+  delete targetErrors.value.form;
+  const message = getFormFieldError(form, field, options);
+  setValidationError(targetErrors, field, message);
+
+  if (field === "password" && (form.confirmPassword || targetErrors.value.confirmPassword)) {
+    setValidationError(targetErrors, "confirmPassword", getConfirmPasswordError(form));
+  }
+
+  return !message;
+};
+
+export const validateRegisterField = (field) =>
+  validateField(registerForm.value, registerErrors, field, {
+    requireDepartment: true,
+    requireGeneration: true,
+  });
+
+export const validateAdminRegisterField = (field) =>
+  validateField(adminRegisterForm.value, adminRegisterErrors, field);
+
 const validateRegisterForm = () => {
   clearRegisterErrors();
 
@@ -654,11 +815,13 @@ const validateRegisterForm = () => {
   const email = form.email?.trim() || "";
   const phone = form.phone?.trim() || "";
   const status = normalizeStatus(form.status);
+  const currentJob = form.currentJob?.trim() || "";
 
   form.fullname = form.fullname?.trim() || "";
   form.email = email;
   form.phone = phone;
-  form.status = status || "PENDING";
+  form.currentJob = currentJob;
+  form.status = status || "APPROVE";
 
   if (!form.fullname) {
     registerErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
@@ -674,15 +837,15 @@ const validateRegisterForm = () => {
     registerErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
-  if (!form.password || form.password.length < MIN_PASSWORD_LENGTH) {
-    registerErrors.value.password =
-      `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`;
+  const passwordError = getPasswordError(form.password);
+  if (passwordError) {
+    registerErrors.value.password = passwordError;
   }
 
   if (!form.confirmPassword) {
     registerErrors.value.confirmPassword = "សូមបញ្ជាក់ពាក្យសម្ងាត់";
   } else if (form.password !== form.confirmPassword) {
-    registerErrors.value.confirmPassword = "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
+    registerErrors.value.confirmPassword = passwordMismatchMessage;
   }
 
   if (!isPositiveInteger(form.departmentId)) {
@@ -691,6 +854,10 @@ const validateRegisterForm = () => {
 
   if (!isPositiveInteger(form.generationId)) {
     registerErrors.value.generationId = "សូមជ្រើសរើសជំនាន់";
+  }
+
+  if (!form.currentJob) {
+    registerErrors.value.currentJob = currentJobRequiredMessage;
   }
 
   if (!ALLOWED_STATUSES.includes(form.status)) {
@@ -707,10 +874,12 @@ const validateAdminRegisterForm = () => {
   const email = form.email?.trim() || "";
   const phone = form.phone?.trim() || "";
   const status = normalizeStatus(form.status);
+  const currentJob = form.currentJob?.trim() || "";
 
   form.fullname = form.fullname?.trim() || "";
   form.email = email;
   form.phone = phone;
+  form.currentJob = currentJob;
   form.status = status || "APPROVE";
 
   if (!form.fullname) {
@@ -727,9 +896,9 @@ const validateAdminRegisterForm = () => {
     adminRegisterErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
-  if (!form.password || form.password.length < MIN_PASSWORD_LENGTH) {
-    adminRegisterErrors.value.password =
-      `ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ${MIN_PASSWORD_LENGTH} តួអក្សរ`;
+  const passwordError = getPasswordError(form.password);
+  if (passwordError) {
+    adminRegisterErrors.value.password = passwordError;
   }
 
   if (!form.confirmPassword) {
@@ -737,7 +906,11 @@ const validateAdminRegisterForm = () => {
       "សូមបញ្ជាក់ពាក្យសម្ងាត់";
   } else if (form.password !== form.confirmPassword) {
     adminRegisterErrors.value.confirmPassword =
-      "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
+      passwordMismatchMessage;
+  }
+
+  if (!form.currentJob) {
+    adminRegisterErrors.value.currentJob = currentJobRequiredMessage;
   }
 
   if (!ALLOWED_STATUSES.includes(form.status)) {
@@ -794,10 +967,10 @@ export const handleRegisterAlumni = async () => {
       confirmPassword: registerForm.value.confirmPassword,
       phone: registerForm.value.phone?.trim() || "",
       bio: registerForm.value.bio?.trim() || "N/A",
-      currentJob: registerForm.value.currentJob?.trim() || "",
+      currentJob: registerForm.value.currentJob.trim(),
       departmentId: Number(registerForm.value.departmentId),
       generationId: Number(registerForm.value.generationId),
-      status: registerForm.value.status || "PENDING",
+      status: registerForm.value.status || "APPROVE",
     };
 
     logger.debug("Registering alumni with payload:", payload);
@@ -815,11 +988,13 @@ export const handleRegisterAlumni = async () => {
     logger.error("Registration error:", err);
     logger.error("Error response data:", err.response?.data);
     applyApiFieldErrors(err, registerErrors);
-    Swal.fire(
-      "បរាជ័យ",
-      getApiErrorMessage(err, registerAlumniFallbackMessage),
-      "error",
-    );
+    const apiMessage = getApiErrorMessage(err, registerAlumniFallbackMessage);
+    if (!hasInlineErrors(registerErrors)) {
+      applyInlineApiMessage(apiMessage, registerErrors);
+    }
+    if (!hasInlineErrors(registerErrors)) {
+      Swal.fire("បរាជ័យ", apiMessage, "error");
+    }
   } finally {
     isLoading.value = false;
   }
@@ -839,7 +1014,7 @@ export const handleRegisterAdmin = async () => {
       password: adminRegisterForm.value.password,
       confirmPassword: adminRegisterForm.value.confirmPassword,
       bio: adminRegisterForm.value.bio?.trim() || "N/A",
-      currentJob: adminRegisterForm.value.currentJob?.trim() || "",
+      currentJob: adminRegisterForm.value.currentJob.trim(),
       status: adminRegisterForm.value.status || "APPROVE",
     };
 
@@ -852,16 +1027,18 @@ export const handleRegisterAdmin = async () => {
     showAdminRegisterModal.value = false;
     clearAdminRegisterErrors();
     await fetchUsers();
-    Swal.fire("ជោគជ័យ", "គណនី Admin ត្រូវបានបង្កើតបានសម្រេច", "success");
+    Swal.fire("ជោគជ័យ", "គណនីអ្នកគ្រប់គ្រងត្រូវបានបង្កើតបានសម្រេច", "success");
   } catch (err) {
     logger.error("Admin registration error:", err);
     logger.error("Error response data:", err.response?.data);
     applyApiFieldErrors(err, adminRegisterErrors);
-    Swal.fire(
-      "បរាជ័យ",
-      getApiErrorMessage(err, registerAdminFallbackMessage),
-      "error",
-    );
+    const apiMessage = getApiErrorMessage(err, registerAdminFallbackMessage);
+    if (!hasInlineErrors(adminRegisterErrors)) {
+      applyInlineApiMessage(apiMessage, adminRegisterErrors);
+    }
+    if (!hasInlineErrors(adminRegisterErrors)) {
+      Swal.fire("បរាជ័យ", apiMessage, "error");
+    }
   } finally {
     isLoading.value = false;
   }
