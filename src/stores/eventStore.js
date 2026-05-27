@@ -62,6 +62,38 @@ export const useEventStore = defineStore("event", () => {
     const lower = text.toLowerCase();
 
     if (
+      lower.includes("permission") ||
+      lower.includes("forbidden") ||
+      lower.includes("unauthorized") ||
+      lower.includes("not allowed")
+    ) {
+      if (lower.includes("update") && lower.includes("event")) {
+        return "អ្នកមិនមានសិទ្ធិកែប្រែព្រឹត្តិការណ៍នេះទេ។";
+      }
+
+      if (lower.includes("delete") && lower.includes("event")) {
+        return "អ្នកមិនមានសិទ្ធិលុបព្រឹត្តិការណ៍នេះទេ។";
+      }
+
+      if (lower.includes("create") && lower.includes("event")) {
+        return "អ្នកមិនមានសិទ្ធិបង្កើតព្រឹត្តិការណ៍ទេ។";
+      }
+
+      if (
+        lower.includes("thumbnail") &&
+        (lower.includes("upload") || lower.includes("update"))
+      ) {
+        return "អ្នកមិនមានសិទ្ធិបង្ហោះ ឬកែប្រែរូបភាពតំណាងព្រឹត្តិការណ៍នេះទេ។";
+      }
+
+      if (lower.includes("delete") && lower.includes("thumbnail")) {
+        return "អ្នកមិនមានសិទ្ធិលុបរូបភាពតំណាងព្រឹត្តិការណ៍នេះទេ។";
+      }
+
+      return "អ្នកមិនមានសិទ្ធិគ្រប់គ្រាន់ដើម្បីអនុវត្តសកម្មភាពនេះទេ។";
+    }
+
+    if (
       lower.includes("thumbnail") &&
       (lower.includes("1mb") || lower.includes("not exceed") || lower.includes("too large"))
     ) {
