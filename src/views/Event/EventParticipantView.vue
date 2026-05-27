@@ -50,8 +50,65 @@ const participantSkeletonRows = Array.from({ length: 6 }, (_, index) => index);
 const selectedEvent = computed(() => {
     const eventId = String(selectedEventId.value || '').trim();
     if (!eventId) return null;
-    return store.events.find((event) => String(event.id) === eventId) || store.selectedEvent;
+
+    const listEvent = store.events.find((event) => String(event.id) === eventId);
+    const detailEvent = store.selectedEvent?.event || store.selectedEvent?.item || store.selectedEvent;
+    const detailEventId = detailEvent?.id ?? detailEvent?.eventId ?? detailEvent?.event_id;
+    const hasMatchingDetail = detailEvent && String(detailEventId) === eventId;
+
+    if (hasMatchingDetail) {
+        return {
+            ...(listEvent || {}),
+            ...detailEvent
+        };
+    }
+
+    return listEvent || null;
 });
+
+const readDisplayName = (value) => {
+    if (typeof value === 'string') return value.trim();
+    if (!value || typeof value !== 'object') return '';
+
+    return [
+        value.profile?.fullname,
+        value.profile?.fullName,
+        value.profile?.name,
+        value.fullname,
+        value.fullName,
+        value.name,
+        value.username,
+        value.email
+    ]
+        .map(readDisplayName)
+        .find(Boolean) || '';
+};
+
+const getEventCreatorName = (event) => {
+    const name = [
+        event?.poster,
+        event?.creator,
+        event?.createdBy,
+        event?.created_by,
+        event?.createdByUser,
+        event?.created_by_user,
+        event?.author,
+        event?.owner,
+        event?.admin,
+        event?.user,
+        event?.creatorName,
+        event?.createdByName,
+        event?.created_by_name,
+        event?.createdByFullName,
+        event?.created_by_fullname
+    ]
+        .map(readDisplayName)
+        .find(Boolean);
+
+    return name || '-';
+};
+
+const selectedEventCreatorName = computed(() => getEventCreatorName(selectedEvent.value));
 
 const selectedEventOptionLabel = computed(() => {
     const event = selectedEvent.value;
@@ -219,7 +276,7 @@ watch(() => props.id, async (newId) => {
         <div class="participant-toolbar page-toolbar mb-4">
             <div class="participant-heading">
                 <BaseButton @click="router.back()" variant="light" size="sm" shape="sharp" class="participant-back"
-                    title="Back" aria-label="Back">
+                    title="ត្រឡប់ក្រោយ" aria-label="ត្រឡប់ក្រោយ">
                     <i class="bi bi-arrow-left"></i>
                 </BaseButton>
                 <div class="min-w-0">
@@ -324,11 +381,11 @@ watch(() => props.id, async (newId) => {
         </div>
 
         <template v-else>
-                <main class="participant-detail">
+            <main class="participant-detail">
                     <div v-if="!eventExists" class="participant-panel empty-detail">
                         <div class="app-state__icon"><i class="bi bi-calendar2-event"></i></div>
                         <h5 class="fw-bold mb-2">ជ្រើសរើសព្រឹត្តិការណ៍</h5>
-                        <p class="text-muted mb-0 small">ព័ត៌មានអ្នកចូលរួមនឹងបង្ហាញនៅទីនេះបន្ទាប់ពីជ្រើសរើស event។</p>
+                        <p class="text-muted mb-0 small">ព័ត៌មានអ្នកចូលរួមនឹងបង្ហាញនៅទីនេះបន្ទាប់ពីជ្រើសរើសព្រឹត្តិការណ៍។</p>
                     </div>
 
                     <template v-else>
@@ -341,9 +398,26 @@ watch(() => props.id, async (newId) => {
                                     <div class="text-muted small fw-bold mb-1">ឈ្មោះព្រឹត្តិការណ៍</div>
                                     <h4 class="fw-bold mb-2 text-truncate">{{ selectedEvent?.title || '-' }}</h4>
                                     <div class="selected-event-meta">
-                                        <span><i class="bi bi-hash"></i>{{ selectedEventId }}</span>
-                                        <span><i class="bi bi-geo-alt"></i>{{ selectedEvent?.location || '-' }}</span>
-                                        <span><i class="bi bi-clock"></i>{{ formatDateTime(selectedEvent?.startDate) }}</span>
+                                        <span class="selected-event-meta__item">
+                                            <i class="bi bi-hash"></i>
+                                            <span class="selected-event-meta__value">{{ selectedEventId }}</span>
+                                        </span>
+                                        <span class="selected-event-meta__item" :title="selectedEvent?.location || '-'">
+                                            <i class="bi bi-geo-alt"></i>
+                                            <span class="selected-event-meta__value">{{ selectedEvent?.location || '-' }}</span>
+                                        </span>
+                                        <span class="selected-event-meta__item" :title="selectedEventCreatorName">
+                                            <i class="bi bi-person"></i>
+                                            <span class="selected-event-meta__value">{{ selectedEventCreatorName }}</span>
+                                        </span>
+                                        <span class="selected-event-meta__item" :title="`ចាប់ផ្តើម ${formatDateTime(selectedEvent?.startDate)}`">
+                                            <i class="bi bi-calendar-event"></i>
+                                            <span class="selected-event-meta__value">ចាប់ផ្តើម {{ formatDateTime(selectedEvent?.startDate) }}</span>
+                                        </span>
+                                        <span class="selected-event-meta__item" :title="`បញ្ចប់ ${formatDateTime(selectedEvent?.endDate)}`">
+                                            <i class="bi bi-calendar-check"></i>
+                                            <span class="selected-event-meta__value">បញ្ចប់ {{ formatDateTime(selectedEvent?.endDate) }}</span>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -372,11 +446,11 @@ watch(() => props.id, async (newId) => {
                                     <span class="records-dot"></span>
                                     <div>
                                         <h5 class="fw-bold mb-1">{{ activeStatusMeta.label }}</h5>
-                                        <p class="text-muted small mb-0">{{ activeParticipantCount }}អ្នកក្នុងស្ថានភាពនេះ</p>
+                                        <p class="text-muted small mb-0">{{ activeParticipantCount }} អ្នកក្នុងស្ថានភាពនេះ</p>
                                     </div>
                                 </div>
                                 <BaseButton @click="queryParticipantRecords" variant="light" size="sm" shape="sharp"
-                                    title="Refresh">
+                                    title="ធ្វើបច្ចុប្បន្នភាព" aria-label="ធ្វើបច្ចុប្បន្នភាព">
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </BaseButton>
                             </div>
@@ -424,7 +498,7 @@ watch(() => props.id, async (newId) => {
                             </BaseTable>
                         </section>
                     </template>
-                </main>
+            </main>
         </template>
     </div>
 </template>
@@ -432,11 +506,12 @@ watch(() => props.id, async (newId) => {
 <style scoped>
 .participant-page {
     --participant-primary: #216477;
-    --participant-primary-hover: #1a4f5d;
+    --participant-primary-hover: #174c59;
     --participant-border: #e2e8f0;
     --participant-muted: #64748b;
     --participant-surface: #ffffff;
     --participant-soft: #f1f7f9;
+
     min-height: 100vh;
     padding: 1rem;
     background: #f8fafc;
@@ -446,12 +521,16 @@ watch(() => props.id, async (newId) => {
     min-width: 0;
 }
 
+/* Toolbar */
 .participant-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
     padding: 1rem 1.25rem;
     border: 1px solid var(--participant-border);
-    border-radius: 12px;
+    border-radius: 8px;
     background: var(--participant-surface);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
 }
@@ -459,7 +538,7 @@ watch(() => props.id, async (newId) => {
 .participant-heading {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.9rem;
     min-width: 0;
 }
 
@@ -467,14 +546,27 @@ watch(() => props.id, async (newId) => {
     width: 38px;
     height: 38px;
     padding: 0 !important;
+    border-radius: 8px !important;
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+    background: #f8fafc !important;
+    color: var(--participant-primary) !important;
     flex: 0 0 auto;
 }
 
+.participant-heading h3 {
+    color: #0f172a;
+    letter-spacing: 0;
+}
+
+.breadcrumb {
+    font-size: 0.82rem;
+}
+
+/* Select */
 .participant-toolbar__actions {
-    width: clamp(280px, 34vw, 460px);
+    width: clamp(280px, 35vw, 470px);
 }
 
 .participant-select-wrap {
@@ -486,87 +578,383 @@ watch(() => props.id, async (newId) => {
 .participant-select-wrap__icon {
     position: absolute;
     top: 50%;
-    left: 14px;
-    z-index: 2;
+    left: 16px;
     color: var(--participant-primary);
     transform: translateY(-50%);
+    z-index: 2;
     pointer-events: none;
 }
 
 .participant-event-select {
     width: 100%;
     min-width: 0;
-    min-height: 46px;
-    padding-left: 2.65rem !important;
+    min-height: 48px;
+    padding-left: 2.8rem !important;
     padding-right: 2.5rem !important;
-    border-color: var(--participant-border);
     border-radius: 999px;
+    border: 1px solid var(--participant-border);
+    font-weight: 700;
     color: #0f172a;
-    font-weight: 600;
-    overflow: hidden;
+    background-color: #fff;
     box-shadow: none;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .participant-event-select:focus {
     border-color: var(--participant-primary);
-    box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.1);
+    box-shadow: 0 0 0 4px rgba(33, 100, 119, 0.12);
 }
 
+/* Alert */
 .participant-alert {
     display: flex;
     align-items: flex-start;
-    gap: 0.65rem;
-    padding: 0.8rem 1rem;
-    border: 1px solid;
-    border-radius: 10px;
-    font-size: 0.9rem;
+    gap: 0.7rem;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
     font-weight: 700;
 }
 
+.participant-alert i {
+    flex: 0 0 auto;
+}
+
 .participant-alert--danger {
-    border-color: #fecaca;
     background: #fff1f2;
     color: #9f1239;
+    border: 1px solid #fecdd3;
 }
 
 .participant-alert--success {
-    border-color: #bbf7d0;
     background: #f0fdf4;
     color: #166534;
+    border: 1px solid #bbf7d0;
 }
 
-.participant-layout {
+/* Panels */
+.participant-detail {
     display: grid;
-    grid-template-columns: minmax(290px, 340px) minmax(0, 1fr);
     gap: 1rem;
-    align-items: start;
 }
 
 .participant-panel {
     overflow: hidden;
+    border-radius: 8px;
     border: 1px solid var(--participant-border);
-    border-radius: 12px;
     background: var(--participant-surface);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
 }
 
-.participant-skeleton {
+/* Empty */
+.empty-detail {
+    min-height: 300px;
     display: grid;
+    place-items: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.app-state__icon {
+    width: 76px;
+    height: 76px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #216477, #37a0b7);
+    color: #fff;
+    font-size: 2rem;
+    box-shadow: 0 10px 24px rgba(33, 100, 119, 0.2);
+}
+
+/* Selected Event */
+.selected-event-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: 1rem;
+    padding: 1.15rem;
 }
 
-.participant-skeleton-records,
-.skeleton-status-card {
-    --status-accent: var(--participant-primary);
-    --status-soft: var(--participant-soft);
+.selected-event-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
 }
 
-.skeleton-status-card {
-    pointer-events: none;
+.selected-event-main > .min-w-0 {
+    flex: 1;
 }
 
+.selected-event-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    background: var(--participant-primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    box-shadow: 0 8px 18px rgba(33, 100, 119, 0.18);
+}
+
+.selected-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    min-width: 0;
+    color: var(--participant-muted);
+    font-size: 0.84rem;
+}
+
+.selected-event-meta__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: min(100%, 360px);
+    min-width: 0;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+}
+
+.selected-event-meta__item i {
+    flex: 0 0 auto;
+    color: var(--participant-primary);
+}
+
+.selected-event-meta__value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-event-total {
+    min-width: 145px;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    background: #f8fafc;
+    border: 1px solid var(--participant-border);
+}
+
+.selected-event-total strong {
+    display: block;
+    color: var(--participant-primary);
+    font-size: 2.1rem;
+    line-height: 1;
+}
+
+.selected-event-total span {
+    color: var(--participant-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+/* Status cards */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.status-card {
+    position: relative;
+    min-height: 94px;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem;
+    border: 1px solid var(--participant-border);
+    border-radius: 8px;
+    background: #fff;
+    color: inherit;
+    text-align: left;
+    overflow: hidden;
+    transition: 0.18s ease;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.status-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 4px;
+    background: var(--status-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: 0.18s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--status-accent);
+}
+
+.status-card.active {
+    background: var(--status-soft);
+    border-color: rgba(15, 23, 42, 0.06);
+}
+
+.status-card.active::after {
+    transform: scaleX(1);
+}
+
+.status-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--status-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.07);
+}
+
+.status-card__label {
+    display: block;
+    color: var(--participant-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.status-card > span:last-child {
+    min-width: 0;
+}
+
+.status-card strong {
+    color: #0f172a;
+    font-size: 1.65rem;
+}
+
+/* Records */
+.records-panel {
+    border-top: 4px solid var(--status-accent);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--participant-border);
+    background: #fff;
+}
+
+.records-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.records-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--status-accent);
+    box-shadow: 0 0 0 6px var(--status-soft);
+}
+
+/* Person */
+.participant-person {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    max-width: clamp(180px, 22vw, 280px);
+}
+
+.participant-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: #eef7fa;
+    color: var(--participant-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+}
+
+.participant-person__copy {
+    min-width: 0;
+}
+
+.participant-person__name,
+.participant-email-cell {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.participant-email-cell {
+    max-width: clamp(180px, 24vw, 300px);
+}
+
+/* Empty table */
+.participant-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1.4rem;
+    min-height: 120px;
+}
+
+.participant-empty__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: var(--status-soft);
+    color: var(--status-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Table deep */
+:deep(.base-table-wrap) {
+    border-radius: 0;
+}
+
+:deep(.base-table__header-cell) {
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+}
+
+:deep(.base-table__cell) {
+    border-color: #edf2f7;
+    color: #334155;
+}
+
+:deep(.base-table tbody tr) {
+    transition: 0.15s ease;
+}
+
+:deep(.base-table tbody tr:hover) {
+    background: #f7fdff;
+}
+
+:deep(.badge) {
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 900;
+}
+
+/* Skeleton keep simple */
 .skeleton-placeholder {
     position: relative;
     display: block;
@@ -580,15 +968,20 @@ watch(() => props.id, async (newId) => {
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent);
     animation: skeleton-shimmer 1.35s ease-in-out infinite;
 }
 
+.participant-skeleton {
+    display: grid;
+    gap: 1rem;
+}
+
 .skeleton-event-icon {
-    width: 50px;
-    height: 50px;
+    width: 52px;
+    height: 52px;
     flex: 0 0 auto;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .skeleton-event-copy,
@@ -608,12 +1001,12 @@ watch(() => props.id, async (newId) => {
 }
 
 .skeleton-line--eyebrow {
-    width: 92px;
+    width: 96px;
     height: 10px;
 }
 
 .skeleton-line--title {
-    width: min(320px, 76%);
+    width: min(320px, 78%);
     height: 22px;
     border-radius: 8px;
 }
@@ -622,6 +1015,7 @@ watch(() => props.id, async (newId) => {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .skeleton-pill {
@@ -629,47 +1023,63 @@ watch(() => props.id, async (newId) => {
 }
 
 .skeleton-pill--small {
-    width: 58px;
+    width: 56px;
 }
 
 .skeleton-pill--meta {
-    width: 128px;
+    width: 130px;
 }
 
 .skeleton-pill--date {
-    width: 156px;
+    width: 168px;
 }
 
 .skeleton-total-panel {
     display: grid;
-    justify-items: end;
+    justify-items: center;
     gap: 0.45rem;
 }
 
 .skeleton-total-number {
-    width: 56px;
+    width: 58px;
     height: 34px;
+    border-radius: 8px;
 }
 
 .skeleton-total-label {
-    width: 116px;
+    width: 112px;
     height: 12px;
 }
 
+.skeleton-status-card {
+    --status-accent: var(--participant-primary);
+    --status-soft: var(--participant-soft);
+    pointer-events: none;
+}
+
+.skeleton-status-card:hover {
+    transform: none;
+}
+
+.skeleton-status-card::after {
+    transform: scaleX(1);
+}
+
 .skeleton-status-icon {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     flex: 0 0 auto;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .skeleton-line--status-label {
-    width: 132px;
+    width: 136px;
 }
 
 .skeleton-line--status-count {
-    width: 42px;
+    width: 44px;
     height: 24px;
+    border-radius: 8px;
 }
 
 .skeleton-line--records-title {
@@ -679,7 +1089,7 @@ watch(() => props.id, async (newId) => {
 }
 
 .skeleton-line--records-subtitle {
-    width: 170px;
+    width: 176px;
     height: 10px;
 }
 
@@ -731,10 +1141,10 @@ watch(() => props.id, async (newId) => {
 }
 
 .skeleton-avatar {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     flex: 0 0 auto;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .skeleton-line--person {
@@ -759,475 +1169,19 @@ watch(() => props.id, async (newId) => {
     }
 }
 
-.panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 1.1rem;
-    border-bottom: 1px solid var(--participant-border);
-    background: #ffffff;
-}
-
-.event-panel {
-    position: sticky;
-    top: 1rem;
-}
-
-.event-list {
-    display: grid;
-    gap: 0.65rem;
-    max-height: calc(100vh - 235px);
-    overflow-y: auto;
-    padding: 0.75rem;
-}
-
-.event-list-item {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    padding: 0.85rem;
-    border: 1px solid transparent;
-    border-left: 3px solid transparent;
-    border-radius: 10px;
-    background: #f8fafc;
-    color: inherit;
-    text-align: left;
-    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-}
-
-.event-list-item:hover {
-    border-color: #cbd5e1;
-    border-left-color: var(--participant-primary);
-    background: #ffffff;
-    transform: translateY(-1px);
-}
-
-.event-list-item.active {
-    border-color: rgba(33, 100, 119, 0.35);
-    border-left-color: var(--participant-primary);
-    background: #eef6f8;
-}
-
-.event-list-item__top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-
-.event-list-item__title {
-    color: #0f172a;
-    font-size: 0.92rem;
-    font-weight: 800;
-    line-height: 1.35;
-}
-
-.event-list-item__id {
-    flex: 0 0 auto;
-    color: var(--participant-primary);
-    font-size: 0.76rem;
-    font-weight: 800;
-}
-
-.event-list-item__meta {
-    display: grid;
-    gap: 0.25rem;
-    color: var(--participant-muted);
-    font-size: 0.78rem;
-}
-
-.event-list-item__meta span,
-.selected-event-meta span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-width: 0;
-}
-
-.event-empty,
-.empty-detail {
-    min-height: 260px;
-    display: grid;
-    place-items: center;
-    padding: 2rem;
-    text-align: center;
-}
-
-.participant-detail {
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-}
-
-.selected-event-panel {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.1rem;
-}
-
-.selected-event-main {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    min-width: 0;
-}
-
-.selected-event-icon,
-.status-card__icon,
-.participant-avatar,
-.selected-person-avatar,
-.participant-empty__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-}
-
-.selected-event-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    background: var(--participant-primary);
-    color: #ffffff;
-    font-size: 1.2rem;
-}
-
-.selected-event-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem 1rem;
-    color: var(--participant-muted);
-    font-size: 0.84rem;
-}
-
-.selected-event-total {
-    min-width: 132px;
-    padding-left: 1rem;
-    border-left: 1px solid var(--participant-border);
-    text-align: right;
-}
-
-.selected-event-total strong {
-    display: block;
-    color: var(--participant-primary);
-    font-size: 1.8rem;
-    line-height: 1;
-}
-
-.selected-event-total span {
-    color: var(--participant-muted);
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
-.status-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem;
-}
-
-.status-card {
-    min-height: 82px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.9rem;
-    border: 1px solid var(--participant-border);
-    border-bottom: 3px solid transparent;
-    border-radius: 12px;
-    background: #ffffff;
-    color: inherit;
-    text-align: left;
-    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-}
-
-.status-card:hover {
-    border-color: var(--status-accent);
-    transform: translateY(-1px);
-}
-
-.status-card.active {
-    border-color: rgba(15, 23, 42, 0.08);
-    border-bottom-color: var(--status-accent);
-    background: var(--status-soft);
-}
-
-.status-card__icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: #ffffff;
-    color: var(--status-accent);
-    font-size: 1.05rem;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-}
-
-.status-card__label {
-    display: block;
-    color: var(--participant-muted);
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
-.status-card strong {
-    display: block;
-    color: #0f172a;
-    font-size: 1.45rem;
-    line-height: 1.1;
-}
-
-.response-toolbar {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto auto;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.9rem 1rem;
-    overflow: visible;
-}
-
-.response-toolbar__person {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-}
-
-.response-toolbar__controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    min-width: 0;
-}
-
-.selected-person-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: var(--participant-primary);
-    color: #ffffff;
-    font-weight: 800;
-}
-
-.status-option {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 42px;
-    padding: 0.55rem 0.75rem;
-    border: 1px solid var(--participant-border);
-    border-radius: 999px;
-    background: #ffffff;
-    cursor: pointer;
-    transition: background-color 0.16s ease, border-color 0.16s ease;
-}
-
-.status-option:hover,
-.status-option.active {
-    border-color: var(--status-accent);
-    background: var(--status-soft);
-}
-
-.status-option .form-check-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.status-option__icon {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    border-radius: 999px;
-    background: #ffffff;
-    color: var(--status-accent);
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
-}
-
-.status-option__label {
-    color: #334155;
-    font-size: 0.86rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.participant-update-btn {
-    min-height: 42px;
-    border-radius: 10px !important;
-    background: var(--participant-primary) !important;
-    border: 0 !important;
-    box-shadow: 0 6px 14px rgba(33, 100, 119, 0.18) !important;
-    white-space: nowrap;
-}
-
-.records-panel {
-    min-width: 0;
-    border-top: 3px solid var(--status-accent);
-}
-
-.records-title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-}
-
-.records-dot {
-    width: 10px;
-    height: 10px;
-    flex: 0 0 auto;
-    border-radius: 999px;
-    background: var(--status-accent);
-    box-shadow: 0 0 0 4px var(--status-soft);
-}
-
-.participant-person {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    min-width: 0;
-    max-width: clamp(180px, 22vw, 280px);
-}
-
-.participant-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #eef6f8;
-    color: var(--participant-primary);
-    font-size: 0.82rem;
-    font-weight: 800;
-}
-
-.participant-person__copy {
-    display: grid;
-    min-width: 0;
-}
-
-.participant-person__name {
-    display: block;
-    max-width: 100%;
-    color: #0f172a;
-    font-weight: 800;
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.participant-email-cell {
-    display: block;
-    max-width: clamp(180px, 24vw, 300px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.participant-empty {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    min-height: 112px;
-    padding: 1.25rem 1.5rem;
-    color: #334155;
-}
-
-.participant-empty__icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: var(--status-soft);
-    color: var(--status-accent);
-}
-
-:deep(.base-table-wrap) {
-    border-radius: 0;
-}
-
-:deep(.base-table__header-cell) {
-    background: #f8fafc !important;
-    color: var(--participant-muted) !important;
-    font-size: 0.72rem;
-    letter-spacing: 0;
-}
-
-:deep(.base-table__cell) {
-    border-color: #edf2f7;
-    color: #334155;
-}
-
-:deep(.base-table tbody tr:hover) {
-    background: #f7fdff;
-}
-
-:deep(.badge) {
-    padding: 0.48rem 0.7rem;
-    border-radius: 999px;
-    font-weight: 800;
-}
-
-:deep(.btn.active) {
-    background: var(--participant-primary) !important;
-    color: #ffffff !important;
-    border-color: var(--participant-primary) !important;
-}
-
-@media (max-width: 1199.98px) {
-    .participant-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .event-panel {
-        position: static;
-    }
-
-    .event-list {
-        max-height: 360px;
-    }
-
-    .response-toolbar {
-        grid-template-columns: 1fr;
-    }
-
-    .response-toolbar__controls {
-        justify-content: flex-start;
-    }
-}
-
+/* Responsive */
 @media (max-width: 768px) {
     .participant-page {
         padding: 0.75rem;
     }
 
     .participant-toolbar {
-        align-items: stretch !important;
-        padding: 0.9rem;
-    }
-
-    .participant-heading {
-        align-items: flex-start;
+        align-items: stretch;
+        border-radius: 8px;
     }
 
     .participant-toolbar__actions {
         width: 100%;
-    }
-
-    .participant-layout,
-    .participant-detail {
-        gap: 0.75rem;
-    }
-
-    .panel-header,
-    .selected-event-panel {
-        padding: 0.9rem;
     }
 
     .selected-event-panel {
@@ -1235,45 +1189,19 @@ watch(() => props.id, async (newId) => {
     }
 
     .selected-event-total {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 0;
-        padding: 0.75rem 0 0;
-        border-top: 1px solid var(--participant-border);
-        border-left: 0;
-        text-align: left;
+        width: 100%;
     }
 
     .status-grid {
         grid-template-columns: 1fr;
     }
 
-    .response-toolbar__controls {
-        display: grid;
-        grid-template-columns: 1fr;
+    .panel-header {
+        align-items: center;
     }
 
-    .status-option {
-        border-radius: 10px;
-    }
-
-    .participant-update-btn {
-        width: 100%;
-    }
-
-    .event-list {
-        max-height: 320px;
-    }
-
-    .participant-empty {
-        align-items: flex-start;
-        flex-direction: column;
-        padding: 1rem;
-    }
-
-    .skeleton-total-panel {
-        justify-items: start;
+    .selected-event-meta__item {
+        max-width: 100%;
     }
 
     .participant-table-skeleton {
@@ -1293,8 +1221,12 @@ watch(() => props.id, async (newId) => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .skeleton-placeholder::after {
+
+    .skeleton-placeholder::after,
+    .status-card,
+    .status-card::after {
         animation: none;
+        transition: none;
     }
 }
 </style>
