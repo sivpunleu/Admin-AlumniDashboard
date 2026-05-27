@@ -68,11 +68,11 @@ export const useEventStore = defineStore("event", () => {
       lower.includes("not allowed")
     ) {
       if (lower.includes("update") && lower.includes("event")) {
-        return "អ្នកមិនមានសិទ្ធិកែប្រែព្រឹត្តិការណ៍នេះទេ។";
+        return "អ្នកមិនមានសិទ្ធិកែប្រែព្រឹត្តិការណ៍នេះទេ​ អ្នកបង្កើតទើបមានសិទ្ធិ។";
       }
 
       if (lower.includes("delete") && lower.includes("event")) {
-        return "អ្នកមិនមានសិទ្ធិលុបព្រឹត្តិការណ៍នេះទេ។";
+        return "អ្នកមិនមានសិទ្ធិលុបព្រឹត្តិការណ៍នេះទេ​ អ្នកបង្កើតទើបមានសិទ្ធិ។";
       }
 
       if (lower.includes("create") && lower.includes("event")) {
