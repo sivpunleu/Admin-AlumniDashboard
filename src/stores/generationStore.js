@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import logger from "@/utils/logger";
 import { useAuthStore } from "@/stores/useAuth";
 import { confirmDelete } from "@/utils/confirmDialog";
+import { fetchPaginatedCollection } from "@/utils/paginatedCollection";
 
 /* ================= (STATE) ================= */
 export const generations = ref([]);
@@ -170,11 +171,7 @@ export const requireAdmin = (callback) => {
 export const fetchGenerations = async () => {
   try {
     isLoading.value = true;
-    const res = await api.get("/generations");
-    const payload = res.data?.data ?? res.data;
-    const data =
-      payload?.items ?? payload?.data?.items ?? payload?.data ?? payload;
-    generations.value = Array.isArray(data) ? data : [];
+    generations.value = await fetchPaginatedCollection(api, "/generations");
   } catch (err) {
     logger.error("Fetch Error:", err);
     generations.value = [];
