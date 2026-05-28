@@ -7,6 +7,7 @@ import logger from "@/utils/logger";
 
 export const EVENT_THUMBNAIL_MAX_SIZE_BYTES = 1024 * 1024;
 export const EVENT_THUMBNAIL_MAX_SIZE_LABEL = "1MB";
+export const EVENT_TEXT_MAX_LENGTH = 100;
 
 export const useEventStore = defineStore("event", () => {
   const events = ref([]);
@@ -98,6 +99,18 @@ export const useEventStore = defineStore("event", () => {
       (lower.includes("1mb") || lower.includes("not exceed") || lower.includes("too large"))
     ) {
       return `រូបភាពតំណាងមិនអាចលើស ${EVENT_THUMBNAIL_MAX_SIZE_LABEL} បានទេ។ សូមជ្រើសរើសរូបភាពដែលមានទំហំតូចជាងនេះ។`;
+    }
+
+    if (
+      lower.includes(String(EVENT_TEXT_MAX_LENGTH)) &&
+      (lower.includes("character") ||
+        lower.includes("length") ||
+        lower.includes("must not exceed") ||
+        lower.includes("not exceed") ||
+        lower.includes("maximum") ||
+        lower.includes("max"))
+    ) {
+      return `តួអក្សរមិនអាចលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរបានទេ។ សូមបញ្ចូលតួអក្សរមិនលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរ។`;
     }
 
     if (

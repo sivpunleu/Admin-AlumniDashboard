@@ -21,6 +21,8 @@ export const allUsersDeactivated = ref(0);
 const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
 const MIN_PASSWORD_LENGTH = 8;
+const USER_DEFAULT_SORT_BY = "id";
+const USER_DEFAULT_SORT_DIR = "DESC";
 const registerAlumniFallbackMessage = "មិនអាចបង្កើតគណនីអតីតនិស្សិតបានទេ";
 const registerAdminFallbackMessage = "មិនអាចបង្កើតគណនីអ្នកគ្រប់គ្រងបានទេ";
 const updateStatusFallbackMessage = "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ";
@@ -405,6 +407,33 @@ const matchesSearch = (user) => {
   return !query || getUserSearchText(user).includes(query);
 };
 
+const getUserCreatedTime = (user) => {
+  const rawDate =
+    user?.createdAt ||
+    user?.created_at ||
+    user?.profile?.createdAt ||
+    user?.profile?.created_at;
+  const timestamp = rawDate ? new Date(rawDate).getTime() : NaN;
+
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const getUserSortId = (user) => {
+  const rawId = user?.id ?? user?.userId ?? user?.profile?.id;
+  const numericId = Number(String(rawId || "").split(":")[0]);
+
+  return Number.isFinite(numericId) ? numericId : 0;
+};
+
+const sortNewestUsersFirst = (data) =>
+  [...data].sort((firstUser, secondUser) => {
+    const createdDiff =
+      getUserCreatedTime(secondUser) - getUserCreatedTime(firstUser);
+    if (createdDiff) return createdDiff;
+
+    return getUserSortId(secondUser) - getUserSortId(firstUser);
+  });
+
 const extractItems = (root, payload) => {
   const data =
     payload?.items ||
@@ -469,6 +498,9 @@ const getFetchParams = ({
   if (includeStatus && activeTab.value !== "ALL") {
     params.status = activeTab.value;
   }
+
+  params.sortBy = USER_DEFAULT_SORT_BY;
+  params.sortDir = USER_DEFAULT_SORT_DIR;
 
   return params;
 };
@@ -615,6 +647,8 @@ export const fetchUsers = async () => {
       usedClientFilter = usedClientFilter || statusOnly.length !== data.length;
       data = statusOnly;
     }
+
+    data = sortNewestUsersFirst(data);
 
     users.value = data;
     const { total: totalFromMeta, pages: pagesFromMeta } = getPaginationMeta(
@@ -982,6 +1016,7 @@ export const handleRegisterAlumni = async () => {
 
     showRegisterModal.value = false;
     clearRegisterErrors();
+    currentPage.value = 1;
     await fetchUsers();
     Swal.fire("ជោគជ័យ", "គណនីត្រូវបានបង្កើតបានសម្រេច", "success");
   } catch (err) {
@@ -1026,6 +1061,7 @@ export const handleRegisterAdmin = async () => {
     resetAdminRegisterForm();
     showAdminRegisterModal.value = false;
     clearAdminRegisterErrors();
+    currentPage.value = 1;
     await fetchUsers();
     Swal.fire("ជោគជ័យ", "គណនីអ្នកគ្រប់គ្រងត្រូវបានបង្កើតបានសម្រេច", "success");
   } catch (err) {
