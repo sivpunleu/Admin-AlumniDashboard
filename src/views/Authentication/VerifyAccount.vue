@@ -3,7 +3,7 @@
     <section class="verify-card" aria-label="ផ្ទៀងផ្ទាត់គណនី">
       <aside class="verify-brand" aria-label="សុវត្ថិភាពគណនី">
         <div class="verify-brand__logo">
-          <img src="@/assets/Imgage/logo.jpg" alt="ស្លាកសញ្ញាអតីតនិស្សិត" />
+          <img src="@/assets/Imgage/Logo.jpg" alt="ស្លាកសញ្ញាអតីតនិស្សិត" />
         </div>
         <div class="verify-brand__copy">
           <h1>ផ្ទៀងផ្ទាត់គណនី</h1>

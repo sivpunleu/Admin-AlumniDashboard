@@ -4,7 +4,7 @@
             <aside class="auth-recovery-brand" aria-label="ស្លាកសញ្ញាអតីតនិស្សិត">
                 <div class="auth-recovery-brand-inner">
                 <div class="auth-recovery-logo">
-                    <img src="@/assets/Imgage/logo.jpg" alt="ស្លាកសញ្ញាអតីតនិស្សិត" />
+                    <img src="@/assets/Imgage/Logo.jpg" alt="ស្លាកសញ្ញាអតីតនិស្សិត" />
                 </div>
 
                 <div class="auth-recovery-brand-copy">

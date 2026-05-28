@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="sidebar-header d-flex align-items-center p-3 border-bottom">
       <router-link to="/dashboard" class="sidebar-logo-link" aria-label="Alumni System dashboard">
-        <img src="../../assets/Imgage/logo.jpg" alt="Alumni System" class="sidebar-logo-img">
+        <img src="../../assets/Imgage/Logo.jpg" alt="Alumni System" class="sidebar-logo-img">
       </router-link>
     </div>
 
