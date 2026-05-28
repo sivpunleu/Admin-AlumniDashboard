@@ -28,7 +28,7 @@ const PRIMARY_COLOR = '#216477';
 const quickActions = [
   { label: 'គ្រប់គ្រងអតីតនិស្សិត', icon: 'bi-people-fill', route: { name: 'manager-alumni' }, tone: 'primary' },
   { label: 'ព្រឹត្តិការណ៍', icon: 'bi-calendar-event-fill', route: { name: 'event' }, tone: 'info' },
-  { label: 'ការចូលរួម', icon: 'bi-person-check-fill', route: { name: 'participant' }, tone: 'success' },
+  { label: 'ជំនាន់និស្សិត', icon: 'bi-people-fill', route: { name: 'generations' }, tone: 'success' },
   { label: 'ដេប៉ាតឺម៉ង់', icon: 'bi-diagram-3-fill', route: { name: 'department' }, tone: 'warning' }
 ];
 const recentSkeletonRows = Array.from({ length: 5 }, (_, index) => index);
@@ -133,7 +133,6 @@ const getStatusLabel = (status) => {
   return 'រង់ចាំ';
 };
 
-// ២. Function ទាញយកទិន្នន័យពី API
 const getUserStatus = (user) => {
   if (!user) return 'PENDING';
   const status = normalizeStatus(
@@ -266,7 +265,9 @@ const fetchDashboardData = async () => {
         .filter(u => getUserStatus(u) === 'PENDING')
         .sort((a, b) => getTimestamp(getUserDateValue(b)) - getTimestamp(getUserDateValue(a)))
         .slice(0, 4);
-      recentRegistrations.value = allUsers.slice(0, 5);
+      recentRegistrations.value = [...allUsers]
+        .sort((a, b) => getTimestamp(getUserDateValue(b)) - getTimestamp(getUserDateValue(a)))
+        .slice(0, 5);
     }
 
     if (Array.isArray(allEvents)) {
@@ -298,7 +299,6 @@ onMounted(() => {
 
 <template>
   <div class="dashboard-container">
-    <!-- ផ្នែកក្បាល (Header Section) -->
     <div class="dashboard-page-header d-flex justify-content-between align-items-center">
       <div>
         <h2 class="dashboard-title fw-bold mb-1">ទិដ្ឋភាពទូទៅ</h2>
@@ -312,7 +312,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- ផ្នែកកាតស្ថិតិ (Stats Cards Section) -->
     <div class="quick-actions-grid row g-3">
       <div v-for="action in quickActions" :key="action.route.name" class="col-12 col-sm-6 col-xl-3">
         <button type="button" class="quick-action w-100" :class="`quick-action--${action.tone}`"
@@ -327,7 +326,7 @@ onMounted(() => {
     </div>
 
     <div class="stats-grid row g-3">
-      <!-- អតីតនិស្សិតសរុប -->
+
       <div class="col-12 col-sm-6 col-xl-3">
         <div class="card metric-card metric-card--primary h-100">
           <div class="d-flex align-items-center">
@@ -417,7 +416,8 @@ onMounted(() => {
               </div>
             </div>
 
-            <div v-else-if="!pendingApprovals.length" key="approval-empty" class="dashboard-empty dashboard-empty--compact">
+            <div v-else-if="!pendingApprovals.length" key="approval-empty"
+              class="dashboard-empty dashboard-empty--compact">
               <div class="dashboard-empty__icon">
                 <i class="bi bi-check2-circle"></i>
               </div>
@@ -504,13 +504,12 @@ onMounted(() => {
         <div class="card dashboard-panel h-100">
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0">ការចុះឈ្មោះថ្មីៗ</h5>
-            <button @click="goToAlumniRecords"
-              class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
+            <button @click="goToAlumniRecords" class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
           </div>
 
           <Transition name="dashboard-content-swap" mode="out-in">
-            <div v-if="isLoading" key="recent-loading" class="dashboard-table-skeleton" aria-busy="true" aria-live="polite"
-              aria-label="កំពុងផ្ទុកការចុះឈ្មោះថ្មីៗ">
+            <div v-if="isLoading" key="recent-loading" class="dashboard-table-skeleton" aria-busy="true"
+              aria-live="polite" aria-label="កំពុងផ្ទុកការចុះឈ្មោះថ្មីៗ">
               <div class="skeleton-table-header">
                 <span class="skeleton-placeholder skeleton-heading"></span>
                 <span class="skeleton-placeholder skeleton-heading skeleton-heading--center"></span>
@@ -550,19 +549,13 @@ onMounted(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="user in recentRegistrations"
-                    :key="user.id || getUserEmail(user)"
-                    class="dashboard-clickable-row"
-                    role="button"
-                    tabindex="0"
-                    @click="goToAlumniRecord(user)"
-                    @keydown.enter.prevent="goToAlumniRecord(user)"
-                    @keydown.space.prevent="goToAlumniRecord(user)"
-                  >
+                  <tr v-for="user in recentRegistrations" :key="user.id || getUserEmail(user)"
+                    class="dashboard-clickable-row" role="button" tabindex="0" @click="goToAlumniRecord(user)"
+                    @keydown.enter.prevent="goToAlumniRecord(user)" @keydown.space.prevent="goToAlumniRecord(user)">
                     <td>
                       <div class="recent-registration-user d-flex align-items-center">
-                        <div class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
+                        <div
+                          class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
                           :style="{ backgroundColor: PRIMARY_COLOR }">
                           {{ getUserInitial(user) }}
                         </div>
@@ -588,13 +581,8 @@ onMounted(() => {
                     </td>
                     <td class="text-end" @click.stop>
                       <div class="dropdown dashboard-row-menu">
-                        <button
-                          type="button"
-                          class="table-action-btn"
-                          data-bs-toggle="dropdown"
-                          aria-expanded="false"
-                          :aria-label="`បើកម៉ឺនុយសម្រាប់ ${getUserDisplayName(user)}`"
-                        >
+                        <button type="button" class="table-action-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                          :aria-label="`បើកម៉ឺនុយសម្រាប់ ${getUserDisplayName(user)}`">
                           <i class="bi bi-three-dots"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end dashboard-action-menu">
@@ -604,7 +592,8 @@ onMounted(() => {
                             </button>
                           </li>
                           <li v-if="canApproveUser(user)">
-                            <button type="button" class="dropdown-item text-success" @click="handleApproveFromDashboard(user)">
+                            <button type="button" class="dropdown-item text-success"
+                              @click="handleApproveFromDashboard(user)">
                               <i class="bi bi-check2-circle me-2"></i>អនុម័ត
                             </button>
                           </li>
@@ -645,8 +634,8 @@ onMounted(() => {
           </div>
 
           <Transition name="dashboard-content-swap" mode="out-in">
-            <div v-if="isLoading" key="upcoming-loading" class="upcoming-skeleton-list" aria-busy="true" aria-live="polite"
-              aria-label="កំពុងផ្ទុកព្រឹត្តិការណ៍ជិតមកដល់">
+            <div v-if="isLoading" key="upcoming-loading" class="upcoming-skeleton-list" aria-busy="true"
+              aria-live="polite" aria-label="កំពុងផ្ទុកព្រឹត្តិការណ៍ជិតមកដល់">
               <div v-for="row in upcomingSkeletonRows" :key="row" class="upcoming-event skeleton-upcoming-event">
                 <span class="skeleton-event-lines">
                   <span class="skeleton-placeholder skeleton-line skeleton-line--event-title"></span>
@@ -1136,7 +1125,7 @@ onMounted(() => {
   animation: dashboardPageSweep 9s ease-in-out infinite;
 }
 
-.dashboard-container > * {
+.dashboard-container>* {
   position: relative;
   z-index: 1;
 }
@@ -1163,7 +1152,7 @@ onMounted(() => {
   animation: dashboardHeaderSweep 5.8s ease-in-out infinite;
 }
 
-.dashboard-page-header > * {
+.dashboard-page-header>* {
   position: relative;
   z-index: 1;
 }
@@ -1219,23 +1208,23 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-.quick-actions-grid > *,
-.stats-grid > * {
+.quick-actions-grid>*,
+.stats-grid>* {
   animation: dashboardCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.quick-actions-grid > *:nth-child(2),
-.stats-grid > *:nth-child(2) {
+.quick-actions-grid>*:nth-child(2),
+.stats-grid>*:nth-child(2) {
   animation-delay: 0.06s;
 }
 
-.quick-actions-grid > *:nth-child(3),
-.stats-grid > *:nth-child(3) {
+.quick-actions-grid>*:nth-child(3),
+.stats-grid>*:nth-child(3) {
   animation-delay: 0.12s;
 }
 
-.quick-actions-grid > *:nth-child(4),
-.stats-grid > *:nth-child(4) {
+.quick-actions-grid>*:nth-child(4),
+.stats-grid>*:nth-child(4) {
   animation-delay: 0.18s;
 }
 
@@ -1335,7 +1324,7 @@ onMounted(() => {
   transform: translateX(100%);
 }
 
-.metric-card.card > * {
+.metric-card.card>* {
   position: relative;
   z-index: 1;
 }
@@ -1380,11 +1369,11 @@ onMounted(() => {
   animation: dashboardNumberPop 0.34s ease both;
 }
 
-.dashboard-container > .row.g-4 > * {
+.dashboard-container>.row.g-4>* {
   animation: dashboardCardIn 0.54s cubic-bezier(0.16, 1, 0.3, 1) both 0.12s;
 }
 
-.dashboard-container > .row.g-4 > *:nth-child(2) {
+.dashboard-container>.row.g-4>*:nth-child(2) {
   animation-delay: 0.2s;
 }
 
@@ -1654,7 +1643,7 @@ button.approval-item:focus-visible .approval-action {
   outline: 0;
 }
 
-.dashboard-clickable-row:focus-visible > * {
+.dashboard-clickable-row:focus-visible>* {
   background-color: var(--dashboard-soft);
   box-shadow: inset 0 0 0 2px var(--dashboard-ring);
 }
@@ -1684,7 +1673,7 @@ button.approval-item:focus-visible .approval-action {
   transition: transform 0.2s ease;
 }
 
-.table-hover > tbody > tr:hover .avatar-sq {
+.table-hover>tbody>tr:hover .avatar-sq {
   transform: scale(1.05);
 }
 
@@ -1762,15 +1751,15 @@ button.approval-item:focus-visible .approval-action {
   gap: 0.75rem;
 }
 
-.upcoming-list > * {
+.upcoming-list>* {
   animation: dashboardFieldIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.upcoming-list > *:nth-child(2) {
+.upcoming-list>*:nth-child(2) {
   animation-delay: 0.06s;
 }
 
-.upcoming-list > *:nth-child(3) {
+.upcoming-list>*:nth-child(3) {
   animation-delay: 0.12s;
 }
 
@@ -1823,6 +1812,7 @@ button.approval-item:focus-visible .approval-action {
 }
 
 @keyframes dashboardPageSweep {
+
   0%,
   24% {
     opacity: 0;
@@ -1841,6 +1831,7 @@ button.approval-item:focus-visible .approval-action {
 }
 
 @keyframes dashboardHeaderSweep {
+
   0%,
   28% {
     opacity: 0;
@@ -1907,6 +1898,7 @@ button.approval-item:focus-visible .approval-action {
 }
 
 @keyframes dashboardStatusPulse {
+
   0%,
   100% {
     box-shadow: 0 0 0 rgba(33, 100, 119, 0);
@@ -1920,6 +1912,7 @@ button.approval-item:focus-visible .approval-action {
 }
 
 @keyframes dashboardEmptyIcon {
+
   0%,
   100% {
     transform: translateY(0);
@@ -1977,6 +1970,7 @@ button.approval-item:focus-visible .approval-action {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
