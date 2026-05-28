@@ -5,7 +5,7 @@
       <aside class="admin-login-brand" aria-label="Alumni brand">
         <div class="admin-login-logo-wrapper">
           <div class="admin-login-logo">
-            <img src=".././../assets/Imgage/logo.jpg" alt="Alumni Logo" class="admin-login-logo-img" />
+            <img src=".././../assets/Imgage/Logo.jpg" alt="Alumni Logo" class="admin-login-logo-img" />
           </div>
         </div>
 
