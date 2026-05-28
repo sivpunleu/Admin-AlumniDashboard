@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { EVENT_THUMBNAIL_MAX_SIZE_LABEL, useEventStore } from '@/stores/eventStore';
+import { EVENT_TEXT_MAX_LENGTH, EVENT_THUMBNAIL_MAX_SIZE_LABEL, useEventStore } from '@/stores/eventStore';
 import { useCategoryStore } from '@/stores/categoryStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
@@ -17,6 +17,7 @@ const currentId = ref(null);
 const isSubmitting = ref(false);
 const defaultThumbnailUrl = 'https://via.placeholder.com/100x60?text=Default';
 const thumbnailUploadHint = `អតិបរមា ${EVENT_THUMBNAIL_MAX_SIZE_LABEL}`;
+const textMaxLengthMessage = `តួអក្សរមិនអាចលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរបានទេ។ សូមបញ្ចូលតួអក្សរមិនលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរ។`;
 
 const tableColumns = [
     { key: 'title', label: 'ចំណងជើង' },
@@ -124,6 +125,8 @@ const validateForm = () => {
 
     if (!form.title) {
         errors.title = 'សូមបញ្ចូលចំណងជើង';
+    } else if (form.title.length > EVENT_TEXT_MAX_LENGTH) {
+        errors.title = textMaxLengthMessage;
     }
 
     if (!form.startDate || Number.isNaN(start.getTime())) {
@@ -138,6 +141,8 @@ const validateForm = () => {
 
     if (!form.location) {
         errors.location = 'សូមបញ្ចូលទីតាំង';
+    } else if (form.location.length > EVENT_TEXT_MAX_LENGTH) {
+        errors.location = textMaxLengthMessage;
     }
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
@@ -313,8 +318,8 @@ const formatDateTime = (value) => {
                     <div class="col-12">
                         <label class="small fw-bold">ចំណងជើង *</label>
                         <input v-model="form.title" type="text" class="form-control"
-                            :class="{ 'is-invalid': errors.title }" required @input="errors.title = ''"
-                            @blur="validateForm">
+                            :class="{ 'is-invalid': errors.title }" :maxlength="EVENT_TEXT_MAX_LENGTH" required
+                            @input="errors.title = ''" @blur="validateForm">
                         <div v-if="errors.title" class="invalid-feedback">{{ errors.title }}</div>
                     </div>
                     <div class="col-md-6">
@@ -334,8 +339,8 @@ const formatDateTime = (value) => {
                     <div class="col-md-8">
                         <label class="small fw-bold">ទីតាំង *</label>
                         <input v-model="form.location" type="text" class="form-control"
-                            :class="{ 'is-invalid': errors.location }" required @input="errors.location = ''"
-                            @blur="validateForm">
+                            :class="{ 'is-invalid': errors.location }" :maxlength="EVENT_TEXT_MAX_LENGTH" required
+                            @input="errors.location = ''" @blur="validateForm">
                         <div v-if="errors.location" class="invalid-feedback">{{ errors.location }}</div>
                     </div>
                     <div class="col-md-4">

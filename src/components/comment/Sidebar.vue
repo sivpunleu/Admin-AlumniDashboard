@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="sidebar-header d-flex align-items-center p-3 border-bottom">
       <router-link to="/dashboard" class="sidebar-logo-link" aria-label="Alumni System dashboard">
-        <img src="../../assets/Imgage/logo.png" alt="Alumni System" class="sidebar-logo-img">
+        <img src="../../assets/Imgage/logo.jpg" alt="Alumni System" class="sidebar-logo-img">
       </router-link>
     </div>
 
@@ -189,9 +189,6 @@ const handleLogout = () => {
   transition: background-color 0.2s ease;
 }
 
-.sidebar-logo-link:hover {
-  background: #f8fafc;
-}
 
 .sidebar-logo-img {
   width: min(120px, 80%);
