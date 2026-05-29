@@ -12,11 +12,15 @@ export const generationDetails = ref(null);
 export const isLoading = ref(false);
 export const searchQuery = ref("");
 
+const generationListSortParams = {
+  sortBy: "id",
+  sortDir: "DESC",
+};
+
 const isSuccessResponse = (data) =>
   data == null || (data.result !== false && data.success !== false);
 
-const generationInUseMessage =
-  "មិនអាចលុបជំនាន់នេះបានទេ ព្រោះមានការកំពុងប្រើប្រាស់។";
+const generationInUseMessage = "ជំនាន់នេះកំពុងប្រើប្រាស់ មិនអាចលុបបានឡើយទេ";
 const fetchFallbackMessage = "មិនអាចទាញទិន្នន័យបញ្ជីជំនាន់បានទេ";
 const fetchDetailsFallbackMessage = "មិនអាចទាញព័ត៌មានលម្អិតនៃជំនាន់នេះបានទេ";
 const createFallbackMessage = "មិនអាចបង្កើតជំនាន់ថ្មីបានទេ";
@@ -142,6 +146,23 @@ const escapeHtml = (value = "") =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const getGenerationIdNumber = (generation) => {
+  const id = Number(generation?.id ?? generation?._id ?? 0);
+  return Number.isFinite(id) ? id : 0;
+};
+
+const sortGenerationsByIdDesc = (items = []) =>
+  [...items].sort((a, b) => {
+    const idDiff = getGenerationIdNumber(b) - getGenerationIdNumber(a);
+    if (idDiff) return idDiff;
+
+    return String(b?.id ?? b?._id ?? "").localeCompare(
+      String(a?.id ?? a?._id ?? ""),
+      undefined,
+      { numeric: true },
+    );
+  });
+
 /* ================= (ADMIN ROLE CHECK) ================= */
 export const requireAdmin = (callback) => {
   const auth = useAuthStore();
@@ -171,7 +192,10 @@ export const requireAdmin = (callback) => {
 export const fetchGenerations = async () => {
   try {
     isLoading.value = true;
-    generations.value = await fetchPaginatedCollection(api, "/generations");
+    const items = await fetchPaginatedCollection(api, "/generations", {
+      params: generationListSortParams,
+    });
+    generations.value = sortGenerationsByIdDesc(items);
   } catch (err) {
     logger.error("Fetch Error:", err);
     generations.value = [];

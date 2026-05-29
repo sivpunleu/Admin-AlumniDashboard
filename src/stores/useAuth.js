@@ -275,6 +275,18 @@ const isInvalidPasswordError = (authError) => {
   );
 };
 
+const isInvalidCurrentPasswordError = (authError) => {
+  const detail = getAuthErrorSearchText(authError);
+
+  return (
+    detail.includes("current") &&
+    detail.includes("password") &&
+    (detail.includes("invalid") ||
+      detail.includes("incorrect") ||
+      detail.includes("wrong"))
+  );
+};
+
 const extractResetToken = (responseData) => {
   const payload = responseData?.data || responseData || {};
   return payload.token || payload.resetToken || payload.reset_token || "";
@@ -524,7 +536,15 @@ export const useAuthStore = defineStore("auth", () => {
 
       return responseData;
     } catch (error) {
-      throw createAuthError(error, "មិនអាចផ្លាស់ប្តូរពាក្យសម្ងាត់បានទេ។");
+      const authError = createAuthError(error, "មិនអាចផ្លាស់ប្តូរពាក្យសម្ងាត់បានទេ។");
+
+      if (isInvalidCurrentPasswordError(authError)) {
+        const message = "ពាក្យសម្ងាត់បច្ចុប្បន្នមិនត្រឹមត្រូវ។";
+        authError.message = message;
+        authError.fieldErrors.currentPassword = message;
+      }
+
+      throw authError;
     } finally {
       sessionRefreshing.value = false;
     }

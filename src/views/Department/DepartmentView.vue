@@ -79,7 +79,9 @@ const validateForm = () => {
         errors.name = `ឈ្មោះដេប៉ាតឺម៉ង់មិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
-    if (form.description.length > DESCRIPTION_MAX_LENGTH) {
+    if (!form.description) {
+        errors.description = 'ការពិពណ៌នាមិនអាចទទេបានទេ។';
+    } else if (form.description.length > DESCRIPTION_MAX_LENGTH) {
         errors.description = `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
@@ -212,13 +214,12 @@ const handleSubmit = async () => {
             </div>
         </div>
 
-        <!-- ប្រើប្រាស់ BaseModal សម្រាប់ទម្រង់បញ្ចូលទិន្នន័យ -->
         <BaseModal v-model="isModalOpen" :title="isEditing ? 'កែប្រែដេប៉ាតឺម៉ង់' : 'បង្កើតដេប៉ាតឺម៉ង់ថ្មី'" size="md">
             <template #default>
                 <form id="department-form" class="app-form" novalidate @submit.prevent="handleSubmit">
                     <div class="app-form">
                         <div>
-                            <label class="form-label small fw-bold text-muted">ឈ្មោះដេប៉ាតឺម៉ង់</label>
+                            <label class="form-label small fw-bold text-muted">ឈ្មោះដេប៉ាតឺម៉ង់ *</label>
                             <input v-model="form.name" type="text" class="form-control custom-input py-2"
                                 :class="{ 'is-invalid': errors.name }" placeholder="បញ្ចូលឈ្មោះដេប៉ាតឺម៉ង់..." required
                                 :maxlength="NAME_MAX_LENGTH"
@@ -226,10 +227,11 @@ const handleSubmit = async () => {
                             <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                         </div>
                         <div>
-                            <label class="form-label small fw-bold text-muted">ការពិពណ៌នា </label>
+                            <label class="form-label small fw-bold text-muted">ការពិពណ៌នា *</label>
                             <textarea v-model="form.description" class="form-control custom-input" rows="4"
                                 :class="{ 'is-invalid': errors.description }"
                                 :maxlength="DESCRIPTION_MAX_LENGTH"
+                                required
                                 placeholder="បន្ថែមព័ត៌មានលម្អិតអំពីដេប៉ាតឺម៉ង់នេះ..."
                                 @input="errors.description = ''" @blur="validateForm"></textarea>
                             <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>

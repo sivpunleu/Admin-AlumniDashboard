@@ -27,6 +27,8 @@ export const useDepartmentStore = defineStore("department", () => {
   const createFallbackMessage = "មិនអាចបង្កើតបានទេ";
   const updateFallbackMessage = "មិនអាចកែប្រែទិន្នន័យបានទេ";
   const deleteFallbackMessage = "មិនអាចលុបទិន្នន័យនេះបានទេ";
+  const invalidInputFallbackMessage =
+    "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -62,6 +64,7 @@ export const useDepartmentStore = defineStore("department", () => {
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
+    const hasKhmerText = /[\u1780-\u17ff]/.test(text);
 
     if (lower.includes("name") && lower.includes("must not exceed")) {
       return "ឈ្មោះដេប៉ាតឺម៉ង់មិនអាចលើស 100 តួអក្សរបានទេ។";
@@ -69,6 +72,17 @@ export const useDepartmentStore = defineStore("department", () => {
 
     if (lower.includes("description") && lower.includes("must not exceed")) {
       return "ការពិពណ៌នាដេប៉ាតឺម៉ង់មិនអាចលើស 500 តួអក្សរបានទេ។";
+    }
+
+    if (
+      lower.includes("description") &&
+      (lower.includes("empty") ||
+        lower.includes("cannot be empty") ||
+        lower.includes("must not be empty") ||
+        lower.includes("must not be blank") ||
+        lower.includes("required"))
+    ) {
+      return "ការពិពណ៌នាមិនអាចទទេបានទេ។";
     }
 
     if (lower.includes("name") && (lower.includes("required") || lower.includes("empty"))) {
@@ -83,10 +97,12 @@ export const useDepartmentStore = defineStore("department", () => {
     }
 
     if (isGenericApiMessage(text)) {
-      return fallbackMessage || "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+      return fallbackMessage || invalidInputFallbackMessage;
     }
 
-    return text || fallbackMessage;
+    if (hasKhmerText || !fallbackMessage) return text || fallbackMessage;
+
+    return fallbackMessage || invalidInputFallbackMessage;
   };
 
   const getApiErrorMessage = (err, fallbackMessage) => {
