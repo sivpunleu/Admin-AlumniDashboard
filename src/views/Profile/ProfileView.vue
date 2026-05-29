@@ -111,6 +111,7 @@
                                         <input v-model="form.fullname" type="text" :disabled="!isEditing"
                                             class="form-control custom-input"
                                             :class="{ 'input-active': isEditing, 'is-invalid': errors.fullname }"
+                                            :maxlength="FULLNAME_MAX_LENGTH"
                                             @input="errors.fullname = ''">
                                         <div v-if="errors.fullname" class="invalid-feedback">{{ errors.fullname }}</div>
                                     </div>
@@ -125,7 +126,11 @@
                                     <div class="col-12">
                                         <label class="form-label label-custom">ការងារបច្ចុប្បន្ន</label>
                                         <input v-model="form.currentJob" type="text" :disabled="!isEditing"
-                                            class="form-control custom-input" :class="{ 'input-active': isEditing }">
+                                            class="form-control custom-input"
+                                            :class="{ 'input-active': isEditing, 'is-invalid': errors.currentJob }"
+                                            :maxlength="CURRENT_JOB_MAX_LENGTH"
+                                            @input="errors.currentJob = ''">
+                                        <div v-if="errors.currentJob" class="invalid-feedback">{{ errors.currentJob }}</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label label-custom">ជំនាន់</label>
@@ -162,7 +167,10 @@
                                         <label class="form-label label-custom">ជីវប្រវត្តិ</label>
                                         <textarea v-model="form.bio" :disabled="!isEditing"
                                             class="form-control custom-input" rows="4"
-                                            :class="{ 'input-active': isEditing }"></textarea>
+                                            :class="{ 'input-active': isEditing, 'is-invalid': errors.bio }"
+                                            :maxlength="BIO_MAX_LENGTH"
+                                            @input="errors.bio = ''"></textarea>
+                                        <div v-if="errors.bio" class="invalid-feedback">{{ errors.bio }}</div>
                                     </div>
                                 </div>
 
@@ -229,11 +237,16 @@ const form = reactive({
 const errors = reactive({
     fullname: '',
     phone: '',
+    currentJob: '',
+    bio: '',
     generationId: '',
     departmentId: '',
 });
 
 const generationOptions = computed(() => generationStore.generations.value || []);
+const FULLNAME_MAX_LENGTH = 50;
+const CURRENT_JOB_MAX_LENGTH = 100;
+const BIO_MAX_LENGTH = 500;
 const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
 
 const normalizeId = (value) => {
@@ -256,6 +269,22 @@ const isValidPhone = (value) => {
 const clearErrors = () => {
     Object.keys(errors).forEach((key) => {
         errors[key] = '';
+    });
+};
+
+const readFirstError = (value) => {
+    if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
+    if (value && typeof value === 'object') {
+        return Object.values(value).map(readFirstError).find(Boolean);
+    }
+    return value;
+};
+
+const applyProfileStoreErrors = () => {
+    Object.entries(profileStore.errors || {}).forEach(([field, value]) => {
+        if (!Object.prototype.hasOwnProperty.call(errors, field)) return;
+
+        errors[field] = String(readFirstError(value) || '');
     });
 };
 
@@ -474,10 +503,20 @@ const validateProfileForm = () => {
 
     if (!form.fullname) {
         errors.fullname = 'សូមបញ្ចូលឈ្មោះពេញលេញ';
+    } else if (form.fullname.length > FULLNAME_MAX_LENGTH) {
+        errors.fullname = `ឈ្មោះពេញមិនអាចលើស ${FULLNAME_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
     if (form.phone && !isValidPhone(form.phone)) {
         errors.phone = 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
+    }
+
+    if (form.currentJob.length > CURRENT_JOB_MAX_LENGTH) {
+        errors.currentJob = `ការងារបច្ចុប្បន្នមិនអាចលើស ${CURRENT_JOB_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    if (form.bio.length > BIO_MAX_LENGTH) {
+        errors.bio = `ជីវប្រវត្តិមិនអាចលើស ${BIO_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
     if (requiresAcademicInfo.value && !generationId) {
@@ -509,6 +548,7 @@ const handleUpdateProfile = async () => {
         });
         isEditing.value = false;
     } catch (error) {
+        applyProfileStoreErrors();
         logger.error("Profile update failed:", error);
     }
 };
