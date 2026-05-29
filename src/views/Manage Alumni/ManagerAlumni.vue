@@ -743,12 +743,13 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
+        <label class="form-label fw-bold small">លេខទូរស័ព្ទ *</label>
         <input v-model="store.registerForm.value.phone" type="tel" class="form-control"
-          autocomplete="off" :class="{ 'is-invalid': store.registerErrors.value.phone }"
+          autocomplete="off" inputmode="numeric" pattern="[0-9]*" :maxlength="store.PHONE_MAX_DIGITS"
+          :class="{ 'is-invalid': store.registerErrors.value.phone }"
           @input="store.validateRegisterField('phone')"
           @blur="store.validateRegisterField('phone')"
-          placeholder="បញ្ចូលលេខទូរស័ព្ទ" />
+          placeholder="បញ្ចូលលេខទូរស័ព្ទ" required />
         <div v-if="store.registerErrors.value.phone" class="invalid-feedback">
           {{ store.registerErrors.value.phone }}
         </div>
@@ -903,12 +904,13 @@ const tableColumns = [
       </div>
 
       <div>
-        <label class="form-label fw-bold small">លេខទូរស័ព្ទ</label>
+        <label class="form-label fw-bold small">លេខទូរស័ព្ទ *</label>
         <input v-model="store.adminRegisterForm.value.phone" type="tel" class="form-control"
-          autocomplete="off" :class="{ 'is-invalid': store.adminRegisterErrors.value.phone }"
+          autocomplete="off" inputmode="numeric" pattern="[0-9]*" :maxlength="store.PHONE_MAX_DIGITS"
+          :class="{ 'is-invalid': store.adminRegisterErrors.value.phone }"
           placeholder="បញ្ចូលលេខទូរស័ព្ទ"
           @input="store.validateAdminRegisterField('phone')"
-          @blur="store.validateAdminRegisterField('phone')" />
+          @blur="store.validateAdminRegisterField('phone')" required />
         <div v-if="store.adminRegisterErrors.value.phone" class="invalid-feedback">
           {{ store.adminRegisterErrors.value.phone }}
         </div>

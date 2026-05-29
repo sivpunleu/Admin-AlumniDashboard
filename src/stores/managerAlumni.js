@@ -234,7 +234,7 @@ const applyApiFieldErrors = (err, targetErrors) => {
   });
 };
 
-const applyInlineApiMessage = (message, targetErrors) => {
+const applyInlineApiMessage = (message, targetErrors, options = {}) => {
   const text = String(message || "").trim();
   if (!text) return false;
 
@@ -243,7 +243,11 @@ const applyInlineApiMessage = (message, targetErrors) => {
   } else if (text.includes("អ៊ីមែល")) {
     targetErrors.value.email = text;
   } else if (text.includes("លេខទូរស័ព្ទ")) {
-    targetErrors.value.phone = text;
+    if (String(options.phone || "").trim()) {
+      targetErrors.value.phone = text;
+    } else {
+      targetErrors.value.form = text;
+    }
   } else if (text.includes("ដេប៉ាតឺម៉ង់")) {
     targetErrors.value.departmentId = text;
   } else if (text.includes("ជំនាន់")) {
@@ -734,16 +738,24 @@ export const requireAdmin = (callback) => {
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
+const PHONE_MIN_DIGITS = 7;
+export const PHONE_MAX_DIGITS = 10;
+const PHONE_PATTERN = /^[0-9]+$/;
+const phoneMaxDigitsMessage = `លេខទូរស័ព្ទមិនអាចបញ្ចូលលើស${PHONE_MAX_DIGITS}លេខទេ`;
 const PASSWORD_COMPLEXITY_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
 const ALLOWED_STATUSES = ["PENDING", "APPROVE", "REJECT"];
+
+const normalizePhoneValue = (value) =>
+  String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, PHONE_MAX_DIGITS);
 
 const isValidPhone = (value) => {
   const phone = String(value || "").trim();
   if (!phone) return true;
 
   const digitCount = phone.replace(/\D/g, "").length;
-  return PHONE_PATTERN.test(phone) && digitCount >= 7 && digitCount <= 15;
+  return PHONE_PATTERN.test(phone) && digitCount >= PHONE_MIN_DIGITS && digitCount <= PHONE_MAX_DIGITS;
 };
 
 const isPositiveInteger = (value) => {
@@ -787,7 +799,9 @@ const getFormFieldError = (form, field, options = {}) => {
   }
 
   if (field === "phone") {
-    return phone && !isValidPhone(phone) ? "លេខទូរស័ព្ទមិនត្រឹមត្រូវ" : "";
+    if (!phone) return "សូមបញ្ចូលលេខទូរស័ព្ទ";
+    if (phone.replace(/\D/g, "").length > PHONE_MAX_DIGITS) return phoneMaxDigitsMessage;
+    return isValidPhone(phone) ? "" : "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
   if (field === "password") {
@@ -833,21 +847,31 @@ const validateField = (form, targetErrors, field, options = {}) => {
   return !message;
 };
 
-export const validateRegisterField = (field) =>
-  validateField(registerForm.value, registerErrors, field, {
+export const validateRegisterField = (field) => {
+  if (field === "phone") {
+    registerForm.value.phone = normalizePhoneValue(registerForm.value.phone);
+  }
+
+  return validateField(registerForm.value, registerErrors, field, {
     requireDepartment: true,
     requireGeneration: true,
   });
+};
 
-export const validateAdminRegisterField = (field) =>
-  validateField(adminRegisterForm.value, adminRegisterErrors, field);
+export const validateAdminRegisterField = (field) => {
+  if (field === "phone") {
+    adminRegisterForm.value.phone = normalizePhoneValue(adminRegisterForm.value.phone);
+  }
+
+  return validateField(adminRegisterForm.value, adminRegisterErrors, field);
+};
 
 const validateRegisterForm = () => {
   clearRegisterErrors();
 
   const form = registerForm.value;
   const email = form.email?.trim() || "";
-  const phone = form.phone?.trim() || "";
+  const phone = normalizePhoneValue(form.phone);
   const status = normalizeStatus(form.status);
   const currentJob = form.currentJob?.trim() || "";
 
@@ -867,7 +891,11 @@ const validateRegisterForm = () => {
     registerErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
   }
 
-  if (phone && !isValidPhone(phone)) {
+  if (!phone) {
+    registerErrors.value.phone = "សូមបញ្ចូលលេខទូរស័ព្ទ";
+  } else if (phone.length > PHONE_MAX_DIGITS) {
+    registerErrors.value.phone = phoneMaxDigitsMessage;
+  } else if (!isValidPhone(phone)) {
     registerErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
@@ -906,7 +934,7 @@ const validateAdminRegisterForm = () => {
 
   const form = adminRegisterForm.value;
   const email = form.email?.trim() || "";
-  const phone = form.phone?.trim() || "";
+  const phone = normalizePhoneValue(form.phone);
   const status = normalizeStatus(form.status);
   const currentJob = form.currentJob?.trim() || "";
 
@@ -926,7 +954,11 @@ const validateAdminRegisterForm = () => {
     adminRegisterErrors.value.email = "ទម្រង់អ៊ីម៉ែលមិនត្រឹមត្រូវ";
   }
 
-  if (phone && !isValidPhone(phone)) {
+  if (!phone) {
+    adminRegisterErrors.value.phone = "សូមបញ្ចូលលេខទូរស័ព្ទ";
+  } else if (phone.length > PHONE_MAX_DIGITS) {
+    adminRegisterErrors.value.phone = phoneMaxDigitsMessage;
+  } else if (!isValidPhone(phone)) {
     adminRegisterErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
@@ -999,12 +1031,12 @@ export const handleRegisterAlumni = async () => {
       email: registerForm.value.email.trim(),
       password: registerForm.value.password,
       confirmPassword: registerForm.value.confirmPassword,
-      phone: registerForm.value.phone?.trim() || "",
       bio: registerForm.value.bio?.trim() || "N/A",
       currentJob: registerForm.value.currentJob.trim(),
       departmentId: Number(registerForm.value.departmentId),
       generationId: Number(registerForm.value.generationId),
       status: registerForm.value.status || "APPROVE",
+      phone: registerForm.value.phone.trim(),
     };
 
     logger.debug("Registering alumni with payload:", payload);
@@ -1025,7 +1057,9 @@ export const handleRegisterAlumni = async () => {
     applyApiFieldErrors(err, registerErrors);
     const apiMessage = getApiErrorMessage(err, registerAlumniFallbackMessage);
     if (!hasInlineErrors(registerErrors)) {
-      applyInlineApiMessage(apiMessage, registerErrors);
+      applyInlineApiMessage(apiMessage, registerErrors, {
+        phone: registerForm.value.phone,
+      });
     }
     if (!hasInlineErrors(registerErrors)) {
       Swal.fire("បរាជ័យ", apiMessage, "error");
@@ -1045,12 +1079,12 @@ export const handleRegisterAdmin = async () => {
     const payload = {
       fullname: adminRegisterForm.value.fullname.trim(),
       email: adminRegisterForm.value.email.trim(),
-      phone: adminRegisterForm.value.phone?.trim() || "",
       password: adminRegisterForm.value.password,
       confirmPassword: adminRegisterForm.value.confirmPassword,
       bio: adminRegisterForm.value.bio?.trim() || "N/A",
       currentJob: adminRegisterForm.value.currentJob.trim(),
       status: adminRegisterForm.value.status || "APPROVE",
+      phone: adminRegisterForm.value.phone.trim(),
     };
 
     logger.debug("Registering admin with payload:", payload);
@@ -1070,7 +1104,9 @@ export const handleRegisterAdmin = async () => {
     applyApiFieldErrors(err, adminRegisterErrors);
     const apiMessage = getApiErrorMessage(err, registerAdminFallbackMessage);
     if (!hasInlineErrors(adminRegisterErrors)) {
-      applyInlineApiMessage(apiMessage, adminRegisterErrors);
+      applyInlineApiMessage(apiMessage, adminRegisterErrors, {
+        phone: adminRegisterForm.value.phone,
+      });
     }
     if (!hasInlineErrors(adminRegisterErrors)) {
       Swal.fire("បរាជ័យ", apiMessage, "error");
