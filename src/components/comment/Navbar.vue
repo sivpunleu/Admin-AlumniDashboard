@@ -202,7 +202,7 @@ const fetchNotifications = async () => {
                     description: "ចូលទៅពិនិត្យ និងអនុម័តគណនីថ្មី",
                     icon: "bi-person-check",
                     tone: "warning",
-                    to: "/manager-alumni",
+                    to: { name: "manager-alumni", query: { status: "PENDING" } },
                 }]
                 : []),
             ...upcomingEvents.slice(0, 3).map((event) => ({
