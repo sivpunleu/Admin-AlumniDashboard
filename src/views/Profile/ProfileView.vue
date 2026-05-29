@@ -247,7 +247,10 @@ const generationOptions = computed(() => generationStore.generations.value || []
 const FULLNAME_MAX_LENGTH = 50;
 const CURRENT_JOB_MAX_LENGTH = 100;
 const BIO_MAX_LENGTH = 500;
-const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/;
+const PHONE_MIN_DIGITS = 7;
+const PHONE_MAX_DIGITS = 10;
+const PHONE_MAX_DIGITS_LABEL = "១០";
+const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]*$/;
 
 const normalizeId = (value) => {
     if (value === undefined || value === null || value === "") {
@@ -258,12 +261,20 @@ const normalizeId = (value) => {
     return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-const isValidPhone = (value) => {
+const getPhoneError = (value) => {
     const phone = String(value || "").trim();
-    if (!phone) return true;
+    if (!phone) return "";
 
     const digitCount = phone.replace(/\D/g, "").length;
-    return PHONE_PATTERN.test(phone) && digitCount >= 7 && digitCount <= 15;
+    if (digitCount > PHONE_MAX_DIGITS) {
+        return `លេខទូរសព្ទមិនត្រូវលើសពី${PHONE_MAX_DIGITS_LABEL}លេខ`;
+    }
+
+    if (!PHONE_PATTERN.test(phone) || digitCount < PHONE_MIN_DIGITS) {
+        return 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
+    }
+
+    return "";
 };
 
 const clearErrors = () => {
@@ -507,8 +518,9 @@ const validateProfileForm = () => {
         errors.fullname = `ឈ្មោះពេញមិនអាចលើស ${FULLNAME_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
-    if (form.phone && !isValidPhone(form.phone)) {
-        errors.phone = 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
+    const phoneError = getPhoneError(form.phone);
+    if (phoneError) {
+        errors.phone = phoneError;
     }
 
     if (form.currentJob.length > CURRENT_JOB_MAX_LENGTH) {

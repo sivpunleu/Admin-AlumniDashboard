@@ -72,7 +72,9 @@ const validateForm = () => {
         errors.name = `ឈ្មោះប្រភេទមិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
-    if (form.description.length > DESCRIPTION_MAX_LENGTH) {
+    if (!form.description) {
+        errors.description = 'ការពិពណ៌នាមិនអាចទទេបានទេ។';
+    } else if (form.description.length > DESCRIPTION_MAX_LENGTH) {
         errors.description = `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
@@ -184,11 +186,12 @@ const handleSubmit = async () => {
                     <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
                 <div>
-                    <label class="form-label small fw-bold text-muted text-uppercase">ការពិពណ៌នា</label>
+                    <label class="form-label small fw-bold text-muted text-uppercase">ការពិពណ៌នា *</label>
                     <textarea v-model="form.description" class="form-control rounded-3 border-2" rows="4"
                         :class="{ 'is-invalid': errors.description }"
                         :maxlength="DESCRIPTION_MAX_LENGTH"
                         placeholder="បញ្ចូលព័ត៌មានលម្អិត..."
+                        required
                         @input="errors.description = ''" @blur="validateForm"></textarea>
                     <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
                 </div>

@@ -1111,7 +1111,7 @@ const updateUserStatus = async (userId, status) => {
     assertSuccessResponse(response, updateStatusFallbackMessage);
     logger.info("Status update response:", response.data);
     await fetchUsers();
-    Swal.fire("រួចរាល់", "ស្ថានភាពត្រូវបានប្តូរ", "success");
+    Swal.fire("រួចរាល់", "អនុម័តជោគជ័យ", "success");
   } catch (err) {
     logger.error("Change status error:", err);
     logger.error("Error response data:", err.response?.data);

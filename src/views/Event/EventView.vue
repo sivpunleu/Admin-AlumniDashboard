@@ -136,7 +136,7 @@ const validateForm = () => {
     if (!form.endDate || Number.isNaN(end.getTime())) {
         errors.endDate = 'សូមជ្រើសរើសថ្ងៃបញ្ចប់';
     } else if (start && !Number.isNaN(start.getTime()) && end < start) {
-        errors.endDate = 'ថ្ងៃបញ្ចប់ត្រូវនៅក្រោយថ្ងៃចាប់ផ្តើម';
+        errors.endDate = 'ថ្ងៃបញ្ចប់ មិនអាចមុនថ្ងៃចាប់ផ្តើមឡើយ" ';
     }
 
     if (!form.location) {
@@ -146,7 +146,7 @@ const validateForm = () => {
     }
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
-        errors.categoryId = 'សូមបញ្ចូល Category ID ត្រឹមត្រូវ';
+        errors.categoryId = 'សូមជ្រើសរើសប្រភេទព្រឹត្តិការណ៍';
     } else if ((categoryStore.categories || []).length > 0 && !categoryExists) {
         errors.categoryId = 'សូមជ្រើសរើសប្រភេទដែលមានក្នុងបញ្ជី';
     }
@@ -355,7 +355,7 @@ const formatDateTime = (value) => {
                         <div v-if="errors.categoryId" class="invalid-feedback">{{ errors.categoryId }}</div>
                     </div>
                     <div class="col-12">
-                        <label class="small fw-bold">ការពិពណ៌នា</label>
+                        <label class="small fw-bold">ការពិពណ៌នា </label>
                         <textarea v-model="form.description" class="form-control" rows="3"></textarea>
                     </div>
                 </div>

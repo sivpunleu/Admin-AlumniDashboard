@@ -501,7 +501,7 @@ onMounted(() => {
     <div class="row g-4">
       <!-- តារាងការចុះឈ្មោះថ្មីៗ -->
       <div class="col-12 col-xl-8">
-        <div class="card dashboard-panel h-100">
+        <div class="card dashboard-panel dashboard-panel--recent h-100">
           <div class="dashboard-card-header d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold mb-0">ការចុះឈ្មោះថ្មីៗ</h5>
             <button @click="goToAlumniRecords" class="btn dashboard-link-btn btn-sm">មើលទាំងអស់</button>
@@ -530,7 +530,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div v-else key="recent-data" class="table-responsive">
+            <div v-else key="recent-data" class="table-responsive dashboard-recent-table">
               <div v-if="!recentRegistrations.length" class="dashboard-empty">
                 <div class="dashboard-empty__icon">
                   <i class="bi bi-person-plus"></i>
@@ -581,7 +581,8 @@ onMounted(() => {
                     </td>
                     <td class="text-end" @click.stop>
                       <div class="dropdown dashboard-row-menu">
-                        <button type="button" class="table-action-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                        <button type="button" class="table-action-btn" data-bs-toggle="dropdown"
+                          data-bs-boundary="viewport" aria-expanded="false"
                           :aria-label="`បើកម៉ឺនុយសម្រាប់ ${getUserDisplayName(user)}`">
                           <i class="bi bi-three-dots"></i>
                         </button>
@@ -1394,6 +1395,10 @@ onMounted(() => {
   transform: none;
 }
 
+.dashboard-panel--recent.card {
+  overflow: visible;
+}
+
 .dashboard-card-header {
   margin-bottom: 1rem !important;
   padding-bottom: 0.9rem;
@@ -1591,6 +1596,10 @@ button.approval-item:focus-visible .approval-action {
   margin: 0 -0.25rem;
 }
 
+.dashboard-recent-table.table-responsive {
+  overflow: visible;
+}
+
 .table {
   margin-bottom: 0;
 }
@@ -1637,6 +1646,15 @@ button.approval-item:focus-visible .approval-action {
 
 .dashboard-clickable-row {
   cursor: pointer;
+}
+
+.dashboard-recent-table tbody tr:has(.dashboard-action-menu.show) {
+  position: relative;
+  z-index: 30;
+}
+
+.dashboard-recent-table tbody tr:has(.dashboard-action-menu.show)>* {
+  background-color: var(--dashboard-soft);
 }
 
 .dashboard-clickable-row:focus-visible {
@@ -1730,7 +1748,7 @@ button.approval-item:focus-visible .approval-action {
   border: 1px solid var(--dashboard-border);
   border-radius: 8px;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
-  z-index: 20;
+  z-index: 1080;
 }
 
 .dashboard-action-menu .dropdown-item {
@@ -1966,6 +1984,15 @@ button.approval-item:focus-visible .approval-action {
   .approval-meta span:first-child,
   .activity-description {
     max-width: 100%;
+  }
+
+  .dashboard-panel--recent.card {
+    overflow: hidden;
+  }
+
+  .dashboard-recent-table.table-responsive {
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 }
 

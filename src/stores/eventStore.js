@@ -26,6 +26,8 @@ export const useEventStore = defineStore("event", () => {
   const paginationMeta = ref({});
   const totalItems = ref(0);
   const totalPages = ref(1);
+  const invalidInputFallbackMessage =
+    "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -61,6 +63,7 @@ export const useEventStore = defineStore("event", () => {
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
+    const hasKhmerText = /[\u1780-\u17ff]/.test(text);
 
     if (
       lower.includes("permission") ||
@@ -114,7 +117,7 @@ export const useEventStore = defineStore("event", () => {
     }
 
     if (
-      lower.includes("thumbnail") &&
+      (lower.includes("thumbnail") || lower.includes("event image")) &&
       (lower.includes("default") || lower.includes("not found") || lower.includes("no thumbnail"))
     ) {
       return "មិនមានរូបភាពតំណាងដែលអាចលុបបានទេ។ ប្រព័ន្ធកំពុងប្រើរូបភាពលំនាំដើមរួចហើយ។";
@@ -125,10 +128,12 @@ export const useEventStore = defineStore("event", () => {
     }
 
     if (isGenericApiMessage(text)) {
-      return fallbackMessage || "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+      return fallbackMessage || invalidInputFallbackMessage;
     }
 
-    return text || fallbackMessage;
+    if (hasKhmerText || !fallbackMessage) return text || fallbackMessage;
+
+    return fallbackMessage || invalidInputFallbackMessage;
   };
 
   const getApiErrorMessage = (err, fallbackMessage) => {

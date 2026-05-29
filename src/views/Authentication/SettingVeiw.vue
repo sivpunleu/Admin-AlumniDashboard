@@ -145,7 +145,7 @@
             <label for="new-email">អ៊ីមែលថ្មី</label>
             <div class="input-shell" :class="{ 'is-invalid': emailErrors.newEmail }">
               <i class="bi bi-envelope"></i>
-              <input id="new-email" v-model.trim="emailForm.newEmail" type="email"
+              <input id="new-email" v-model.trim="emailForm.newEmail" type="email" :pattern="emailPatternAttribute"
                 :readonly="emailAutofillLocked.newEmail" autocomplete="off" data-1p-ignore data-bwignore
                 data-lpignore="true" placeholder="name@example.com" @focus="unlockEmailField('newEmail')"
                 @pointerdown="unlockEmailField('newEmail')" @input="clearFieldError(emailErrors, 'newEmail')" />
@@ -239,7 +239,9 @@ const loading = reactive({
   verify: false,
 });
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailPatternAttribute = "[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}";
+const emailPattern = new RegExp(`^${emailPatternAttribute}$`);
+const nonAsciiPattern = /[^\u0020-\u007E]/;
 const passwordMinLength = 8;
 const passwordComplexityPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
 const passwordComplexityMessage =
@@ -266,6 +268,35 @@ const getDisplayErrorMessage = (error, fallbackMessage) => {
   if (message && !isGenericErrorMessage(message)) return message;
   if (detail) return detail;
   return message || fallbackMessage;
+};
+
+const getErrorSearchText = (error) => [
+  readFirstError(error?.details),
+  readFirstError(error?.message),
+  readFirstError(error?.originalError?.response?.data?.details),
+  readFirstError(error?.originalError?.response?.data?.message),
+  readFirstError(error?.originalError?.response?.data?.errors),
+]
+  .filter(Boolean)
+  .join(" ")
+  .toLowerCase();
+
+const isCurrentPasswordError = (error) => {
+  const text = getErrorSearchText(error);
+  const mentionsCurrentPassword = (
+    (text.includes("current") ||
+      text.includes("current_password") ||
+      text.includes("currentpassword") ||
+      text.includes("បច្ចុប្បន្ន")) &&
+    (text.includes("password") || text.includes("ពាក្យសម្ងាត់"))
+  );
+
+  return mentionsCurrentPassword && (
+    text.includes("invalid") ||
+    text.includes("incorrect") ||
+    text.includes("wrong") ||
+    text.includes("មិនត្រឹមត្រូវ")
+  );
 };
 
 const getRouteToken = () => readFirstValue(route.query.token) ||
@@ -357,14 +388,14 @@ const applyApiErrors = (target, error, fallbackMessage = "") => {
   });
 
   // If no specific field errors were provided but there is a general
-  // message/details from the API, map it to the newPassword field so the
-  // user sees an inline message under the password input.
+  // message/details from the API, map it to the most relevant password field.
   if (
     target === passwordErrors &&
     entries.length === 0 &&
     (error?.details || error?.message)
   ) {
-    target.newPassword = getDisplayErrorMessage(error, fallbackMessage);
+    const field = isCurrentPasswordError(error) ? "currentPassword" : "newPassword";
+    target[field] = getDisplayErrorMessage(error, fallbackMessage);
   }
 };
 
@@ -418,6 +449,8 @@ const validateEmailForm = () => {
 
   if (!newEmail) {
     emailErrors.newEmail = "សូមបញ្ចូលអ៊ីមែលថ្មី។";
+  } else if (nonAsciiPattern.test(newEmail)) {
+    emailErrors.newEmail = "អ៊ីមែលត្រូវប្រើតែអក្សរឡាតាំង លេខ និងសញ្ញាដែលអនុញ្ញាត។";
   } else if (!emailPattern.test(newEmail)) {
     emailErrors.newEmail = "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ។";
   } else if (newEmail.toLowerCase() === currentEmail) {
