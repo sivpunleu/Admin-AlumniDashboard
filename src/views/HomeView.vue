@@ -5,6 +5,7 @@ import api from '@/API/api';
 import logger from '@/utils/logger';
 import { fetchPaginatedCollection } from '@/utils/paginatedCollection';
 import * as alumniStore from '@/stores/managerAlumni';
+import { resolveApiAssetUrl } from '@/config/apiBaseUrl';
 
 const router = useRouter();
 
@@ -53,6 +54,70 @@ const getUserDisplayName = (user) => {
 };
 
 const getUserInitial = (user) => getUserDisplayName(user).charAt(0).toUpperCase();
+
+const userAvatarKeys = [
+  'avatar',
+  'avatarUrl',
+  'avatar_url',
+  'avatarPath',
+  'avatar_path',
+  'profileImage',
+  'profile_image',
+  'profilePicture',
+  'profile_picture',
+  'profilePhoto',
+  'profile_photo',
+  'image',
+  'imageUrl',
+  'image_url',
+  'photo',
+  'photoUrl',
+  'photo_url',
+  'picture',
+  'pictureUrl',
+  'picture_url',
+];
+
+const userAvatarObjectKeys = ['url', 'path', 'src', 'href', 'location'];
+
+const normalizeUserAvatarValue = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value !== 'object') return '';
+
+  return userAvatarObjectKeys
+    .map((key) => normalizeUserAvatarValue(value?.[key]))
+    .find(Boolean) || '';
+};
+
+const pickUserAvatarValue = (source) => {
+  if (!source || typeof source !== 'object') return '';
+
+  return userAvatarKeys
+    .map((key) => normalizeUserAvatarValue(source?.[key]))
+    .find(Boolean) || '';
+};
+
+const getRawUserAvatar = (user) => [
+  user?.profile,
+  user?.profile?.profile,
+  user,
+]
+  .map(pickUserAvatarValue)
+  .find(Boolean) || '';
+
+const getUserAvatar = (user) => {
+  const rawAvatar = getRawUserAvatar(user);
+  return rawAvatar ? resolveApiAssetUrl(rawAvatar) : '';
+};
+
+const handleUserAvatarError = (event) => {
+  event.target.style.display = 'none';
+};
+
+const handleUserAvatarLoad = (event) => {
+  event.target.style.display = '';
+};
 
 const getUserDateValue = (user) => (
   user?.registeredAt ||
@@ -192,6 +257,70 @@ const handleChangeStatusFromDashboard = async (user) => {
   await fetchDashboardData();
 };
 
+const getUserRequestId = (user) => {
+  const rawId =
+    user?.id ??
+    user?.userId ??
+    user?.user_id ??
+    user?.profile?.userId ??
+    user?.profile?.user_id;
+  const cleanId = String(rawId || '').split(':')[0].trim();
+
+  return cleanId || '';
+};
+
+const normalizeUserDetailPayload = (response) =>
+  response?.data?.data || response?.data || null;
+
+const mergeUserDetail = (user, detail) => {
+  if (!detail || typeof detail !== 'object') return user;
+
+  const currentProfile =
+    user?.profile && typeof user.profile === 'object' ? user.profile : {};
+  const detailProfile =
+    detail?.profile && typeof detail.profile === 'object' ? detail.profile : {};
+
+  return {
+    ...user,
+    ...detail,
+    profile: {
+      ...currentProfile,
+      ...detailProfile,
+    },
+  };
+};
+
+const fetchUserDetailForAvatar = async (user) => {
+  const userId = getUserRequestId(user);
+  if (!userId || getRawUserAvatar(user)) return user;
+
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return mergeUserDetail(user, normalizeUserDetailPayload(response));
+  } catch (error) {
+    logger.warn(`Unable to fetch avatar for dashboard user ${userId}:`, error);
+    return user;
+  }
+};
+
+const enrichDashboardUserGroups = async (groups) => {
+  const cache = new Map();
+  const getCacheKey = (user) => getUserRequestId(user) || getUserEmail(user);
+
+  const enrichUser = (user) => {
+    const key = getCacheKey(user);
+    if (!key || key === '-') return Promise.resolve(user);
+    if (!cache.has(key)) {
+      cache.set(key, fetchUserDetailForAvatar(user));
+    }
+    return cache.get(key);
+  };
+
+  return Promise.all(
+    groups.map((group) => Promise.all(group.map(enrichUser))),
+  );
+};
+
 const buildActivityLog = (users = [], events = []) => {
   const userActivities = users.map((user, index) => {
     const status = getUserStatus(user);
@@ -261,13 +390,18 @@ const fetchDashboardData = async () => {
         )
       ).length;
 
-      pendingApprovals.value = allUsers
+      const pendingUsers = allUsers
         .filter(u => getUserStatus(u) === 'PENDING')
         .sort((a, b) => getTimestamp(getUserDateValue(b)) - getTimestamp(getUserDateValue(a)))
         .slice(0, 4);
-      recentRegistrations.value = [...allUsers]
+      const recentUsers = [...allUsers]
         .sort((a, b) => getTimestamp(getUserDateValue(b)) - getTimestamp(getUserDateValue(a)))
         .slice(0, 5);
+
+      const [enrichedPendingUsers, enrichedRecentUsers] =
+        await enrichDashboardUserGroups([pendingUsers, recentUsers]);
+      pendingApprovals.value = enrichedPendingUsers;
+      recentRegistrations.value = enrichedRecentUsers;
     }
 
     if (Array.isArray(allEvents)) {
@@ -429,7 +563,10 @@ onMounted(() => {
               <button v-for="user in pendingApprovals" :key="user.id || getUserEmail(user)" type="button"
                 class="approval-item" @click="goToPendingApprovals">
                 <span class="approval-avatar" :style="{ backgroundColor: PRIMARY_COLOR }">
-                  {{ getUserInitial(user) }}
+                  <span>{{ getUserInitial(user) }}</span>
+                  <img v-if="getUserAvatar(user)" :src="getUserAvatar(user)" :alt="getUserDisplayName(user)"
+                    class="dashboard-user-avatar__image" @error="handleUserAvatarError"
+                    @load="handleUserAvatarLoad" />
                 </span>
                 <span class="approval-copy">
                   <span class="approval-title">{{ getUserDisplayName(user) }}</span>
@@ -557,7 +694,10 @@ onMounted(() => {
                         <div
                           class="avatar-sq me-3 text-white d-flex align-items-center justify-content-center shadow-sm"
                           :style="{ backgroundColor: PRIMARY_COLOR }">
-                          {{ getUserInitial(user) }}
+                          <span>{{ getUserInitial(user) }}</span>
+                          <img v-if="getUserAvatar(user)" :src="getUserAvatar(user)" :alt="getUserDisplayName(user)"
+                            class="dashboard-user-avatar__image" @error="handleUserAvatarError"
+                            @load="handleUserAvatarLoad" />
                         </div>
                         <div class="recent-registration-user__body">
                           <div class="recent-registration-user__name fw-bold text-dark small"
@@ -709,6 +849,8 @@ onMounted(() => {
   border-radius: 10px;
   font-weight: bold;
   font-size: 14px;
+  overflow: hidden;
+  position: relative;
 }
 
 .quick-action {
@@ -1459,6 +1601,19 @@ button.activity-item:focus-visible {
   justify-content: center;
   flex: 0 0 auto;
   font-weight: 800;
+}
+
+.approval-avatar {
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-user-avatar__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .approval-copy,

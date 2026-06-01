@@ -430,6 +430,83 @@ export const useEventStore = defineStore("event", () => {
     return false;
   }
 
+  const getParticipantUserId = (participant) => {
+    const rawId =
+      participant?.user?.id ??
+      participant?.userId ??
+      participant?.user_id ??
+      participant?.profile?.userId ??
+      participant?.profile?.user_id;
+    const cleanId = String(rawId || "").split(":")[0].trim();
+
+    return cleanId || "";
+  };
+
+  const hasParticipantAvatar = (participant) =>
+    Boolean(
+      String(
+        participant?.user?.profile?.avatar ||
+          participant?.user?.profile?.avatarUrl ||
+          participant?.user?.profile?.avatar_url ||
+          participant?.user?.avatar ||
+          participant?.user?.avatarUrl ||
+          participant?.user?.avatar_url ||
+          participant?.avatar ||
+          participant?.avatarUrl ||
+          participant?.avatar_url ||
+          participant?.image ||
+          "",
+      ).trim(),
+    );
+
+  const normalizeUserPayload = (response) =>
+    response?.data?.data || response?.data || null;
+
+  const mergeParticipantUserDetail = (participant, detail) => {
+    if (!detail || typeof detail !== "object") return participant;
+
+    const currentUser =
+      participant?.user && typeof participant.user === "object"
+        ? participant.user
+        : {};
+    const currentProfile =
+      currentUser?.profile && typeof currentUser.profile === "object"
+        ? currentUser.profile
+        : {};
+    const detailProfile =
+      detail?.profile && typeof detail.profile === "object"
+        ? detail.profile
+        : {};
+
+    return {
+      ...participant,
+      user: {
+        ...currentUser,
+        ...detail,
+        profile: {
+          ...currentProfile,
+          ...detailProfile,
+        },
+      },
+    };
+  };
+
+  const fetchParticipantUserDetail = async (participant) => {
+    const userId = getParticipantUserId(participant);
+    if (!userId || hasParticipantAvatar(participant)) return participant;
+
+    try {
+      const response = await api.get(`/users/${userId}`);
+      return mergeParticipantUserDetail(participant, normalizeUserPayload(response));
+    } catch (err) {
+      logger.warn(`Unable to fetch avatar for participant user ${userId}:`, err);
+      return participant;
+    }
+  };
+
+  const enrichParticipantsWithAvatars = (items) =>
+    Promise.all(items.map(fetchParticipantUserDetail));
+
   // 3 fetch participants of an event with pagination and status filter (GET /events/{id}/participants)
   async function fetchParticipants(id, status = "attending") {
     try {
@@ -465,7 +542,7 @@ export const useEventStore = defineStore("event", () => {
         page = currentPage + 1;
       }
 
-      participants.value = allParticipants;
+      participants.value = await enrichParticipantsWithAvatars(allParticipants);
       return true;
     } catch (err) {
       participants.value = [];

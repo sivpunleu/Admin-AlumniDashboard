@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useEventStore } from '@/stores/eventStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseTable from '@/components/UI/Base/BaseTable.vue';
+import { resolveApiAssetUrl } from '@/config/apiBaseUrl';
 
 const props = defineProps({
     id: {
@@ -255,6 +256,66 @@ const getParticipantInitial = (participant) => {
     return name && name !== '-' ? name.charAt(0).toUpperCase() : '?';
 };
 
+const participantAvatarKeys = [
+    'avatar',
+    'avatarUrl',
+    'avatar_url',
+    'profileImage',
+    'profile_image',
+    'profilePhoto',
+    'profile_photo',
+    'image',
+    'imageUrl',
+    'image_url',
+    'photo',
+    'photoUrl',
+    'photo_url',
+    'picture',
+    'pictureUrl',
+    'picture_url'
+];
+
+const participantAvatarObjectKeys = ['url', 'path', 'src', 'href', 'location'];
+
+const normalizeParticipantAvatarValue = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.trim();
+    if (typeof value !== 'object') return '';
+
+    return participantAvatarObjectKeys
+        .map((key) => normalizeParticipantAvatarValue(value?.[key]))
+        .find(Boolean) || '';
+};
+
+const pickParticipantAvatarValue = (source) => {
+    if (!source || typeof source !== 'object') return '';
+
+    return participantAvatarKeys
+        .map((key) => normalizeParticipantAvatarValue(source?.[key]))
+        .find(Boolean) || '';
+};
+
+const getParticipantAvatar = (participant) => {
+    const rawAvatar = [
+        participant?.user?.profile,
+        participant?.user,
+        participant?.profile,
+        participant
+    ]
+        .map(pickParticipantAvatarValue)
+        .find(Boolean);
+
+    return rawAvatar ? resolveApiAssetUrl(rawAvatar) : '';
+};
+
+const handleParticipantAvatarError = (event) => {
+    event.target.style.display = 'none';
+};
+
+const handleParticipantAvatarLoad = (event) => {
+    event.target.style.display = '';
+};
+
 const formatDateTime = (value) => {
     if (!value) return '-';
     const date = new Date(value);
@@ -458,7 +519,13 @@ watch(() => props.id, async (newId) => {
                             <BaseTable :columns="participantColumns" :data="activeParticipantRows" min-width="640px">
                                 <template #cell-name="{ item }">
                                     <div class="participant-person">
-                                        <span class="participant-avatar">{{ getParticipantInitial(item) }}</span>
+                                        <span class="participant-avatar">
+                                            <span>{{ getParticipantInitial(item) }}</span>
+                                            <img v-if="getParticipantAvatar(item)" :src="getParticipantAvatar(item)"
+                                                :alt="getParticipantName(item)" class="participant-avatar__image"
+                                                @error="handleParticipantAvatarError"
+                                                @load="handleParticipantAvatarLoad" />
+                                        </span>
                                         <span class="participant-person__copy">
                                             <span class="participant-person__name" :title="getParticipantName(item)">
                                                 {{ getParticipantName(item) }}
@@ -885,6 +952,17 @@ watch(() => props.id, async (newId) => {
     align-items: center;
     justify-content: center;
     font-weight: 900;
+    overflow: hidden;
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.participant-avatar__image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .participant-person__copy {
