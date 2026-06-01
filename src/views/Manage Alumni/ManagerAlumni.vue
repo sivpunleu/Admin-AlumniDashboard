@@ -20,7 +20,7 @@ const getStatusClass = (status) => {
 const getStatusLabel = (status) => {
   if (status === 'APPROVE') return 'យល់ព្រម';
   if (status === 'PENDING') return 'កំពុងរង់ចាំ';
-  if (status === 'REJECT' || status === 'DEACTIVATED') return 'បានផ្អាកដំណើរការ';
+  if (status === 'REJECT' || status === 'DEACTIVATED') return 'ផ្អាកដំណើរការ';
   return status || 'Unknown';
 };
 
@@ -523,14 +523,14 @@ const tableColumns = [
           </div>
         </div>
       </div>
-      <!-- បានផ្អាកដំណើរការ -->
+      
       <div class="col-md-3">
         <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-danger">
           <div class="d-flex align-items-center">
             <div class="icon-box text-danger me-3" style="background: #fdf2f2;"><i
                 class="bi bi-exclamation-octagon fs-4"></i></div>
             <div>
-              <p class="text-muted small mb-0">បានផ្អាកដំណើរការ</p>
+              <p class="text-muted small mb-0">ផ្អាកដំណើរការ</p>
               <span v-if="showStatsSkeleton" class="placeholder-glow d-block" aria-hidden="true">
                 <span class="placeholder skeleton-placeholder skeleton-stat-value"></span>
               </span>
@@ -566,7 +566,7 @@ const tableColumns = [
           <button type="button" role="tab" :aria-selected="activeTabModel === 'REJECT'"
             @click="activeTabModel = 'REJECT'"
             :class="['tab-btn', activeTabModel === 'REJECT' ? 'active' : '']">
-            <i class="bi bi-slash-circle"></i><span>បានផ្អាកដំណើរការ</span>
+            <i class="bi bi-slash-circle"></i><span>ផ្អាកដំណើរការ</span>
           </button>
         </div>
       </div>
