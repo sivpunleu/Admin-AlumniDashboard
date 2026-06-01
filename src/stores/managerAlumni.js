@@ -496,6 +496,68 @@ const getUserSortId = (user) => {
   return Number.isFinite(numericId) ? numericId : 0;
 };
 
+const getUserRequestId = (user) => {
+  const rawId =
+    user?.id ??
+    user?.userId ??
+    user?.user_id ??
+    user?.profile?.userId ??
+    user?.profile?.user_id;
+  const cleanId = String(rawId || "").split(":")[0].trim();
+
+  return cleanId || "";
+};
+
+const hasUserAvatar = (user) =>
+  Boolean(
+    String(
+      user?.profile?.avatar ||
+        user?.profile?.avatarUrl ||
+        user?.profile?.avatar_url ||
+        user?.avatar ||
+        user?.avatarUrl ||
+        user?.avatar_url ||
+        user?.image ||
+        "",
+    ).trim(),
+  );
+
+const normalizeUserDetailPayload = (response) =>
+  response?.data?.data || response?.data || null;
+
+const mergeUserDetail = (user, detail) => {
+  if (!detail || typeof detail !== "object") return user;
+
+  const currentProfile =
+    user?.profile && typeof user.profile === "object" ? user.profile : {};
+  const detailProfile =
+    detail?.profile && typeof detail.profile === "object" ? detail.profile : {};
+
+  return {
+    ...user,
+    ...detail,
+    profile: {
+      ...currentProfile,
+      ...detailProfile,
+    },
+  };
+};
+
+const fetchUserDetail = async (user) => {
+  const userId = getUserRequestId(user);
+  if (!userId || hasUserAvatar(user)) return user;
+
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return mergeUserDetail(user, normalizeUserDetailPayload(response));
+  } catch (err) {
+    logger.warn(`Unable to fetch avatar for user ${userId}:`, err);
+    return user;
+  }
+};
+
+const enrichUsersWithAvatars = (data) => Promise.all(data.map(fetchUserDetail));
+
 const sortNewestUsersFirst = (data) =>
   [...data].sort((firstUser, secondUser) => {
     const createdDiff =
@@ -721,7 +783,6 @@ export const fetchUsers = async () => {
 
     data = sortNewestUsersFirst(data);
 
-    users.value = data;
     const { total: totalFromMeta, pages: pagesFromMeta } = getPaginationMeta(
       root,
       payload,
@@ -729,10 +790,11 @@ export const fetchUsers = async () => {
 
     if (needsClientPagination) {
       const paginated = paginateClientSide(data, perPage);
-      users.value = paginated.data;
+      users.value = await enrichUsersWithAvatars(paginated.data);
       totalItems.value = paginated.total;
       totalPages.value = paginated.pages;
     } else {
+      users.value = await enrichUsersWithAvatars(data);
       totalItems.value = usedClientFilter
         ? data.length
         : (totalFromMeta ?? data.length);
