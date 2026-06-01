@@ -7,7 +7,10 @@ import logger from "@/utils/logger";
 
 export const EVENT_THUMBNAIL_MAX_SIZE_BYTES = 1024 * 1024;
 export const EVENT_THUMBNAIL_MAX_SIZE_LABEL = "1MB";
-export const EVENT_TEXT_MAX_LENGTH = 100;
+export const EVENT_TITLE_MAX_LENGTH = 50;
+export const EVENT_DESCRIPTION_MAX_LENGTH = 200;
+export const EVENT_LOCATION_MAX_LENGTH = 100;
+export const EVENT_TEXT_MAX_LENGTH = EVENT_TITLE_MAX_LENGTH;
 
 export const useEventStore = defineStore("event", () => {
   const events = ref([]);
@@ -28,6 +31,12 @@ export const useEventStore = defineStore("event", () => {
   const totalPages = ref(1);
   const invalidInputFallbackMessage =
     "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+  const titleMaxLengthMessage =
+    `ចំណងជើងព្រឹត្តិការណ៍មិនអាចលើស ${EVENT_TITLE_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const descriptionMaxLengthMessage =
+    `ការពិពណ៌នាព្រឹត្តិការណ៍មិនអាចលើស ${EVENT_DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const locationMaxLengthMessage =
+    `ទីតាំងមិនអាចលើស ${EVENT_LOCATION_MAX_LENGTH} តួអក្សរបានទេ។`;
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -58,6 +67,21 @@ export const useEventStore = defineStore("event", () => {
       "unprocessable entity",
       "request failed",
     ].includes(normalized);
+  };
+
+  const isTooLongApiMessage = (message = "") => {
+    const normalized = String(message).trim().toLowerCase();
+    return (
+      normalized.includes("must not exceed") ||
+      normalized.includes("too long") ||
+      normalized.includes("value too long") ||
+      normalized.includes("data too long") ||
+      normalized.includes("string data right truncation") ||
+      normalized.includes("truncated") ||
+      normalized.includes("max length") ||
+      normalized.includes("maximum length") ||
+      normalized.includes("exceeds")
+    );
   };
 
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
@@ -104,16 +128,20 @@ export const useEventStore = defineStore("event", () => {
       return `រូបភាពតំណាងមិនអាចលើស ${EVENT_THUMBNAIL_MAX_SIZE_LABEL} បានទេ។ សូមជ្រើសរើសរូបភាពដែលមានទំហំតូចជាងនេះ។`;
     }
 
-    if (
-      lower.includes(String(EVENT_TEXT_MAX_LENGTH)) &&
-      (lower.includes("character") ||
-        lower.includes("length") ||
-        lower.includes("must not exceed") ||
-        lower.includes("not exceed") ||
-        lower.includes("maximum") ||
-        lower.includes("max"))
-    ) {
-      return `តួអក្សរមិនអាចលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរបានទេ។ សូមបញ្ចូលតួអក្សរមិនលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរ។`;
+    if ((lower.includes("title") || lower.includes("name")) && isTooLongApiMessage(lower)) {
+      return titleMaxLengthMessage;
+    }
+
+    if (lower.includes("description") && isTooLongApiMessage(lower)) {
+      return descriptionMaxLengthMessage;
+    }
+
+    if (lower.includes("location") && isTooLongApiMessage(lower)) {
+      return locationMaxLengthMessage;
+    }
+
+    if (isTooLongApiMessage(lower)) {
+      return `ចំណងជើង ឬការពិពណ៌នាវែងពេក។ សូមកាត់បន្ថយអត្ថបទហើយសាកល្បងម្តងទៀត។`;
     }
 
     if (
@@ -182,6 +210,43 @@ export const useEventStore = defineStore("event", () => {
       icon: "error",
     });
 
+  const getEventPayloadValidationMessage = (payload = {}) => {
+    const title = String(payload.title || "").trim();
+    const description = String(payload.description || "").trim();
+    const location = String(payload.location || "").trim();
+    const messages = [];
+
+    if (!title) {
+      messages.push("សូមបញ្ចូលចំណងជើង។");
+    } else if (title.length > EVENT_TITLE_MAX_LENGTH) {
+      messages.push(titleMaxLengthMessage);
+    }
+
+    if (description.length > EVENT_DESCRIPTION_MAX_LENGTH) {
+      messages.push(descriptionMaxLengthMessage);
+    }
+
+    if (!location) {
+      messages.push("សូមបញ្ចូលទីតាំង។");
+    } else if (location.length > EVENT_LOCATION_MAX_LENGTH) {
+      messages.push(locationMaxLengthMessage);
+    }
+
+    return [...new Set(messages)].join("\n");
+  };
+
+  const showEventPayloadValidation = (payload) => {
+    const message = getEventPayloadValidationMessage(payload);
+    if (!message) return false;
+
+    Swal.fire({
+      title: "ព័ត៌មានមិនត្រឹមត្រូវ",
+      text: message,
+      icon: "warning",
+    });
+    return true;
+  };
+
   // 1 fetch events (GET /events) with pagination, search, and sorting (based on image 1)
   async function fetchEvents() {
     try {
@@ -229,6 +294,8 @@ export const useEventStore = defineStore("event", () => {
   }
 // add create event function (POST /events) and update event function (PUT /events/{id})
   async function createEvent(payload) {
+    if (showEventPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       await api.post("/events", payload);
@@ -248,6 +315,8 @@ export const useEventStore = defineStore("event", () => {
   }
 
   async function updateEvent(id, payload) {
+    if (showEventPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       await api.put(`/events/${id}`, payload);

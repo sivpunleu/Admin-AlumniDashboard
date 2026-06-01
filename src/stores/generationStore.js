@@ -11,6 +11,8 @@ export const generations = ref([]);
 export const generationDetails = ref(null);
 export const isLoading = ref(false);
 export const searchQuery = ref("");
+export const GENERATION_NAME_MAX_LENGTH = 50;
+export const GENERATION_DESCRIPTION_MAX_LENGTH = 200;
 
 const generationListSortParams = {
   sortBy: "id",
@@ -26,6 +28,10 @@ const fetchDetailsFallbackMessage = "មិនអាចទាញព័ត៌ម�
 const createFallbackMessage = "មិនអាចបង្កើតជំនាន់ថ្មីបានទេ";
 const updateFallbackMessage = "មិនអាចកែប្រែព័ត៌មានជំនាន់បានទេ";
 const deleteFallbackMessage = "មិនអាចលុបជំនាន់នេះបានទេ";
+const nameMaxLengthMessage =
+  `ឈ្មោះជំនាន់មិនអាចលើស ${GENERATION_NAME_MAX_LENGTH} តួអក្សរបានទេ។`;
+const descriptionMaxLengthMessage =
+  `ការពិពណ៌នាជំនាន់មិនអាចលើស ${GENERATION_DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ។`;
 
 const readFirstError = (value) => {
   if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -58,9 +64,32 @@ const isGenericApiMessage = (message = "") => {
   ].includes(normalized);
 };
 
+const isTooLongApiMessage = (message = "") => {
+  const normalized = String(message).trim().toLowerCase();
+  return (
+    normalized.includes("must not exceed") ||
+    normalized.includes("too long") ||
+    normalized.includes("value too long") ||
+    normalized.includes("data too long") ||
+    normalized.includes("string data right truncation") ||
+    normalized.includes("truncated") ||
+    normalized.includes("max length") ||
+    normalized.includes("maximum length") ||
+    normalized.includes("exceeds")
+  );
+};
+
 const translateKnownApiMessage = (message, fallbackMessage = "") => {
   const text = String(message || "").trim();
   const lower = text.toLowerCase();
+
+  if ((lower.includes("name") || lower.includes("generation")) && isTooLongApiMessage(lower)) {
+    return nameMaxLengthMessage;
+  }
+
+  if (lower.includes("description") && isTooLongApiMessage(lower)) {
+    return descriptionMaxLengthMessage;
+  }
 
   if (lower.includes("start year") && lower.includes("end year")) {
     return "ឆ្នាំចាប់ផ្តើមត្រូវតែតូចជាងឆ្នាំបញ្ចប់។";
@@ -115,6 +144,36 @@ const assertSuccessResponse = (response, fallbackMessage) => {
   if (!isSuccessResponse(response.data)) {
     throw createResponseError(response, fallbackMessage);
   }
+};
+
+const getGenerationPayloadValidationMessage = (payload = {}) => {
+  const name = String(payload.name || "").trim();
+  const description = String(payload.description || "").trim();
+  const messages = [];
+
+  if (!name) {
+    messages.push("សូមបញ្ចូលឈ្មោះជំនាន់។");
+  } else if (name.length > GENERATION_NAME_MAX_LENGTH) {
+    messages.push(nameMaxLengthMessage);
+  }
+
+  if (description.length > GENERATION_DESCRIPTION_MAX_LENGTH) {
+    messages.push(descriptionMaxLengthMessage);
+  }
+
+  return [...new Set(messages)].join("\n");
+};
+
+const showGenerationPayloadValidation = (payload) => {
+  const message = getGenerationPayloadValidationMessage(payload);
+  if (!message) return false;
+
+  Swal.fire({
+    title: "ព័ត៌មានមិនត្រឹមត្រូវ",
+    text: message,
+    icon: "warning",
+  });
+  return true;
 };
 
 const isGenerationInUseError = (err) => {
@@ -298,6 +357,8 @@ export const handleCreate = async () => {
     });
 
     if (formValues) {
+      if (showGenerationPayloadValidation(formValues)) return false;
+
       try {
         isLoading.value = true;
         const response = await api.post("/generations", formValues);
@@ -392,6 +453,8 @@ export const handleUpdate = async (gen) => {
     });
 
     if (formValues) {
+      if (showGenerationPayloadValidation(formValues)) return false;
+
       try {
         isLoading.value = true;
         // ប្រើ PUT ទៅកាន់ /generations/{id}
@@ -429,6 +492,8 @@ const normalizeGenerationUpdatePayload = (payload = {}) => {
 
 export const createGeneration = async (payload) => {
   return requireAdmin(async () => {
+    if (showGenerationPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       const response = await api.post("/generations", payload);
@@ -454,6 +519,8 @@ export const updateGeneration = async (id, payload) => {
     try {
       isLoading.value = true;
       const updatePayload = normalizeGenerationUpdatePayload(payload);
+      if (showGenerationPayloadValidation(updatePayload)) return false;
+
       logger.info("Updating generation (store) payload", updatePayload);
       const res = await api.put(`/generations/${id}`, updatePayload);
       assertSuccessResponse(res, updateFallbackMessage);

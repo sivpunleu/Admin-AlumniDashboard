@@ -10,6 +10,8 @@ import BaseTable from "@/components/UI/Base/BaseTable.vue";
 import logger from "@/utils/logger";
 
 const departmentStore = useDepartmentStore();
+const NAME_MAX_LENGTH = genStore.GENERATION_NAME_MAX_LENGTH;
+const DESCRIPTION_MAX_LENGTH = genStore.GENERATION_DESCRIPTION_MAX_LENGTH;
 
 
 onMounted(async () => {
@@ -107,6 +109,7 @@ const form = reactive({
 const errors = reactive({
     id: "",
     name: "",
+    description: "",
     startYear: "",
     endYear: "",
     departmentId: "",
@@ -188,10 +191,42 @@ const clearErrors = () => {
     });
 };
 
+const getNameError = (required = false) => {
+    const name = String(form.name || "").trim();
+
+    if (!name && required) {
+        return "សូមបញ្ចូលឈ្មោះជំនាន់";
+    }
+
+    if (name.length > NAME_MAX_LENGTH) {
+        return `ឈ្មោះជំនាន់មិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return "";
+};
+
+const getDescriptionError = () => {
+    const description = String(form.description || "").trim();
+
+    if (description.length > DESCRIPTION_MAX_LENGTH) {
+        return `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return "";
+};
+
+const validateNameField = (required = false) => {
+    errors.name = getNameError(required);
+};
+
+const validateDescriptionField = () => {
+    errors.description = getDescriptionError();
+};
+
 const validateForm = () => {
     clearErrors();
-    form.name = form.name.trim();
-    form.description = form.description.trim();
+    form.name = String(form.name || "").trim();
+    form.description = String(form.description || "").trim();
 
     const startYear = Number(form.startYear);
     const endYear = Number(form.endYear);
@@ -202,9 +237,8 @@ const validateForm = () => {
         errors.id = "លេខសម្គាល់ជំនាន់មិនត្រឹមត្រូវ";
     }
 
-    if (!form.name) {
-        errors.name = "សូមបញ្ចូលឈ្មោះជំនាន់";
-    }
+    validateNameField(true);
+    validateDescriptionField();
 
     if (!startYear) {
         errors.startYear = "សូមបញ្ចូលឆ្នាំចាប់ផ្តើម";
@@ -395,7 +429,7 @@ const handlePageChange = (page) => {
                 <div>
                     <label class="small fw-bold">ឈ្មោះជំនាន់</label>
                     <input v-model="form.name" class="form-control" :class="{ 'is-invalid': errors.name }"
-                        placeholder="e.g. ANT" @input="errors.name = ''" @blur="validateForm">
+                        placeholder="e.g. ANT" @input="validateNameField()" @blur="validateNameField(true)">
                     <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
 
@@ -434,7 +468,10 @@ const handlePageChange = (page) => {
 
                 <div>
                     <label class="small fw-bold">ការពិពណ៌នា</label>
-                    <textarea v-model="form.description" class="form-control" rows="3"></textarea>
+                    <textarea v-model="form.description" class="form-control"
+                        :class="{ 'is-invalid': errors.description }" rows="3"
+                        @input="validateDescriptionField" @blur="validateDescriptionField"></textarea>
+                    <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
                 </div>
             </div>
 

@@ -7,6 +7,10 @@ import {
   getCollectionItems,
   getPaginationMeta,
 } from "@/utils/paginatedCollection";
+
+export const DEPARTMENT_NAME_MAX_LENGTH = 50;
+export const DEPARTMENT_DESCRIPTION_MAX_LENGTH = 200;
+
 // This store manages the state and actions related to departments, including fetching with pagination, creating, updating, and deleting departments, along with comprehensive error handling and user feedback through SweetAlert2.
 export const useDepartmentStore = defineStore("department", () => {
   const departments = ref([]);
@@ -29,6 +33,12 @@ export const useDepartmentStore = defineStore("department", () => {
   const deleteFallbackMessage = "មិនអាចលុបទិន្នន័យនេះបានទេ";
   const invalidInputFallbackMessage =
     "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+  const nameMaxLengthMessage =
+    `ឈ្មោះដេប៉ាតឺម៉ង់មិនអាចលើស ${DEPARTMENT_NAME_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const descriptionMaxLengthMessage =
+    `ការពិពណ៌នាដេប៉ាតឺម៉ង់មិនអាចលើស ${DEPARTMENT_DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const payloadTooLongMessage =
+    "ឈ្មោះ ឬការពិពណ៌នាដេប៉ាតឺម៉ង់វែងពេក។ សូមកាត់បន្ថយអត្ថបទហើយសាកល្បងម្តងទៀត។";
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -61,17 +71,44 @@ export const useDepartmentStore = defineStore("department", () => {
     ].includes(normalized);
   };
 
+  const isTooLongApiMessage = (message = "") => {
+    const normalized = String(message).trim().toLowerCase();
+    return (
+      normalized.includes("must not exceed") ||
+      normalized.includes("too long") ||
+      normalized.includes("value too long") ||
+      normalized.includes("data too long") ||
+      normalized.includes("string data right truncation") ||
+      normalized.includes("truncated") ||
+      normalized.includes("max length") ||
+      normalized.includes("maximum length") ||
+      normalized.includes("exceeds")
+    );
+  };
+
+  const isInternalServerApiMessage = (message = "") => {
+    const normalized = String(message).trim().toLowerCase();
+    return (
+      normalized.includes("internal server error") ||
+      normalized.includes("status code 500")
+    );
+  };
+
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
     const hasKhmerText = /[\u1780-\u17ff]/.test(text);
 
-    if (lower.includes("name") && lower.includes("must not exceed")) {
-      return "ឈ្មោះដេប៉ាតឺម៉ង់មិនអាចលើស 100 តួអក្សរបានទេ។";
+    if (lower.includes("name") && isTooLongApiMessage(lower)) {
+      return nameMaxLengthMessage;
     }
 
-    if (lower.includes("description") && lower.includes("must not exceed")) {
-      return "ការពិពណ៌នាដេប៉ាតឺម៉ង់មិនអាចលើស 500 តួអក្សរបានទេ។";
+    if (lower.includes("description") && isTooLongApiMessage(lower)) {
+      return descriptionMaxLengthMessage;
+    }
+
+    if (isTooLongApiMessage(lower)) {
+      return payloadTooLongMessage;
     }
 
     if (
@@ -100,9 +137,67 @@ export const useDepartmentStore = defineStore("department", () => {
       return fallbackMessage || invalidInputFallbackMessage;
     }
 
+    if (isInternalServerApiMessage(text)) {
+      return fallbackMessage || invalidInputFallbackMessage;
+    }
+
     if (hasKhmerText || !fallbackMessage) return text || fallbackMessage;
 
     return fallbackMessage || invalidInputFallbackMessage;
+  };
+
+  const getDepartmentPayloadValidationMessage = (payload = {}) => {
+    const name = String(payload.name || "").trim();
+    const description = String(payload.description || "").trim();
+    const messages = [];
+
+    if (!name) {
+      messages.push("សូមបញ្ចូលឈ្មោះដេប៉ាតឺម៉ង់។");
+    } else if (name.length > DEPARTMENT_NAME_MAX_LENGTH) {
+      messages.push(nameMaxLengthMessage);
+    }
+
+    if (!description) {
+      messages.push("ការពិពណ៌នាមិនអាចទទេបានទេ។");
+    } else if (description.length > DEPARTMENT_DESCRIPTION_MAX_LENGTH) {
+      messages.push(descriptionMaxLengthMessage);
+    }
+
+    return [...new Set(messages)].join("\n");
+  };
+
+  const showDepartmentPayloadValidation = (payload) => {
+    const message = getDepartmentPayloadValidationMessage(payload);
+    if (!message) return false;
+
+    Swal.fire({
+      title: "ព័ត៌មានមិនត្រឹមត្រូវ",
+      text: message,
+      icon: "warning",
+    });
+    return true;
+  };
+
+  const getDepartmentMutationErrorMessage = (err, fallbackMessage, payload) => {
+    const payloadValidationMessage = getDepartmentPayloadValidationMessage(payload);
+    if (payloadValidationMessage) return payloadValidationMessage;
+
+    const message = getApiErrorMessage(err, fallbackMessage);
+    const status = Number(err.response?.status || 0);
+    const rawMessage = collectErrorMessages(err.response?.data).join(" ");
+    const isNearLimit =
+      String(payload?.name || "").trim().length >= DEPARTMENT_NAME_MAX_LENGTH ||
+      String(payload?.description || "").trim().length >= DEPARTMENT_DESCRIPTION_MAX_LENGTH;
+
+    if (
+      status >= 500 &&
+      isNearLimit &&
+      (isInternalServerApiMessage(message) || isInternalServerApiMessage(rawMessage))
+    ) {
+      return payloadTooLongMessage;
+    }
+
+    return message;
   };
 
   const getApiErrorMessage = (err, fallbackMessage) => {
@@ -192,6 +287,8 @@ export const useDepartmentStore = defineStore("department", () => {
   }
 // 2 . Create Department
   async function createDepartment(payload) {
+    if (showDepartmentPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       const res = await api.post("/departments", payload);
@@ -210,7 +307,7 @@ export const useDepartmentStore = defineStore("department", () => {
       logger.error("Create Department Error:", err.response?.data || err);
       Swal.fire({
         title: "មិនអាចបង្កើតដេប៉ាតឺម៉ង់បានទេ",
-        text: getApiErrorMessage(err, createFallbackMessage),
+        text: getDepartmentMutationErrorMessage(err, createFallbackMessage, payload),
         icon: "error",
       });
       return false;
@@ -220,6 +317,8 @@ export const useDepartmentStore = defineStore("department", () => {
   }
 // 3. Update Department
   async function updateDepartment(id, payload) {
+    if (showDepartmentPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       const res = await api.put(`/departments/${id}`, payload);
@@ -238,7 +337,7 @@ export const useDepartmentStore = defineStore("department", () => {
       logger.error("Update Error:", err);
       Swal.fire(
         "កំហុស",
-        getApiErrorMessage(err, updateFallbackMessage),
+        getDepartmentMutationErrorMessage(err, updateFallbackMessage, payload),
         "error",
       );
       return false;

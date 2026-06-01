@@ -21,6 +21,10 @@ export const allUsersDeactivated = ref(0);
 const CLIENT_FILTER_PAGE_SIZE = 100;
 const MAX_CLIENT_FILTER_PAGES = 50;
 const MIN_PASSWORD_LENGTH = 8;
+export const REGISTER_FULLNAME_MAX_LENGTH = 30;
+export const REGISTER_PHONE_MAX_LENGTH = 15;
+export const REGISTER_CURRENT_JOB_MAX_LENGTH = 30;
+export const REGISTER_BIO_MAX_LENGTH = 50;
 const USER_DEFAULT_SORT_BY = "id";
 const USER_DEFAULT_SORT_DIR = "DESC";
 const registerAlumniFallbackMessage = "មិនអាចបង្កើតគណនីអតីតនិស្សិតបានទេ";
@@ -31,6 +35,14 @@ const passwordComplexityMessage =
   "ពាក្យសម្ងាត់ត្រូវមានអក្សរធំយ៉ាងតិច ១ តួ លេខយ៉ាងតិច ១ និងតួអក្សរពិសេសយ៉ាងតិច ១។";
 const passwordMismatchMessage = "ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ";
 const currentJobRequiredMessage = "សូមបញ្ចូលមុខរបរបច្ចុប្បន្ន";
+const fullnameMaxLengthMessage =
+  `ឈ្មោះពេញលេញមិនអាចបញ្ចូលលើស ${REGISTER_FULLNAME_MAX_LENGTH} តួអក្សរទេ`;
+const phoneMaxLengthMessage =
+  `លេខទូរស័ព្ទមិនអាចបញ្ចូលលើស ${REGISTER_PHONE_MAX_LENGTH} តួអក្សរទេ`;
+const currentJobMaxLengthMessage =
+  `មុខរបរបច្ចុប្បន្នមិនអាចបញ្ចូលលើស ${REGISTER_CURRENT_JOB_MAX_LENGTH} តួអក្សរទេ`;
+const bioMaxLengthMessage =
+  `ជីវប្រវត្តិមិនអាចបញ្ចូលលើស ${REGISTER_BIO_MAX_LENGTH} តួអក្សរទេ`;
 
 export const showAccountTypeModal = ref(false);
 export const showRegisterModal = ref(false);
@@ -70,6 +82,16 @@ const isGenericApiMessage = (message = "") => {
   ].includes(normalized);
 };
 
+const isTooLongApiMessage = (message = "") =>
+  message.includes("too long") ||
+  message.includes("maximum") ||
+  message.includes("max") ||
+  message.includes("length") ||
+  message.includes("characters") ||
+  message.includes("exceed") ||
+  message.includes("less than") ||
+  message.includes("greater than");
+
 const translateKnownApiMessage = (message, fallbackMessage = "") => {
   const text = String(message || "").trim();
   const lower = text.toLowerCase();
@@ -85,6 +107,15 @@ const translateKnownApiMessage = (message, fallbackMessage = "") => {
   }
 
   if (
+    lower.includes("email") &&
+    (lower.includes("invalid") ||
+      lower.includes("format") ||
+      lower.includes("valid email"))
+  ) {
+    return "ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវ។";
+  }
+
+  if (
     lower.includes("phone") &&
     (lower.includes("already") ||
       lower.includes("exist") ||
@@ -92,6 +123,30 @@ const translateKnownApiMessage = (message, fallbackMessage = "") => {
       lower.includes("use"))
   ) {
     return "លេខទូរស័ព្ទនេះត្រូវបានប្រើប្រាស់រួចហើយ។ សូមប្រើលេខផ្សេង។";
+  }
+
+  if (
+    (lower.includes("fullname") ||
+      lower.includes("full name") ||
+      lower.includes("full_name")) &&
+    isTooLongApiMessage(lower)
+  ) {
+    return fullnameMaxLengthMessage;
+  }
+
+  if (lower.includes("phone") && isTooLongApiMessage(lower)) {
+    return phoneMaxLengthMessage;
+  }
+
+  if (
+    (lower.includes("current job") || lower.includes("current_job")) &&
+    isTooLongApiMessage(lower)
+  ) {
+    return currentJobMaxLengthMessage;
+  }
+
+  if (lower.includes("bio") && isTooLongApiMessage(lower)) {
+    return bioMaxLengthMessage;
   }
 
   if (lower.includes("password") && lower.includes("match")) {
@@ -197,6 +252,7 @@ const normalizeErrorField = (field) => {
     department_id: "departmentId",
     generation_id: "generationId",
     current_job: "currentJob",
+    biography: "bio",
   };
 
   return fieldMap[field] || field;
@@ -212,6 +268,7 @@ const inlineErrorFields = new Set([
   "departmentId",
   "generationId",
   "currentJob",
+  "bio",
   "status",
 ]);
 // function to fetch participants of an event with pagination and status filter, handling API responses and errors gracefully, and updating the participants state accordingly.
@@ -237,24 +294,34 @@ const applyApiFieldErrors = (err, targetErrors) => {
 const applyInlineApiMessage = (message, targetErrors, options = {}) => {
   const text = String(message || "").trim();
   if (!text) return false;
+  const lower = text.toLowerCase();
 
-  if (text.includes("ពាក្យសម្ងាត់")) {
+  if (text.includes("ពាក្យសម្ងាត់") || lower.includes("password")) {
     targetErrors.value.password = text;
-  } else if (text.includes("អ៊ីមែល")) {
+  } else if (
+    text.includes("ឈ្មោះពេញលេញ") ||
+    lower.includes("fullname") ||
+    lower.includes("full name") ||
+    lower.includes("full_name")
+  ) {
+    targetErrors.value.fullname = text;
+  } else if (text.includes("អ៊ីមែល") || lower.includes("email")) {
     targetErrors.value.email = text;
-  } else if (text.includes("លេខទូរស័ព្ទ")) {
+  } else if (text.includes("លេខទូរស័ព្ទ") || lower.includes("phone")) {
     if (String(options.phone || "").trim()) {
       targetErrors.value.phone = text;
     } else {
       targetErrors.value.form = text;
     }
-  } else if (text.includes("ដេប៉ាតឺម៉ង់")) {
+  } else if (text.includes("ដេប៉ាតឺម៉ង់") || lower.includes("department")) {
     targetErrors.value.departmentId = text;
-  } else if (text.includes("ជំនាន់")) {
+  } else if (text.includes("ជំនាន់") || lower.includes("generation")) {
     targetErrors.value.generationId = text;
-  } else if (text.includes("មុខរបរបច្ចុប្បន្ន")) {
+  } else if (text.includes("មុខរបរបច្ចុប្បន្ន") || lower.includes("current job") || lower.includes("current_job")) {
     targetErrors.value.currentJob = text;
-  } else if (text.includes("ស្ថានភាព")) {
+  } else if (text.includes("ជីវប្រវត្តិ") || lower.includes("bio") || lower.includes("biography")) {
+    targetErrors.value.bio = text;
+  } else if (text.includes("ស្ថានភាព") || lower.includes("status")) {
     targetErrors.value.status = text;
   } else {
     targetErrors.value.form = text;
@@ -739,23 +806,21 @@ export const requireAdmin = (callback) => {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_MIN_DIGITS = 7;
-export const PHONE_MAX_DIGITS = 10;
+export const PHONE_MAX_DIGITS = REGISTER_PHONE_MAX_LENGTH;
 const PHONE_PATTERN = /^[0-9]+$/;
-const phoneMaxDigitsMessage = `លេខទូរស័ព្ទមិនអាចបញ្ចូលលើស${PHONE_MAX_DIGITS}លេខទេ`;
 const PASSWORD_COMPLEXITY_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/;
 const ALLOWED_STATUSES = ["PENDING", "APPROVE", "REJECT"];
 
 const normalizePhoneValue = (value) =>
   String(value || "")
-    .replace(/\D/g, "")
-    .slice(0, PHONE_MAX_DIGITS);
+    .replace(/\D/g, "");
 
 const isValidPhone = (value) => {
   const phone = String(value || "").trim();
   if (!phone) return true;
 
   const digitCount = phone.replace(/\D/g, "").length;
-  return PHONE_PATTERN.test(phone) && digitCount >= PHONE_MIN_DIGITS && digitCount <= PHONE_MAX_DIGITS;
+  return PHONE_PATTERN.test(phone) && digitCount >= PHONE_MIN_DIGITS && phone.length <= REGISTER_PHONE_MAX_LENGTH;
 };
 
 const isPositiveInteger = (value) => {
@@ -790,7 +855,11 @@ const getFormFieldError = (form, field, options = {}) => {
   const phone = String(form.phone || "").trim();
 
   if (field === "fullname") {
-    return String(form.fullname || "").trim() ? "" : "សូមបញ្ចូលឈ្មោះពេញលេញ";
+    const fullname = String(form.fullname || "").trim();
+    if (!fullname) return "សូមបញ្ចូលឈ្មោះពេញលេញ";
+    return fullname.length <= REGISTER_FULLNAME_MAX_LENGTH
+      ? ""
+      : fullnameMaxLengthMessage;
   }
 
   if (field === "email") {
@@ -800,7 +869,7 @@ const getFormFieldError = (form, field, options = {}) => {
 
   if (field === "phone") {
     if (!phone) return "សូមបញ្ចូលលេខទូរស័ព្ទ";
-    if (phone.replace(/\D/g, "").length > PHONE_MAX_DIGITS) return phoneMaxDigitsMessage;
+    if (phone.length > REGISTER_PHONE_MAX_LENGTH) return phoneMaxLengthMessage;
     return isValidPhone(phone) ? "" : "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
 
@@ -813,9 +882,16 @@ const getFormFieldError = (form, field, options = {}) => {
   }
 
   if (field === "currentJob") {
-    return String(form.currentJob || "").trim()
+    const currentJob = String(form.currentJob || "").trim();
+    if (!currentJob) return currentJobRequiredMessage;
+    return currentJob.length <= REGISTER_CURRENT_JOB_MAX_LENGTH
       ? ""
-      : currentJobRequiredMessage;
+      : currentJobMaxLengthMessage;
+  }
+
+  if (field === "bio") {
+    const bio = String(form.bio || "").trim();
+    return bio.length <= REGISTER_BIO_MAX_LENGTH ? "" : bioMaxLengthMessage;
   }
 
   if (field === "departmentId" && options.requireDepartment) {
@@ -874,15 +950,19 @@ const validateRegisterForm = () => {
   const phone = normalizePhoneValue(form.phone);
   const status = normalizeStatus(form.status);
   const currentJob = form.currentJob?.trim() || "";
+  const bio = form.bio?.trim() || "";
 
   form.fullname = form.fullname?.trim() || "";
   form.email = email;
   form.phone = phone;
   form.currentJob = currentJob;
+  form.bio = bio;
   form.status = status || "APPROVE";
 
   if (!form.fullname) {
     registerErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
+  } else if (form.fullname.length > REGISTER_FULLNAME_MAX_LENGTH) {
+    registerErrors.value.fullname = fullnameMaxLengthMessage;
   }
 
   if (!email) {
@@ -893,8 +973,8 @@ const validateRegisterForm = () => {
 
   if (!phone) {
     registerErrors.value.phone = "សូមបញ្ចូលលេខទូរស័ព្ទ";
-  } else if (phone.length > PHONE_MAX_DIGITS) {
-    registerErrors.value.phone = phoneMaxDigitsMessage;
+  } else if (phone.length > REGISTER_PHONE_MAX_LENGTH) {
+    registerErrors.value.phone = phoneMaxLengthMessage;
   } else if (!isValidPhone(phone)) {
     registerErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
@@ -920,6 +1000,12 @@ const validateRegisterForm = () => {
 
   if (!form.currentJob) {
     registerErrors.value.currentJob = currentJobRequiredMessage;
+  } else if (form.currentJob.length > REGISTER_CURRENT_JOB_MAX_LENGTH) {
+    registerErrors.value.currentJob = currentJobMaxLengthMessage;
+  }
+
+  if (form.bio.length > REGISTER_BIO_MAX_LENGTH) {
+    registerErrors.value.bio = bioMaxLengthMessage;
   }
 
   if (!ALLOWED_STATUSES.includes(form.status)) {
@@ -937,15 +1023,19 @@ const validateAdminRegisterForm = () => {
   const phone = normalizePhoneValue(form.phone);
   const status = normalizeStatus(form.status);
   const currentJob = form.currentJob?.trim() || "";
+  const bio = form.bio?.trim() || "";
 
   form.fullname = form.fullname?.trim() || "";
   form.email = email;
   form.phone = phone;
   form.currentJob = currentJob;
+  form.bio = bio;
   form.status = status || "APPROVE";
 
   if (!form.fullname) {
     adminRegisterErrors.value.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ";
+  } else if (form.fullname.length > REGISTER_FULLNAME_MAX_LENGTH) {
+    adminRegisterErrors.value.fullname = fullnameMaxLengthMessage;
   }
 
   if (!email) {
@@ -956,8 +1046,8 @@ const validateAdminRegisterForm = () => {
 
   if (!phone) {
     adminRegisterErrors.value.phone = "សូមបញ្ចូលលេខទូរស័ព្ទ";
-  } else if (phone.length > PHONE_MAX_DIGITS) {
-    adminRegisterErrors.value.phone = phoneMaxDigitsMessage;
+  } else if (phone.length > REGISTER_PHONE_MAX_LENGTH) {
+    adminRegisterErrors.value.phone = phoneMaxLengthMessage;
   } else if (!isValidPhone(phone)) {
     adminRegisterErrors.value.phone = "លេខទូរស័ព្ទមិនត្រឹមត្រូវ";
   }
@@ -977,6 +1067,12 @@ const validateAdminRegisterForm = () => {
 
   if (!form.currentJob) {
     adminRegisterErrors.value.currentJob = currentJobRequiredMessage;
+  } else if (form.currentJob.length > REGISTER_CURRENT_JOB_MAX_LENGTH) {
+    adminRegisterErrors.value.currentJob = currentJobMaxLengthMessage;
+  }
+
+  if (form.bio.length > REGISTER_BIO_MAX_LENGTH) {
+    adminRegisterErrors.value.bio = bioMaxLengthMessage;
   }
 
   if (!ALLOWED_STATUSES.includes(form.status)) {

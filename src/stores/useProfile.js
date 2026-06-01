@@ -4,6 +4,11 @@ import api from "@/API/api";
 import { useAuthStore } from "@/stores/useAuth";
 import Swal from "sweetalert2";
 
+export const PROFILE_FULLNAME_MAX_LENGTH = 30;
+export const PROFILE_PHONE_MAX_LENGTH = 15;
+export const PROFILE_CURRENT_JOB_MAX_LENGTH = 30;
+export const PROFILE_BIO_MAX_LENGTH = 50;
+
 export const useProfileStore = defineStore("profile", () => {
   const profile = ref(null);
   const loading = ref(false);
@@ -48,6 +53,14 @@ export const useProfileStore = defineStore("profile", () => {
   const deleteAvatarFallbackMessage = "មិនអាចលុបរូបភាពបានទេ។";
   const invalidInputFallbackMessage =
     "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+  const fullnameMaxLengthMessage =
+    `នាមខ្លួនពេញមិនអាចលើស ${PROFILE_FULLNAME_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const phoneMaxLengthMessage =
+    `លេខទូរស័ព្ទមិនអាចលើស ${PROFILE_PHONE_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const currentJobMaxLengthMessage =
+    `ការងារបច្ចុប្បន្នមិនអាចលើស ${PROFILE_CURRENT_JOB_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const bioMaxLengthMessage =
+    `ជីវប្រវត្តិមិនអាចលើស ${PROFILE_BIO_MAX_LENGTH} តួអក្សរបានទេ។`;
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -87,6 +100,22 @@ export const useProfileStore = defineStore("profile", () => {
 
   const hasKhmerText = (message = "") => /[\u1780-\u17ff]/.test(String(message));
 
+  const isTooLongApiMessage = (message = "") => {
+    const normalized = String(message).trim().toLowerCase();
+    return (
+      normalized.includes("must not exceed") ||
+      normalized.includes("not exceed") ||
+      normalized.includes("maximum") ||
+      normalized.includes("max") ||
+      normalized.includes("too long") ||
+      normalized.includes("value too long") ||
+      normalized.includes("data too long") ||
+      normalized.includes("string data right truncation") ||
+      normalized.includes("truncated") ||
+      normalized.includes("exceeds")
+    );
+  };
+
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
@@ -97,13 +126,10 @@ export const useProfileStore = defineStore("profile", () => {
       (lower.includes("full name") ||
         lower.includes("fullname") ||
         lower.includes("full_name")) &&
-      (lower.includes("must not exceed") ||
-        lower.includes("not exceed") ||
-        lower.includes("maximum") ||
-        lower.includes("max"))
+      isTooLongApiMessage(lower)
     ) {
-      const limit = getCharacterLimit(text, "50");
-      return `ឈ្មោះពេញមិនអាចលើស ${limit} តួអក្សរបានទេ។`;
+      const limit = getCharacterLimit(text, String(PROFILE_FULLNAME_MAX_LENGTH));
+      return `នាមខ្លួនពេញមិនអាចលើស ${limit} តួអក្សរបានទេ។`;
     }
 
     if (
@@ -119,24 +145,23 @@ export const useProfileStore = defineStore("profile", () => {
       (lower.includes("current job") ||
         lower.includes("currentjob") ||
         lower.includes("current_job")) &&
-      (lower.includes("must not exceed") ||
-        lower.includes("not exceed") ||
-        lower.includes("maximum") ||
-        lower.includes("max"))
+      isTooLongApiMessage(lower)
     ) {
-      const limit = getCharacterLimit(text, "100");
+      const limit = getCharacterLimit(text, String(PROFILE_CURRENT_JOB_MAX_LENGTH));
       return `ការងារបច្ចុប្បន្នមិនអាចលើស ${limit} តួអក្សរបានទេ។`;
     }
 
     if (
       lower.includes("bio") &&
-      (lower.includes("must not exceed") ||
-        lower.includes("not exceed") ||
-        lower.includes("maximum") ||
-        lower.includes("max"))
+      isTooLongApiMessage(lower)
     ) {
-      const limit = getCharacterLimit(text, "500");
+      const limit = getCharacterLimit(text, String(PROFILE_BIO_MAX_LENGTH));
       return `ជីវប្រវត្តិមិនអាចលើស ${limit} តួអក្សរបានទេ។`;
+    }
+
+    if (lower.includes("phone") && isTooLongApiMessage(lower)) {
+      const limit = getCharacterLimit(text, String(PROFILE_PHONE_MAX_LENGTH));
+      return `លេខទូរស័ព្ទមិនអាចលើស ${limit} តួអក្សរបានទេ។`;
     }
 
     if (lower.includes("phone") && (lower.includes("invalid") || lower.includes("format"))) {
@@ -206,6 +231,48 @@ export const useProfileStore = defineStore("profile", () => {
     const error = new Error(getApiErrorMessage({ response }, fallbackMessage));
     error.response = response;
     return error;
+  };
+
+  const getProfilePayloadValidationErrors = (payload = {}) => {
+    const validationErrors = {};
+    const fullname = String(payload.fullname || "").trim();
+    const phone = String(payload.phone || "").trim();
+    const currentJob = String(payload.currentJob || "").trim();
+    const bio = String(payload.bio || "").trim();
+
+    if (!fullname) {
+      validationErrors.fullname = "សូមបញ្ចូលឈ្មោះពេញលេញ។";
+    } else if (fullname.length > PROFILE_FULLNAME_MAX_LENGTH) {
+      validationErrors.fullname = fullnameMaxLengthMessage;
+    }
+
+    if (phone.length > PROFILE_PHONE_MAX_LENGTH) {
+      validationErrors.phone = phoneMaxLengthMessage;
+    }
+
+    if (currentJob.length > PROFILE_CURRENT_JOB_MAX_LENGTH) {
+      validationErrors.currentJob = currentJobMaxLengthMessage;
+    }
+
+    if (bio.length > PROFILE_BIO_MAX_LENGTH) {
+      validationErrors.bio = bioMaxLengthMessage;
+    }
+
+    return validationErrors;
+  };
+
+  const showProfilePayloadValidation = (payload) => {
+    const validationErrors = getProfilePayloadValidationErrors(payload);
+    const messages = Object.values(validationErrors).filter(Boolean);
+    if (!messages.length) return false;
+
+    errors.value = validationErrors;
+    Swal.fire({
+      title: "ព័ត៌មានមិនត្រឹមត្រូវ",
+      text: [...new Set(messages)].join("\n"),
+      icon: "warning",
+    });
+    return true;
   };
 
   const normalizeErrorField = (field) => {
@@ -310,7 +377,7 @@ export const useProfileStore = defineStore("profile", () => {
 
     try {
       const response = await requestFirstSuccess(
-        ["post", "put"].flatMap((method) =>
+        ["put"].flatMap((method) =>
           avatarEndpoints.map(
             (endpoint) => () =>
               api[method](endpoint, formData, {
@@ -372,8 +439,11 @@ export const useProfileStore = defineStore("profile", () => {
 
   // --- កែប្រែព័ត៌មានផ្ទាល់ខ្លួន ---
   const updateProfile = async (payload) => {
-    loading.value = true;
     errors.value = {};
+
+    if (showProfilePayloadValidation(payload)) return false;
+
+    loading.value = true;
 
     try {
       const sanitizedPayload = Object.fromEntries(

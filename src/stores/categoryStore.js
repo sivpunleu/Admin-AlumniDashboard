@@ -9,6 +9,9 @@ import {
   getPaginationMeta,
 } from "@/utils/paginatedCollection";
 
+export const CATEGORY_NAME_MAX_LENGTH = 50;
+export const CATEGORY_DESCRIPTION_MAX_LENGTH = 200;
+
 export const useCategoryStore = defineStore("category", () => {
   const categories = ref([]);
   const isLoading = ref(false);
@@ -31,6 +34,10 @@ export const useCategoryStore = defineStore("category", () => {
   const deleteFallbackMessage = "មិនអាចលុបប្រភេទនេះបានទេ";
   const invalidInputFallbackMessage =
     "ព័ត៌មានដែលបានបញ្ចូលមិនត្រឹមត្រូវ។ សូមពិនិត្យម្តងទៀត។";
+  const nameMaxLengthMessage =
+    `ឈ្មោះប្រភេទមិនអាចលើស ${CATEGORY_NAME_MAX_LENGTH} តួអក្សរបានទេ។`;
+  const descriptionMaxLengthMessage =
+    `ការពិពណ៌នាប្រភេទមិនអាចលើស ${CATEGORY_DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ។`;
 
   const readFirstError = (value) => {
     if (Array.isArray(value)) return value.map(readFirstError).find(Boolean);
@@ -63,17 +70,32 @@ export const useCategoryStore = defineStore("category", () => {
     ].includes(normalized);
   };
 
+  const isTooLongApiMessage = (message = "") => {
+    const normalized = String(message).trim().toLowerCase();
+    return (
+      normalized.includes("must not exceed") ||
+      normalized.includes("too long") ||
+      normalized.includes("value too long") ||
+      normalized.includes("data too long") ||
+      normalized.includes("string data right truncation") ||
+      normalized.includes("truncated") ||
+      normalized.includes("max length") ||
+      normalized.includes("maximum length") ||
+      normalized.includes("exceeds")
+    );
+  };
+
   const translateKnownApiMessage = (message, fallbackMessage = "") => {
     const text = String(message || "").trim();
     const lower = text.toLowerCase();
     const hasKhmerText = /[\u1780-\u17ff]/.test(text);
 
-    if (lower.includes("name") && lower.includes("must not exceed")) {
-      return "ឈ្មោះប្រភេទមិនអាចលើស 100 តួអក្សរបានទេ។";
+    if (lower.includes("name") && isTooLongApiMessage(lower)) {
+      return nameMaxLengthMessage;
     }
 
-    if (lower.includes("description") && lower.includes("must not exceed")) {
-      return "ការពិពណ៌នាប្រភេទមិនអាចលើស 500 តួអក្សរបានទេ។";
+    if (lower.includes("description") && isTooLongApiMessage(lower)) {
+      return descriptionMaxLengthMessage;
     }
 
     if (
@@ -87,6 +109,13 @@ export const useCategoryStore = defineStore("category", () => {
 
     if (lower.includes("name") && (lower.includes("required") || lower.includes("empty"))) {
       return "សូមបញ្ចូលឈ្មោះប្រភេទ។";
+    }
+
+    if (
+      lower.includes("category") &&
+      (lower.includes("already") || lower.includes("exist") || lower.includes("taken"))
+    ) {
+      return text;
     }
 
     if (
@@ -144,6 +173,14 @@ export const useCategoryStore = defineStore("category", () => {
     return translateKnownApiMessage(err.message, fallbackMessage);
   };
 
+  const isDuplicateCategoryMessage = (message = "") => {
+    const lower = String(message).trim().toLowerCase();
+    return (
+      lower.includes("category") &&
+      (lower.includes("already") || lower.includes("exist") || lower.includes("taken"))
+    );
+  };
+
   const isSuccessResponse = (data) =>
     data == null || (data.result !== false && data.success !== false);
 
@@ -151,6 +188,38 @@ export const useCategoryStore = defineStore("category", () => {
     const error = new Error(getApiErrorMessage({ response }, fallbackMessage));
     error.response = response;
     return error;
+  };
+
+  const getCategoryPayloadValidationMessage = (payload = {}) => {
+    const name = String(payload.name || "").trim();
+    const description = String(payload.description || "").trim();
+    const messages = [];
+
+    if (!name) {
+      messages.push("សូមបញ្ចូលឈ្មោះប្រភេទ។");
+    } else if (name.length > CATEGORY_NAME_MAX_LENGTH) {
+      messages.push(nameMaxLengthMessage);
+    }
+
+    if (!description) {
+      messages.push("ការពិពណ៌នាមិនអាចទទេបានទេ។");
+    } else if (description.length > CATEGORY_DESCRIPTION_MAX_LENGTH) {
+      messages.push(descriptionMaxLengthMessage);
+    }
+
+    return [...new Set(messages)].join("\n");
+  };
+
+  const showCategoryPayloadValidation = (payload) => {
+    const message = getCategoryPayloadValidationMessage(payload);
+    if (!message) return false;
+
+    Swal.fire({
+      title: "ព័ត៌មានមិនត្រឹមត្រូវ",
+      text: message,
+      icon: "warning",
+    });
+    return true;
   };
 // function to determine if an error is due to a category being in use, based on HTTP status code and error message content, with support for multiple languages.
   function isCategoryInUseError(err) {
@@ -197,6 +266,8 @@ export const useCategoryStore = defineStore("category", () => {
   // 2 create category (POST /categories) (based on image 3)
   // check admin role
   async function createCategory(payload) {
+    if (showCategoryPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       const res = await api.post("/categories", payload);
@@ -214,9 +285,12 @@ export const useCategoryStore = defineStore("category", () => {
       return true;
     } catch (err) {
       logger.error("Create Category Error:", err.response?.data || err);
+      const message = getApiErrorMessage(err, createFallbackMessage);
       Swal.fire({
-        title: "មិនអាចបង្កើតប្រភេទបានទេ",
-        text: getApiErrorMessage(err, createFallbackMessage),
+        title: isDuplicateCategoryMessage(message)
+          ? message
+          : "មិនអាចបង្កើតប្រភេទបានទេ",
+        text: isDuplicateCategoryMessage(message) ? "" : message,
         icon: "error",
       });
       return false;
@@ -227,6 +301,8 @@ export const useCategoryStore = defineStore("category", () => {
 
   // 3 update category (PUT /categories/{id}) (based on image 7)
   async function updateCategory(id, payload) {
+    if (showCategoryPayloadValidation(payload)) return false;
+
     try {
       isLoading.value = true;
       const res = await api.put(`/categories/${id}`, payload);
