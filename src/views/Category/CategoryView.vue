@@ -1,6 +1,10 @@
 <script setup>
 import { onMounted, watch, ref, reactive } from 'vue';
-import { useCategoryStore } from '@/stores/categoryStore';
+import {
+    CATEGORY_DESCRIPTION_MAX_LENGTH,
+    CATEGORY_NAME_MAX_LENGTH,
+    useCategoryStore,
+} from '@/stores/categoryStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
 import BasePage from '@/components/UI/Base/BasePage.vue';
@@ -13,8 +17,8 @@ const isEditing = ref(false);
 const currentId = ref(null);
 const form = reactive({ name: '', description: '' });
 const errors = reactive({ name: '', description: '' });
-const NAME_MAX_LENGTH = 100;
-const DESCRIPTION_MAX_LENGTH = 500;
+const NAME_MAX_LENGTH = CATEGORY_NAME_MAX_LENGTH;
+const DESCRIPTION_MAX_LENGTH = CATEGORY_DESCRIPTION_MAX_LENGTH;
 
 onMounted(() => store.fetchCategories());
 
@@ -60,23 +64,48 @@ const closeModal = () => {
     isModalOpen.value = false;
 };
 
+const getNameError = (required = false) => {
+    const name = String(form.name || '').trim();
+
+    if (!name && required) {
+        return 'សូមបញ្ចូលឈ្មោះប្រភេទ';
+    }
+
+    if (name.length > NAME_MAX_LENGTH) {
+        return `ឈ្មោះប្រភេទមិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return '';
+};
+
+const getDescriptionError = (required = false) => {
+    const description = String(form.description || '').trim();
+
+    if (!description && required) {
+        return 'ការពិពណ៌នាមិនអាចទទេបានទេ។';
+    }
+
+    if (description.length > DESCRIPTION_MAX_LENGTH) {
+        return `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return '';
+};
+
+const validateNameField = (required = false) => {
+    errors.name = getNameError(required);
+};
+
+const validateDescriptionField = (required = false) => {
+    errors.description = getDescriptionError(required);
+};
+
 const validateForm = () => {
-    errors.name = '';
-    errors.description = '';
-    form.name = form.name.trim();
+    form.name = String(form.name || '').trim();
     form.description = String(form.description || '').trim();
 
-    if (!form.name) {
-        errors.name = 'សូមបញ្ចូលឈ្មោះប្រភេទ';
-    } else if (form.name.length > NAME_MAX_LENGTH) {
-        errors.name = `ឈ្មោះប្រភេទមិនអាចលើស ${NAME_MAX_LENGTH} តួអក្សរបានទេ`;
-    }
-
-    if (!form.description) {
-        errors.description = 'ការពិពណ៌នាមិនអាចទទេបានទេ។';
-    } else if (form.description.length > DESCRIPTION_MAX_LENGTH) {
-        errors.description = `ការពិពណ៌នាមិនអាចលើស ${DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
-    }
+    validateNameField(true);
+    validateDescriptionField(true);
 
     return !errors.name && !errors.description;
 };
@@ -181,18 +210,16 @@ const handleSubmit = async () => {
                     <label class="form-label small fw-bold text-muted text-uppercase">ឈ្មោះ *</label>
                     <input v-model="form.name" type="text" class="form-control py-2 rounded-3 border-2"
                         :class="{ 'is-invalid': errors.name }" placeholder="បញ្ចូលឈ្មោះប្រភេទ..." required
-                        :maxlength="NAME_MAX_LENGTH"
-                        @input="errors.name = ''" @blur="validateForm">
+                        @input="validateNameField()" @blur="validateNameField(true)">
                     <div v-if="errors.name" class="invalid-feedback">{{ errors.name }}</div>
                 </div>
                 <div>
                     <label class="form-label small fw-bold text-muted text-uppercase">ការពិពណ៌នា *</label>
                     <textarea v-model="form.description" class="form-control rounded-3 border-2" rows="4"
                         :class="{ 'is-invalid': errors.description }"
-                        :maxlength="DESCRIPTION_MAX_LENGTH"
                         placeholder="បញ្ចូលព័ត៌មានលម្អិត..."
                         required
-                        @input="errors.description = ''" @blur="validateForm"></textarea>
+                        @input="validateDescriptionField()" @blur="validateDescriptionField(true)"></textarea>
                     <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
                 </div>
             </form>

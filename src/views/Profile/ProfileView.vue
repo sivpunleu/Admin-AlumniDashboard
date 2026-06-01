@@ -111,8 +111,7 @@
                                         <input v-model="form.fullname" type="text" :disabled="!isEditing"
                                             class="form-control custom-input"
                                             :class="{ 'input-active': isEditing, 'is-invalid': errors.fullname }"
-                                            :maxlength="FULLNAME_MAX_LENGTH"
-                                            @input="errors.fullname = ''">
+                                            @input="validateFullnameField()" @blur="validateFullnameField(true)">
                                         <div v-if="errors.fullname" class="invalid-feedback">{{ errors.fullname }}</div>
                                     </div>
                                     <div class="col-md-6">
@@ -120,7 +119,7 @@
                                         <input v-model="form.phone" type="tel" :disabled="!isEditing"
                                             class="form-control custom-input"
                                             :class="{ 'input-active': isEditing, 'is-invalid': errors.phone }"
-                                            @input="errors.phone = ''">
+                                            @input="validatePhoneField" @blur="validatePhoneField">
                                         <div v-if="errors.phone" class="invalid-feedback">{{ errors.phone }}</div>
                                     </div>
                                     <div class="col-12">
@@ -128,8 +127,7 @@
                                         <input v-model="form.currentJob" type="text" :disabled="!isEditing"
                                             class="form-control custom-input"
                                             :class="{ 'input-active': isEditing, 'is-invalid': errors.currentJob }"
-                                            :maxlength="CURRENT_JOB_MAX_LENGTH"
-                                            @input="errors.currentJob = ''">
+                                            @input="validateCurrentJobField" @blur="validateCurrentJobField">
                                         <div v-if="errors.currentJob" class="invalid-feedback">{{ errors.currentJob }}</div>
                                     </div>
                                     <div class="col-md-6">
@@ -168,8 +166,7 @@
                                         <textarea v-model="form.bio" :disabled="!isEditing"
                                             class="form-control custom-input" rows="4"
                                             :class="{ 'input-active': isEditing, 'is-invalid': errors.bio }"
-                                            :maxlength="BIO_MAX_LENGTH"
-                                            @input="errors.bio = ''"></textarea>
+                                            @input="validateBioField" @blur="validateBioField"></textarea>
                                         <div v-if="errors.bio" class="invalid-feedback">{{ errors.bio }}</div>
                                     </div>
                                 </div>
@@ -210,7 +207,13 @@
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { useDepartmentStore } from '@/stores/departmentStore';
 import * as generationStore from '@/stores/generationStore';
-import { useProfileStore } from '@/stores/useProfile';
+import {
+    PROFILE_BIO_MAX_LENGTH,
+    PROFILE_CURRENT_JOB_MAX_LENGTH,
+    PROFILE_FULLNAME_MAX_LENGTH,
+    PROFILE_PHONE_MAX_LENGTH,
+    useProfileStore,
+} from '@/stores/useProfile';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -244,12 +247,11 @@ const errors = reactive({
 });
 
 const generationOptions = computed(() => generationStore.generations.value || []);
-const FULLNAME_MAX_LENGTH = 50;
-const CURRENT_JOB_MAX_LENGTH = 100;
-const BIO_MAX_LENGTH = 500;
+const FULLNAME_MAX_LENGTH = PROFILE_FULLNAME_MAX_LENGTH;
+const PHONE_MAX_LENGTH = PROFILE_PHONE_MAX_LENGTH;
+const CURRENT_JOB_MAX_LENGTH = PROFILE_CURRENT_JOB_MAX_LENGTH;
+const BIO_MAX_LENGTH = PROFILE_BIO_MAX_LENGTH;
 const PHONE_MIN_DIGITS = 7;
-const PHONE_MAX_DIGITS = 10;
-const PHONE_MAX_DIGITS_LABEL = "១០";
 const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]*$/;
 
 const normalizeId = (value) => {
@@ -265,16 +267,66 @@ const getPhoneError = (value) => {
     const phone = String(value || "").trim();
     if (!phone) return "";
 
-    const digitCount = phone.replace(/\D/g, "").length;
-    if (digitCount > PHONE_MAX_DIGITS) {
-        return `លេខទូរសព្ទមិនត្រូវលើសពី${PHONE_MAX_DIGITS_LABEL}លេខ`;
+    if (phone.length > PHONE_MAX_LENGTH) {
+        return `លេខទូរស័ព្ទមិនអាចលើស ${PHONE_MAX_LENGTH} តួអក្សរបានទេ`;
     }
 
+    const digitCount = phone.replace(/\D/g, "").length;
     if (!PHONE_PATTERN.test(phone) || digitCount < PHONE_MIN_DIGITS) {
         return 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
     }
 
     return "";
+};
+
+const getFullnameError = (required = false) => {
+    const fullname = String(form.fullname || "").trim();
+
+    if (!fullname && required) {
+        return "សូមបញ្ចូលឈ្មោះពេញលេញ";
+    }
+
+    if (fullname.length > FULLNAME_MAX_LENGTH) {
+        return `នាមខ្លួនពេញមិនអាចលើស ${FULLNAME_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return "";
+};
+
+const getCurrentJobError = () => {
+    const currentJob = String(form.currentJob || "").trim();
+
+    if (currentJob.length > CURRENT_JOB_MAX_LENGTH) {
+        return `ការងារបច្ចុប្បន្នមិនអាចលើស ${CURRENT_JOB_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return "";
+};
+
+const getBioError = () => {
+    const bio = String(form.bio || "").trim();
+
+    if (bio.length > BIO_MAX_LENGTH) {
+        return `ជីវប្រវត្តិមិនអាចលើស ${BIO_MAX_LENGTH} តួអក្សរបានទេ`;
+    }
+
+    return "";
+};
+
+const validateFullnameField = (required = false) => {
+    errors.fullname = getFullnameError(required);
+};
+
+const validatePhoneField = () => {
+    errors.phone = getPhoneError(form.phone);
+};
+
+const validateCurrentJobField = () => {
+    errors.currentJob = getCurrentJobError();
+};
+
+const validateBioField = () => {
+    errors.bio = getBioError();
 };
 
 const clearErrors = () => {
@@ -512,24 +564,10 @@ const validateProfileForm = () => {
         (department) => normalizeId(department.id) === departmentId,
     );
 
-    if (!form.fullname) {
-        errors.fullname = 'សូមបញ្ចូលឈ្មោះពេញលេញ';
-    } else if (form.fullname.length > FULLNAME_MAX_LENGTH) {
-        errors.fullname = `ឈ្មោះពេញមិនអាចលើស ${FULLNAME_MAX_LENGTH} តួអក្សរបានទេ`;
-    }
-
-    const phoneError = getPhoneError(form.phone);
-    if (phoneError) {
-        errors.phone = phoneError;
-    }
-
-    if (form.currentJob.length > CURRENT_JOB_MAX_LENGTH) {
-        errors.currentJob = `ការងារបច្ចុប្បន្នមិនអាចលើស ${CURRENT_JOB_MAX_LENGTH} តួអក្សរបានទេ`;
-    }
-
-    if (form.bio.length > BIO_MAX_LENGTH) {
-        errors.bio = `ជីវប្រវត្តិមិនអាចលើស ${BIO_MAX_LENGTH} តួអក្សរបានទេ`;
-    }
+    validateFullnameField(true);
+    validatePhoneField();
+    validateCurrentJobField();
+    validateBioField();
 
     if (requiresAcademicInfo.value && !generationId) {
         errors.generationId = 'សូមជ្រើសរើសជំនាន់';
@@ -550,7 +588,7 @@ const handleUpdateProfile = async () => {
     if (!validateProfileForm()) return;
 
     try {
-        await profileStore.updateProfile({
+        const result = await profileStore.updateProfile({
             fullname: form.fullname,
             phone: form.phone,
             bio: form.bio,
@@ -558,7 +596,11 @@ const handleUpdateProfile = async () => {
             departmentId: form.departmentId ? Number(form.departmentId) : null,
             generationId: form.generationId ? Number(form.generationId) : null,
         });
-        isEditing.value = false;
+        if (result !== false) {
+            isEditing.value = false;
+        } else {
+            applyProfileStoreErrors();
+        }
     } catch (error) {
         applyProfileStoreErrors();
         logger.error("Profile update failed:", error);

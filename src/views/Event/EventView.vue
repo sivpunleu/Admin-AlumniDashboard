@@ -1,7 +1,13 @@
 <script setup>
 import { onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { EVENT_TEXT_MAX_LENGTH, EVENT_THUMBNAIL_MAX_SIZE_LABEL, useEventStore } from '@/stores/eventStore';
+import {
+    EVENT_DESCRIPTION_MAX_LENGTH,
+    EVENT_LOCATION_MAX_LENGTH,
+    EVENT_THUMBNAIL_MAX_SIZE_LABEL,
+    EVENT_TITLE_MAX_LENGTH,
+    useEventStore,
+} from '@/stores/eventStore';
 import { useCategoryStore } from '@/stores/categoryStore';
 import BaseButton from '@/components/UI/Base/BaseButton.vue';
 import BaseModal from '@/components/UI/Base/BaseModal.vue';
@@ -17,7 +23,9 @@ const currentId = ref(null);
 const isSubmitting = ref(false);
 const defaultThumbnailUrl = 'https://via.placeholder.com/100x60?text=Default';
 const thumbnailUploadHint = `អតិបរមា ${EVENT_THUMBNAIL_MAX_SIZE_LABEL}`;
-const textMaxLengthMessage = `តួអក្សរមិនអាចលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរបានទេ។ សូមបញ្ចូលតួអក្សរមិនលើស ${EVENT_TEXT_MAX_LENGTH} តួអក្សរ។`;
+const titleMaxLengthMessage = `ចំណងជើងមិនអាចលើស ${EVENT_TITLE_MAX_LENGTH} តួអក្សរបានទេ`;
+const descriptionMaxLengthMessage = `ការពិពណ៌នាមិនអាចលើស ${EVENT_DESCRIPTION_MAX_LENGTH} តួអក្សរបានទេ`;
+const locationMaxLengthMessage = `ទីតាំងមិនអាចលើស ${EVENT_LOCATION_MAX_LENGTH} តួអក្សរបានទេ`;
 
 const tableColumns = [
     { key: 'title', label: 'ចំណងជើង' },
@@ -39,6 +47,7 @@ const form = reactive({
 });
 const errors = reactive({
     title: '',
+    description: '',
     startDate: '',
     endDate: '',
     location: '',
@@ -110,11 +119,61 @@ const clearErrors = () => {
     });
 };
 
+const getTitleError = (required = false) => {
+    const title = String(form.title || '').trim();
+
+    if (!title && required) {
+        return 'សូមបញ្ចូលចំណងជើង';
+    }
+
+    if (title.length > EVENT_TITLE_MAX_LENGTH) {
+        return titleMaxLengthMessage;
+    }
+
+    return '';
+};
+
+const getDescriptionError = () => {
+    const description = String(form.description || '').trim();
+
+    if (description.length > EVENT_DESCRIPTION_MAX_LENGTH) {
+        return descriptionMaxLengthMessage;
+    }
+
+    return '';
+};
+
+const getLocationError = (required = false) => {
+    const location = String(form.location || '').trim();
+
+    if (!location && required) {
+        return 'សូមបញ្ចូលទីតាំង';
+    }
+
+    if (location.length > EVENT_LOCATION_MAX_LENGTH) {
+        return locationMaxLengthMessage;
+    }
+
+    return '';
+};
+
+const validateTitleField = (required = false) => {
+    errors.title = getTitleError(required);
+};
+
+const validateDescriptionField = () => {
+    errors.description = getDescriptionError();
+};
+
+const validateLocationField = (required = false) => {
+    errors.location = getLocationError(required);
+};
+
 const validateForm = () => {
     clearErrors();
-    form.title = form.title.trim();
-    form.description = form.description.trim();
-    form.location = form.location.trim();
+    form.title = String(form.title || '').trim();
+    form.description = String(form.description || '').trim();
+    form.location = String(form.location || '').trim();
 
     const start = form.startDate ? new Date(form.startDate) : null;
     const end = form.endDate ? new Date(form.endDate) : null;
@@ -123,11 +182,8 @@ const validateForm = () => {
         (category) => Number(category.id) === categoryId,
     );
 
-    if (!form.title) {
-        errors.title = 'សូមបញ្ចូលចំណងជើង';
-    } else if (form.title.length > EVENT_TEXT_MAX_LENGTH) {
-        errors.title = textMaxLengthMessage;
-    }
+    validateTitleField(true);
+    validateDescriptionField();
 
     if (!form.startDate || Number.isNaN(start.getTime())) {
         errors.startDate = 'សូមជ្រើសរើសថ្ងៃចាប់ផ្តើម';
@@ -139,11 +195,7 @@ const validateForm = () => {
         errors.endDate = 'ថ្ងៃបញ្ចប់ មិនអាចមុនថ្ងៃចាប់ផ្តើមឡើយ" ';
     }
 
-    if (!form.location) {
-        errors.location = 'សូមបញ្ចូលទីតាំង';
-    } else if (form.location.length > EVENT_TEXT_MAX_LENGTH) {
-        errors.location = textMaxLengthMessage;
-    }
+    validateLocationField(true);
 
     if (!Number.isInteger(categoryId) || categoryId <= 0) {
         errors.categoryId = 'សូមជ្រើសរើសប្រភេទព្រឹត្តិការណ៍';
@@ -318,8 +370,8 @@ const formatDateTime = (value) => {
                     <div class="col-12">
                         <label class="small fw-bold">ចំណងជើង *</label>
                         <input v-model="form.title" type="text" class="form-control"
-                            :class="{ 'is-invalid': errors.title }" :maxlength="EVENT_TEXT_MAX_LENGTH" required
-                            @input="errors.title = ''" @blur="validateForm">
+                            :class="{ 'is-invalid': errors.title }" required
+                            @input="validateTitleField()" @blur="validateTitleField(true)">
                         <div v-if="errors.title" class="invalid-feedback">{{ errors.title }}</div>
                     </div>
                     <div class="col-md-6">
@@ -339,8 +391,8 @@ const formatDateTime = (value) => {
                     <div class="col-md-8">
                         <label class="small fw-bold">ទីតាំង *</label>
                         <input v-model="form.location" type="text" class="form-control"
-                            :class="{ 'is-invalid': errors.location }" :maxlength="EVENT_TEXT_MAX_LENGTH" required
-                            @input="errors.location = ''" @blur="validateForm">
+                            :class="{ 'is-invalid': errors.location }" required
+                            @input="validateLocationField()" @blur="validateLocationField(true)">
                         <div v-if="errors.location" class="invalid-feedback">{{ errors.location }}</div>
                     </div>
                     <div class="col-md-4">
@@ -356,7 +408,10 @@ const formatDateTime = (value) => {
                     </div>
                     <div class="col-12">
                         <label class="small fw-bold">ការពិពណ៌នា </label>
-                        <textarea v-model="form.description" class="form-control" rows="3"></textarea>
+                        <textarea v-model="form.description" class="form-control"
+                            :class="{ 'is-invalid': errors.description }" rows="3"
+                            @input="validateDescriptionField" @blur="validateDescriptionField"></textarea>
+                        <div v-if="errors.description" class="invalid-feedback">{{ errors.description }}</div>
                     </div>
                 </div>
             </form>

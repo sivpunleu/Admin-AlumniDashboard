@@ -745,7 +745,7 @@ const tableColumns = [
       <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ *</label>
         <input v-model="store.registerForm.value.phone" type="tel" class="form-control"
-          autocomplete="off" inputmode="numeric" pattern="[0-9]*" :maxlength="store.PHONE_MAX_DIGITS"
+          autocomplete="off" inputmode="numeric" pattern="[0-9]*"
           :class="{ 'is-invalid': store.registerErrors.value.phone }"
           @input="store.validateRegisterField('phone')"
           @blur="store.validateRegisterField('phone')"
@@ -858,7 +858,13 @@ const tableColumns = [
       <div class="form-field--full">
         <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
         <textarea v-model="store.registerForm.value.bio" class="form-control" rows="3"
-          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"></textarea>
+          :class="{ 'is-invalid': store.registerErrors.value.bio }"
+          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"
+          @input="store.validateRegisterField('bio')"
+          @blur="store.validateRegisterField('bio')"></textarea>
+        <div v-if="store.registerErrors.value.bio" class="invalid-feedback">
+          {{ store.registerErrors.value.bio }}
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -906,7 +912,7 @@ const tableColumns = [
       <div>
         <label class="form-label fw-bold small">លេខទូរស័ព្ទ *</label>
         <input v-model="store.adminRegisterForm.value.phone" type="tel" class="form-control"
-          autocomplete="off" inputmode="numeric" pattern="[0-9]*" :maxlength="store.PHONE_MAX_DIGITS"
+          autocomplete="off" inputmode="numeric" pattern="[0-9]*"
           :class="{ 'is-invalid': store.adminRegisterErrors.value.phone }"
           placeholder="បញ្ចូលលេខទូរស័ព្ទ"
           @input="store.validateAdminRegisterField('phone')"
@@ -986,7 +992,13 @@ const tableColumns = [
       <div class="form-field--full">
         <label class="form-label fw-bold small">ជីវប្រវត្តិ</label>
         <textarea v-model="store.adminRegisterForm.value.bio" class="form-control" rows="3"
-          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"></textarea>
+          :class="{ 'is-invalid': store.adminRegisterErrors.value.bio }"
+          placeholder="បញ្ចូលជីវប្រវត្តិខ្លីៗ"
+          @input="store.validateAdminRegisterField('bio')"
+          @blur="store.validateAdminRegisterField('bio')"></textarea>
+        <div v-if="store.adminRegisterErrors.value.bio" class="invalid-feedback">
+          {{ store.adminRegisterErrors.value.bio }}
+        </div>
       </div>
 
       <div class="modal-actions">
