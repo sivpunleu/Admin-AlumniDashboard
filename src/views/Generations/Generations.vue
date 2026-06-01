@@ -378,7 +378,7 @@ const handlePageChange = (page) => {
                 <!-- department -->
                 <template #cell-department="{ item }">
                     <span
-                        class="generation-department-badge badge bg-light text-muted border fw-normal px-2 py-1 small"
+                        class="generation-department-badge badge bg-light text-truncate text-muted border fw-normal px-2 py-1 small"
                         :title="item.department?.name || '-'"
                     >
                         {{ item.department?.name || 'មិនមានការពិពណ៌នាឡើយ។' }}
