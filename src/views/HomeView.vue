@@ -374,7 +374,7 @@ onMounted(() => {
             <div class="icon-box text-danger me-3" style="background: #fdf2f2;"><i
                 class="bi bi-exclamation-octagon fs-4"></i></div>
             <div>
-              <p class="text-muted small mb-0">បានផ្អាកដំណើរការ</p>
+              <p class="text-muted small mb-0">ផ្អាកដំណើរការ</p>
               <span v-if="isLoading" class="skeleton-placeholder skeleton-stat-value"></span>
               <h3 v-else class="fw-bold mb-0">{{ stats.deactivated }}</h3>
             </div>

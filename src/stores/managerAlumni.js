@@ -1270,7 +1270,7 @@ export const handleChangeStatus = async (userId, currentStatus = "") => {
     inputOptions: {
       PENDING: "កំពុងរង់ចាំ",
       APPROVE: "យល់ព្រម",
-      REJECT: "បានផ្អាកដំណើរការ",
+      REJECT: "ផ្អាកដំណើរការ",
     },
     showCancelButton: true,
   });
